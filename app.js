@@ -145,8 +145,15 @@ function handleFileImport(file, mode) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = function(e) {
+        const result = e.target.result;
+
+        // 1. Add this explicit type check guard for WebStorm
+        if (typeof result !== 'string') {
+            console.error("Invalid file format read. Expected text.");
+            return;
+        }
         try {
-            const importedData = JSON.parse(e.target.result);
+            const importedData = JSON.parse(result);
             if (!importedData.logs || !importedData.config) {
                 alert("Invalid file blueprint structure.");
                 return;
