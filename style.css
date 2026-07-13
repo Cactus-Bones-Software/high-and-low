@@ -1,0 +1,312 @@
+/* ==========================================================================
+   1. GLOBAL SYSTEM ARCHITECTURE & MASTER VARIABLES
+   ========================================================================== */
+:root {
+    --font-stack: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --transition-speed: 220ms;
+    --transition-curve: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Default: Muted Dark / Low Contrast (Restful on Fatigued Eyes) */
+body[data-theme="dark"][data-contrast="low"] {
+    --bg-color: #121212;
+    --box-bg: #1c1c1e;
+    --text-primary: #a0a0a2;
+    --text-bright: #ffffff;
+    --text-muted: #636366;
+    --border-color: rgba(255, 255, 255, 0.05);
+    --btn-default: #2c2c2e;
+}
+
+/* High Contrast Dark Mode */
+body[data-theme="dark"][data-contrast="high"] {
+    --bg-color: #000000;
+    --box-bg: #121212;
+    --text-primary: #ffffff;
+    --text-bright: #ffffff;
+    --text-muted: #eaeaea;
+    --border-color: #ffffff;
+    --btn-default: #2c2c2e;
+}
+
+/* Clean Light Mode */
+body[data-theme="light"][data-contrast="low"] {
+    --bg-color: #f2f2f7;
+    --box-bg: #ffffff;
+    --text-primary: #3a3a3c;
+    --text-bright: #000000;
+    --text-muted: #8e8e93;
+    --border-color: rgba(0, 0, 0, 0.05);
+    --btn-default: #e5e5ea;
+}
+
+/* High Contrast Light Mode */
+body[data-theme="light"][data-contrast="high"] {
+    --bg-color: #ffffff;
+    --box-bg: #ffffff;
+    --text-primary: #000000;
+    --text-bright: #000000;
+    --text-muted: #000000;
+    --border-color: #000000;
+    --btn-default: #e5e5ea;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background-color: var(--bg-color);
+    font-family: var(--font-stack);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+/* ==========================================================================
+   2. VIEWPORT FRAMING & ORTHOGONAL TRANSITIONS
+   ========================================================================== */
+.viewport-wrapper {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.app-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100vh;
+    box-sizing: border-box;
+    padding: 16px;
+    gap: 16px;
+    transition: transform var(--transition-speed) var(--transition-curve),
+    opacity var(--transition-speed) ease-out;
+}
+
+.view-active {
+    transform: translate(0, 0);
+    opacity: 1;
+    z-index: 10;
+}
+
+.view-hidden-bottom { transform: translateY(100vh); opacity: 0; z-index: 5; }
+.view-hidden-top    { transform: translateY(-100vh); opacity: 0; z-index: 5; }
+.view-hidden-left   { transform: translateX(-100vw); opacity: 0; z-index: 5; }
+.view-hidden-right  { transform: translateX(100vw); opacity: 0; z-index: 5; }
+
+/* ==========================================================================
+   3. BOX GRID COMPONENTS (THE FLEX ARCHITECTURE)
+   ========================================================================== */
+.canvas-box {
+    background-color: var(--box-bg);
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    padding: 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.header-box {
+    flex: 0 0 auto;
+    text-align: center;
+}
+
+.input-box, .menu-box {
+    flex: 1;
+    justify-content: space-around;
+}
+
+.footer-box {
+    flex: 0 0 auto;
+    flex-direction: row;
+    gap: 12px;
+}
+
+.progress-text {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.question-text {
+    font-size: 1.35rem;
+    font-weight: 600;
+    margin: 8px 0 0 0;
+    color: var(--text-bright);
+    line-height: 1.3;
+}
+
+h3 {
+    color: var(--text-bright);
+    margin-top: 0;
+}
+
+/* ==========================================================================
+   4. INTERACTIVE BUTTON INTERFACES (INPUT DECK)
+   ========================================================================== */
+.button-stack {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: 10px;
+    justify-content: space-between;
+}
+
+.score-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    border: none;
+    border-radius: 14px;
+    padding: 0 20px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #ffffff;
+    cursor: pointer;
+    text-align: left;
+    background-color: var(--btn-color, var(--btn-default));
+}
+
+.score-btn .num {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-right: 16px;
+    opacity: 0.7;
+}
+
+.score-btn.desktop-click:active {
+    transform: scale(0.99);
+}
+
+/* ==========================================================================
+   5. THE CHOREOGRAPHED MULTI-CURVE COLOR ENGINE
+   ========================================================================== */
+/* Curve A: Less is Better */
+.input-box[data-curve="less-is-better"] button[data-score="1"] { --btn-color: #2e4a3f; }
+.input-box[data-curve="less-is-better"] button[data-score="2"] { --btn-color: #3b4d36; }
+.input-box[data-curve="less-is-better"] button[data-score="3"] { --btn-color: #524e31; }
+.input-box[data-curve="less-is-better"] button[data-score="4"] { --btn-color: #5c3d2e; }
+.input-box[data-curve="less-is-better"] button[data-score="5"] { --btn-color: #612f2f; }
+
+/* Curve B: More is Better */
+.input-box[data-curve="more-is-better"] button[data-score="1"] { --btn-color: #612f2f; }
+.input-box[data-curve="more-is-better"] button[data-score="2"] { --btn-color: #5c3d2e; }
+.input-box[data-curve="more-is-better"] button[data-score="3"] { --btn-color: #524e31; }
+.input-box[data-curve="more-is-better"] button[data-score="4"] { --btn-color: #3b4d36; }
+.input-box[data-curve="more-is-better"] button[data-score="5"] { --btn-color: #2e4a3f; }
+
+/* ==========================================================================
+   6. HOLD-TO-ACTUATE ENGINE & UTILITIES
+   ========================================================================== */
+.control-btn {
+    position: relative;
+    flex: 1;
+    height: 56px;
+    border: none;
+    border-radius: 14px;
+    background-color: var(--btn-default);
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hold-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0%;
+    background-color: rgba(255, 255, 255, 0.08);
+    pointer-events: none;
+}
+
+body[data-theme="light"] .hold-indicator {
+    background-color: rgba(0, 0, 0, 0.06);
+}
+
+.control-btn.is-holding .hold-indicator {
+    width: 100%;
+    transition: width 1500ms linear;
+}
+
+.btn-label {
+    position: relative;
+    z-index: 2;
+}
+
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    color: var(--text-primary);
+}
+
+select, .utility-btn {
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background-color: var(--btn-default);
+    color: var(--text-bright);
+    font-size: 0.95rem;
+}
+
+.button-grid {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.utility-btn {
+    flex: 1;
+    cursor: pointer;
+    text-align: center;
+}
+
+/* ==========================================================================
+   7. DESKTOP ORIENTATION CONVERSION (MEDIA QUERY)
+   ========================================================================== */
+@media (min-width: 768px) {
+    .app-canvas {
+        flex-direction: row;
+        max-width: 1100px;
+        height: 620px;
+        margin: calc(50vh - 310px) auto;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        border-radius: 24px;
+    }
+
+    .header-box {
+        flex: 1;
+        height: 100%;
+    }
+
+    .input-box, .menu-box {
+        flex: 2;
+        height: 100%;
+    }
+
+    .footer-box {
+        flex: 1;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .button-stack {
+        gap: 12px;
+    }
+}

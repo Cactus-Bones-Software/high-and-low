@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>High & Low</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#121212">
+</head>
+<body data-theme="dark" data-contrast="low">
+
+<div class="viewport-wrapper" id="viewport-wrapper">
+
+    <main id="tracker-canvas" class="app-canvas view-active">
+
+        <header class="canvas-box header-box" id="header-box">
+            <div class="progress-indicator">
+                <span id="progress-text" class="progress-text">Loading tracker...</span>
+            </div>
+            <h1 id="question-text" class="question-text">Initializing High & Low...</h1>
+        </header>
+
+        <section class="canvas-box input-box" id="input-box" data-curve="neutral">
+            <div class="button-stack" id="button-stack">
+                <button class="score-btn" data-score="5"><span class="num">5</span> --</button>
+                <button class="score-btn" data-score="4"><span class="num">4</span> --</button>
+                <button class="score-btn" data-score="3"><span class="num">3</span> --</button>
+                <button class="score-btn" data-score="2"><span class="num">2</span> --</button>
+                <button class="score-btn" data-score="1"><span class="num">1</span> --</button>
+            </div>
+        </section>
+
+        <footer class="canvas-box footer-box" id="footer-box">
+            <button id="btn-notes" class="control-btn hold-action" aria-label="Hold to add custom note">
+                <span class="hold-indicator"></span>
+                <span class="btn-label">Add Note</span>
+            </button>
+            <button id="btn-skip" class="control-btn hold-action" aria-label="Hold to skip the remaining questions">
+                <span class="hold-indicator"></span>
+                <span class="btn-label">Skip the Rest</span>
+            </button>
+        </footer>
+    </main>
+
+    <main id="settings-canvas" class="app-canvas view-hidden-bottom">
+
+        <header class="canvas-box header-box">
+            <h1 class="question-text">App Settings & Data</h1>
+        </header>
+
+        <section class="canvas-box menu-box">
+            <h3>Display Options</h3>
+            <div class="setting-row">
+                <label for="theme-select">Theme:</label>
+                <select id="theme-select">
+                    <option value="system">Match System</option>
+                    <option value="dark" selected>Muted Dark</option>
+                    <option value="light">Clean Light</option>
+                </select>
+            </div>
+            <div class="setting-row">
+                <label for="contrast-select">Contrast:</label>
+                <select id="contrast-select">
+                    <option value="low" selected>Low (Gentle on eyes)</option>
+                    <option value="high">High (Crisp Text)</option>
+                </select>
+            </div>
+        </section>
+
+        <section class="canvas-box menu-box">
+            <h3>Data Management</h3>
+            <div class="button-grid">
+                <button id="btn-export-all" class="utility-btn">Backup Data & Settings</button>
+            </div>
+            <div class="file-import-zone">
+                <label class="utility-btn" for="file-import">Import Backup File</label>
+                <input type="file" id="file-import" accept=".json" style="display: none;">
+            </div>
+        </section>
+
+        <footer class="canvas-box footer-box">
+            <button id="btn-close-settings" class="control-btn">Return to Tracker</button>
+        </footer>
+    </main>
+
+</div>
+
+<script src="app.js" defer></script>
+</body>
+</html>
