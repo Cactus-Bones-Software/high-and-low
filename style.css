@@ -102,6 +102,41 @@ html, body {
     overflow: hidden;
 }
 
+/* Top-right hamburger: entry point to settings & data tools. Hidden while the
+   settings drawer is open. */
+.menu-toggle {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    z-index: 20;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background-color: var(--box-bg);
+    cursor: pointer;
+    transition: opacity var(--transition-speed) ease-out;
+}
+
+.menu-toggle span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    border-radius: 2px;
+    background-color: var(--text-primary);
+}
+
+body.settings-open .menu-toggle {
+    opacity: 0;
+    pointer-events: none;
+}
+
 .app-canvas {
     position: absolute;
     top: 0;
@@ -211,6 +246,12 @@ h3 {
     opacity: 0.5;
 }
 
+.score-btn .label-desc {
+    font-size: 0.95rem;
+    font-weight: 500;
+    opacity: 0.85;
+}
+
 .score-btn.desktop-click:active {
     transform: scale(0.99);
 }
@@ -232,6 +273,13 @@ h3 {
     .input-box[data-curve="more-is-better"] button[data-score="3"] { --btn-color: #524e31; }
     .input-box[data-curve="more-is-better"] button[data-score="4"] { --btn-color: #3b4d36; }
     .input-box[data-curve="more-is-better"] button[data-score="5"] { --btn-color: #2e4a3f; }
+
+    /* Middle-is-best: diverging blue (low) -> emerald (stable) -> orange (spiked) */
+    .input-box[data-curve="middle-is-best"] button[data-score="1"] { --btn-color: #2f3a61; }
+    .input-box[data-curve="middle-is-best"] button[data-score="2"] { --btn-color: #34485a; }
+    .input-box[data-curve="middle-is-best"] button[data-score="3"] { --btn-color: #2e4a3f; }
+    .input-box[data-curve="middle-is-best"] button[data-score="4"] { --btn-color: #5c4d2e; }
+    .input-box[data-curve="middle-is-best"] button[data-score="5"] { --btn-color: #6e3a24; }
 }
 
 body[data-theme="dark"] .input-box[data-curve="less-is-better"] button[data-score="1"] { --btn-color: #2e4a3f; }
@@ -245,6 +293,12 @@ body[data-theme="dark"] .input-box[data-curve="more-is-better"] button[data-scor
 body[data-theme="dark"] .input-box[data-curve="more-is-better"] button[data-score="3"] { --btn-color: #524e31; }
 body[data-theme="dark"] .input-box[data-curve="more-is-better"] button[data-score="4"] { --btn-color: #3b4d36; }
 body[data-theme="dark"] .input-box[data-curve="more-is-better"] button[data-score="5"] { --btn-color: #2e4a3f; }
+
+body[data-theme="dark"] .input-box[data-curve="middle-is-best"] button[data-score="1"] { --btn-color: #2f3a61; }
+body[data-theme="dark"] .input-box[data-curve="middle-is-best"] button[data-score="2"] { --btn-color: #34485a; }
+body[data-theme="dark"] .input-box[data-curve="middle-is-best"] button[data-score="3"] { --btn-color: #2e4a3f; }
+body[data-theme="dark"] .input-box[data-curve="middle-is-best"] button[data-score="4"] { --btn-color: #5c4d2e; }
+body[data-theme="dark"] .input-box[data-curve="middle-is-best"] button[data-score="5"] { --btn-color: #6e3a24; }
 
 
 /* --- LIGHT MODE PALETTE (Default & System Light Pastels) --- */
@@ -260,6 +314,12 @@ body[data-theme="dark"] .input-box[data-curve="more-is-better"] button[data-scor
 .input-box[data-curve="more-is-better"] button[data-score="4"] { --btn-color: #eef3db; }
 .input-box[data-curve="more-is-better"] button[data-score="5"] { --btn-color: #e2f0d9; }
 
+.input-box[data-curve="middle-is-best"] button[data-score="1"] { --btn-color: #d6e0f5; }
+.input-box[data-curve="middle-is-best"] button[data-score="2"] { --btn-color: #d8ece6; }
+.input-box[data-curve="middle-is-best"] button[data-score="3"] { --btn-color: #e2f0d9; }
+.input-box[data-curve="middle-is-best"] button[data-score="4"] { --btn-color: #fdeccf; }
+.input-box[data-curve="middle-is-best"] button[data-score="5"] { --btn-color: #ffd9c2; }
+
 body[data-theme="light"] .input-box[data-curve="less-is-better"] button[data-score="1"] { --btn-color: #e2f0d9; }
 body[data-theme="light"] .input-box[data-curve="less-is-better"] button[data-score="2"] { --btn-color: #eef3db; }
 body[data-theme="light"] .input-box[data-curve="less-is-better"] button[data-score="3"] { --btn-color: #fff3cd; }
@@ -271,6 +331,12 @@ body[data-theme="light"] .input-box[data-curve="more-is-better"] button[data-sco
 body[data-theme="light"] .input-box[data-curve="more-is-better"] button[data-score="3"] { --btn-color: #fff3cd; }
 body[data-theme="light"] .input-box[data-curve="more-is-better"] button[data-score="4"] { --btn-color: #eef3db; }
 body[data-theme="light"] .input-box[data-curve="more-is-better"] button[data-score="5"] { --btn-color: #e2f0d9; }
+
+body[data-theme="light"] .input-box[data-curve="middle-is-best"] button[data-score="1"] { --btn-color: #d6e0f5; }
+body[data-theme="light"] .input-box[data-curve="middle-is-best"] button[data-score="2"] { --btn-color: #d8ece6; }
+body[data-theme="light"] .input-box[data-curve="middle-is-best"] button[data-score="3"] { --btn-color: #e2f0d9; }
+body[data-theme="light"] .input-box[data-curve="middle-is-best"] button[data-score="4"] { --btn-color: #fdeccf; }
+body[data-theme="light"] .input-box[data-curve="middle-is-best"] button[data-score="5"] { --btn-color: #ffd9c2; }
 
 /* ==========================================================================
 6. HOLD-TO-ACTUATE ENGINE & UTILITIES

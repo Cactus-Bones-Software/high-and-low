@@ -8,22 +8,35 @@ const STATE = {
     activeQuestions: [],
     currentQuestionIndex: 0,
     sessionAnswers: [],
+    sessionNote: null,
     deviceMode: 'mouse'
 };
 
-const QUESTION_LIBRARY = [
-    { id: 'q_energy', text: 'What is your current energy level?', curve: 'more-is-better', minLabel: 'Bedbound/Depleted', maxLabel: 'Fully Charged' },
-    { id: 'q_sadness', text: 'How heavy or deep is your sadness right now?', curve: 'less-is-better', minLabel: 'No Sadness', maxLabel: 'Overwhelming' },
-    { id: 'q_worth', text: 'How is your sense of self-worth and guilt?', curve: 'more-is-better', minLabel: 'Intense Guilt/Worthless', maxLabel: 'At Peace' },
-    { id: 'q_irritability', text: 'How irritable or easily agitated do you feel?', curve: 'less-is-better', minLabel: 'Calm & Patient', maxLabel: 'Highly Snappy' },
-    { id: 'q_racing', text: 'How fast are your thoughts moving?', curve: 'less-is-better', minLabel: 'Quiet & Focused', maxLabel: 'Unstoppable Racing' },
-    { id: 'q_impulse', text: 'Are you experiencing restless or reckless urges?', curve: 'less-is-better', minLabel: 'Deliberate', maxLabel: 'Highly Impulsive' }
+// Bump this whenever new entries are added to DEFAULT_QUESTIONS so that existing
+// installs pick up the new built-ins on next load (see seedDefaults) without
+// disturbing the user's own active set or authored questions.
+const SEED_VERSION = 1;
+
+// Built-in questions shipped with the app. User-authored questions live in the
+// same 'questions' store but with builtIn:false and a content-addressed id
+// (see makeCustomId). Built-ins use readable slugs for export/debug legibility.
+const DEFAULT_QUESTIONS = [
+    { id: 'q_energy',       text: 'What is your current energy level?',            curve: 'more-is-better',   minLabel: 'Bedbound/Depleted',      maxLabel: 'Fully Charged',   midLabel: null },
+    { id: 'q_sadness',      text: 'How heavy or deep is your sadness right now?',  curve: 'less-is-better',   minLabel: 'No Sadness',             maxLabel: 'Overwhelming',    midLabel: null },
+    { id: 'q_worth',        text: 'How is your sense of self-worth and guilt?',    curve: 'more-is-better',   minLabel: 'Intense Guilt/Worthless', maxLabel: 'At Peace',        midLabel: null },
+    { id: 'q_irritability', text: 'How irritable or easily agitated do you feel?', curve: 'less-is-better',   minLabel: 'Calm & Patient',         maxLabel: 'Highly Snappy',   midLabel: null },
+    { id: 'q_racing',       text: 'How fast are your thoughts moving?',            curve: 'less-is-better',   minLabel: 'Quiet & Focused',        maxLabel: 'Unstoppable Racing', midLabel: null },
+    { id: 'q_impulse',      text: 'Are you experiencing restless or reckless urges?', curve: 'less-is-better', minLabel: 'Deliberate',           maxLabel: 'Highly Impulsive', midLabel: null },
+    { id: 'q_overall',      text: 'Overall, where does your mood sit right now?',  curve: 'middle-is-best',   minLabel: 'Deeply Low',             maxLabel: 'Manic/Spiked',    midLabel: 'Stable & Even' }
 ];
+
+// Daily set established on first run (ids into the 'questions' store).
+const DEFAULT_ACTIVE_SET = ['q_energy', 'q_sadness', 'q_irritability', 'q_overall'];
 
 // --- 2. INDEXEDDB LOCAL VAULT STRUCT ---
 let db = null;
 const DB_NAME = 'HighAndLowDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 function initDatabase() {
     return new Promise((resolve, reject) => {
@@ -41,8 +54,109 @@ function initDatabase() {
             if (!upgradeDb.objectStoreNames.contains('logs')) {
                 upgradeDb.createObjectStore('logs', { keyPath: 'timestamp' });
             }
+            if (!upgradeDb.objectStoreNames.contains('questions')) {
+                upgradeDb.createObjectStore('questions', { keyPath: 'id' });
+            }
         };
     });
+}
+
+// Promise wrappers over the raw IndexedDB request API.
+function getAll(storeName) {
+    return new Promise((resolve, reject) => {
+        const req = db.transaction([storeName], 'readonly').objectStore(storeName).getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+    });
+}
+function getConfig(key) {
+    return new Promise((resolve, reject) => {
+        const req = db.transaction(['config'], 'readonly').objectStore('config').get(key);
+        req.onsuccess = () => resolve(req.result ? req.result.value : undefined);
+        req.onerror = () => reject(req.error);
+    });
+}
+function setConfig(key, value) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(['config'], 'readwrite');
+        tx.objectStore('config').put({ key, value });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+// --- 2b. QUESTION IDENTITY & SEEDING ---
+
+// Collapse leading/trailing and internal whitespace so trivially-different
+// wordings resolve to the same content-addressed id.
+function normalizeQuestionText(text) {
+    return text.trim().replace(/\s+/g, ' ');
+}
+
+// FNV-1a 32-bit -> 8 hex chars. NOT cryptographic: used only for stable,
+// content-addressed question identity. Identical (normalized) text yields an
+// identical id, which lets identical questions self-dedupe when backups merge.
+function fnv1a32(str) {
+    let hash = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) {
+        hash ^= str.charCodeAt(i);
+        hash = Math.imul(hash, 0x01000193);
+    }
+    return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+// Custom (user-authored) question ids are prefixed 'c_' so a raw export is
+// human-scannable against the built-in 'q_' slugs. The id is frozen at creation
+// from the original text; later edits to display text never change it, so
+// historical logs never orphan.
+function makeCustomId(text) {
+    return 'c_' + fnv1a32(normalizeQuestionText(text));
+}
+
+// Idempotently insert any built-in question whose id is not already present.
+// Runs every load: because we never hard-delete (only archive), an id the user
+// archived still exists and won't be re-added, while genuinely new built-ins in
+// a later SEED_VERSION get picked up automatically.
+async function seedDefaults() {
+    const existing = await getAll('questions');
+    const existingIds = new Set(existing.map(q => q.id));
+    const storedSeed = await getConfig('seedVersion');
+    const now = new Date().toISOString();
+
+    await new Promise((resolve, reject) => {
+        const tx = db.transaction(['questions'], 'readwrite');
+        const store = tx.objectStore('questions');
+        DEFAULT_QUESTIONS.forEach(q => {
+            if (!existingIds.has(q.id)) {
+                store.add({
+                    ...q,
+                    originalText: q.text,
+                    builtIn: true,
+                    archived: false,
+                    createdAt: now,
+                    updatedAt: now
+                });
+            }
+        });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+
+    // First run only: establish the default active set. On later runs we leave
+    // the user's set alone even if it diverges from the defaults.
+    if (storedSeed === undefined) {
+        await setConfig('activeQuestionSet', DEFAULT_ACTIVE_SET);
+    }
+    await setConfig('seedVersion', SEED_VERSION);
+}
+
+// Resolve the ordered active-set ids into full question definitions, dropping
+// any that are missing or archived.
+async function loadActiveQuestions() {
+    const [all, activeSet] = await Promise.all([getAll('questions'), getConfig('activeQuestionSet')]);
+    const byId = new Map(all.map(q => [q.id, q]));
+    const set = Array.isArray(activeSet) ? activeSet : DEFAULT_ACTIVE_SET;
+    STATE.activeQuestions = set.map(id => byId.get(id)).filter(q => q && !q.archived);
 }
 
 // --- 3. DOM ROUTING & ORTHOGONAL SWAPPING ENGINE ---
@@ -62,7 +176,13 @@ function renderCurrentQuestion() {
 
     let buttonsHTML = '';
     for (let score = 5; score >= 1; score--) {
-        let contextLabel = score === 5 ? currentQuestion.maxLabel : (score === 1 ? currentQuestion.minLabel : '');
+        // Endpoints always carry their labels; the midpoint is only meaningful
+        // for the middle-is-best curve (e.g. "Stable & Even").
+        let contextLabel = '';
+        if (score === 5) contextLabel = currentQuestion.maxLabel || '';
+        else if (score === 1) contextLabel = currentQuestion.minLabel || '';
+        else if (score === 3 && currentQuestion.curve === 'middle-is-best') contextLabel = currentQuestion.midLabel || '';
+
         buttonsHTML += `
       <button class="score-btn" data-score="${score}">
         <span class="num">${score}</span>
@@ -81,7 +201,7 @@ function renderCurrentQuestion() {
 }
 
 function handleScoreSubmission(questionId, score) {
-    STATE.sessionAnswers.push({ questionId, score });
+    STATE.sessionAnswers.push({ questionId, score, status: 'answered' });
     STATE.currentQuestionIndex++;
 
     // Transition Left out, Left in
@@ -98,10 +218,22 @@ function handleScoreSubmission(questionId, score) {
 }
 
 function finalizeSession() {
+    // Backfill: every active-set question the user did NOT answer is recorded as
+    // an explicit skip (score null, status 'skipped') rather than left absent.
+    // This preserves the distinction between "chose not to answer" (skipped) and
+    // "was never asked / didn't exist that day" (no record at all).
+    const answeredIds = new Set(STATE.sessionAnswers.map(a => a.questionId));
+    STATE.activeQuestions.forEach(q => {
+        if (!answeredIds.has(q.id)) {
+            STATE.sessionAnswers.push({ questionId: q.id, score: null, status: 'skipped' });
+        }
+    });
+
     const now = new Date();
     const logEntry = {
         timestamp: now.toISOString(), // Standard Human-Readable ISO Identifier
         dateString: now.toISOString().split('T')[0],
+        note: STATE.sessionNote || null,
         answers: STATE.sessionAnswers
     };
 
@@ -117,12 +249,19 @@ function finalizeSession() {
 
 // --- 4. DATA LOG MANAGEMENT (JSON INTERFACE) ---
 function exportAllDataAndConfig() {
-    const backupData = { exportVersion: "1.0", exportTimestamp: new Date().toISOString(), config: [], logs: [] };
-    const transaction = db.transaction(['config', 'logs'], 'readonly');
+    // Export dumps all three stores in full (questions includes archived ones),
+    // which is the only way to guarantee every exported log still resolves its
+    // question definitions after import.
+    const backupData = { exportVersion: "2.0", exportTimestamp: new Date().toISOString(), config: [], questions: [], logs: [] };
+    const transaction = db.transaction(['config', 'questions', 'logs'], 'readonly');
 
     transaction.objectStore('config').openCursor().onsuccess = (e) => {
         const cursor = e.target.result;
         if (cursor) { backupData.config.push(cursor.value); cursor.continue(); }
+    };
+    transaction.objectStore('questions').openCursor().onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (cursor) { backupData.questions.push(cursor.value); cursor.continue(); }
     };
     transaction.objectStore('logs').openCursor().onsuccess = (e) => {
         const cursor = e.target.result;
@@ -147,7 +286,7 @@ function handleFileImport(file, mode) {
     reader.onload = function(e) {
         const result = e.target.result;
 
-        // 1. Add this explicit type check guard for WebStorm
+        // Explicit type guard (WebStorm: FileReader result is string | ArrayBuffer).
         if (typeof result !== 'string') {
             console.error("Invalid file format read. Expected text.");
             return;
@@ -158,22 +297,47 @@ function handleFileImport(file, mode) {
                 alert("Invalid file blueprint structure.");
                 return;
             }
+            // questions absent in legacy (v1) backups -> treat as empty.
+            const importedQuestions = Array.isArray(importedData.questions) ? importedData.questions : [];
+
+            const tx = db.transaction(['config', 'questions', 'logs'], 'readwrite');
+            const configStore = tx.objectStore('config');
+            const questionStore = tx.objectStore('questions');
+            const logStore = tx.objectStore('logs');
+
             if (mode === 'replace') {
-                const tx = db.transaction(['config', 'logs'], 'readwrite');
-                tx.objectStore('config').clear();
-                tx.objectStore('logs').clear();
-                importedData.config.forEach(i => tx.objectStore('config').add(i));
-                importedData.logs.forEach(i => tx.objectStore('logs').add(i));
-                tx.oncomplete = () => window.location.reload();
+                configStore.clear();
+                questionStore.clear();
+                logStore.clear();
+                importedData.config.forEach(i => configStore.add(i));
+                importedQuestions.forEach(i => questionStore.add(i));
+                importedData.logs.forEach(i => logStore.add(i));
             } else {
-                const tx = db.transaction(['config', 'logs'], 'readwrite');
-                importedData.config.forEach(i => tx.objectStore('config').put(i));
-                importedData.logs.forEach(i => safelyAddLogWithCollisionCheck(tx.objectStore('logs'), i));
-                tx.oncomplete = () => window.location.reload();
+                importedData.config.forEach(i => configStore.put(i));
+                importedQuestions.forEach(i => mergeQuestionWithConflictCheck(questionStore, i));
+                importedData.logs.forEach(i => safelyAddLogWithCollisionCheck(logStore, i));
             }
+            tx.oncomplete = () => window.location.reload();
         } catch (err) { alert("Corrupted file payload processing error."); }
     };
     reader.readAsText(file);
+}
+
+// Same id implies same original text (content-addressed). The only real conflict
+// is a divergent display-text/label edit; resolve it by newest updatedAt.
+// ISO-8601 strings compare lexicographically in chronological order.
+function mergeQuestionWithConflictCheck(store, incoming) {
+    const getRequest = store.get(incoming.id);
+    getRequest.onsuccess = (e) => {
+        const existing = e.target.result;
+        if (!existing) {
+            store.add(incoming);
+            return;
+        }
+        if ((incoming.updatedAt || '') > (existing.updatedAt || '')) {
+            store.put(incoming);
+        }
+    };
 }
 
 function safelyAddLogWithCollisionCheck(store, incomingLog) {
@@ -198,7 +362,7 @@ function areLogAnswersIdentical(a, b) {
     const sortFn = (x, y) => x.questionId > y.questionId ? 1 : -1;
     const sA = [...a].sort(sortFn);
     const sB = [...b].sort(sortFn);
-    return sA.every((v, i) => v.questionId === sB[i].questionId && v.score === sB[i].score && v.note === sB[i].note);
+    return sA.every((v, i) => v.questionId === sB[i].questionId && v.score === sB[i].score && v.status === sB[i].status);
 }
 
 // --- 5. TOUCH SAFETY TIME-BARRIER CONFIG ---
@@ -225,48 +389,78 @@ function executeHoldAction(id) {
     if (id === 'btn-skip') finalizeSession();
     if (id === 'btn-notes') {
         const note = prompt("Add a short internal log note (Optional):");
-        if (note) STATE.sessionAnswers.push({ questionId: 'custom_note', score: 0, note });
+        if (note) {
+            // MVP: notes accumulate into a single free-text field on the log.
+            // A structured, individually-timestamped multi-note array is a
+            // possible future feature (tabled pending interest).
+            STATE.sessionNote = STATE.sessionNote ? STATE.sessionNote + '\n\n' + note : note;
+        }
     }
 }
 
-// --- 6. ACCESSIBILITY INTERFACES OVERLAYS ---
-function setupAccessibilitySettings() {
+// --- 6. SETTINGS & MENU NAVIGATION ---
+function setupSettingsAndMenu() {
     const themeSel = document.getElementById('theme-select');
     const contrastSel = document.getElementById('contrast-select');
 
-    themeSel.addEventListener('change', (e) => document.body.setAttribute('data-theme', e.target.value));
-    contrastSel.addEventListener('change', (e) => document.body.setAttribute('data-contrast', e.target.value));
-
-    // Double tap header gesture to reveal settings dashboard cleanly (Orthogonal Swapping)
-    let lastTap = 0;
-    document.getElementById('header-box').addEventListener('click', () => {
-        const now = Date.now();
-        if (now - lastTap < 300) {
-            document.getElementById('tracker-canvas').className = 'app-canvas view-hidden-top';
-            document.getElementById('settings-canvas').className = 'app-canvas view-active';
-        }
-        lastTap = now;
+    themeSel.addEventListener('change', (e) => {
+        document.body.setAttribute('data-theme', e.target.value);
+        setConfig('theme', e.target.value);
+    });
+    contrastSel.addEventListener('change', (e) => {
+        document.body.setAttribute('data-contrast', e.target.value);
+        setConfig('contrast', e.target.value);
     });
 
-    document.getElementById('btn-close-settings').addEventListener('click', () => {
-        document.getElementById('settings-canvas').className = 'app-canvas view-hidden-bottom';
-        document.getElementById('tracker-canvas').className = 'app-canvas view-active';
-    });
+    document.getElementById('btn-menu').addEventListener('click', openSettings);
+    document.getElementById('btn-close-settings').addEventListener('click', closeSettings);
+}
+
+// Settings live in a drawer that slides in from the right (orthogonal swap):
+// tracker exits left, settings enters from the right edge.
+function openSettings() {
+    document.body.classList.add('settings-open');
+    document.getElementById('tracker-canvas').className = 'app-canvas view-hidden-left';
+    document.getElementById('settings-canvas').className = 'app-canvas view-active';
+}
+function closeSettings() {
+    document.body.classList.remove('settings-open');
+    document.getElementById('settings-canvas').className = 'app-canvas view-hidden-right';
+    document.getElementById('tracker-canvas').className = 'app-canvas view-active';
+}
+
+// Apply persisted display preferences (fall back to the HTML defaults if unset).
+async function applyStoredDisplay() {
+    const [theme, contrast] = await Promise.all([getConfig('theme'), getConfig('contrast')]);
+    if (theme) {
+        document.body.setAttribute('data-theme', theme);
+        document.getElementById('theme-select').value = theme;
+    }
+    if (contrast) {
+        document.body.setAttribute('data-contrast', contrast);
+        document.getElementById('contrast-select').value = contrast;
+    }
 }
 
 // --- 7. INITIALIZATION BOOTSTRAP ---
 document.addEventListener("DOMContentLoaded", () => {
-    initDatabase().then(() => {
-        STATE.activeQuestions = [QUESTION_LIBRARY[0], QUESTION_LIBRARY[1], QUESTION_LIBRARY[3]]; // Baseline Default
-        setupHoldActions();
-        setupAccessibilitySettings();
-        renderCurrentQuestion();
+    initDatabase()
+        .then(seedDefaults)
+        .then(() => Promise.all([applyStoredDisplay(), loadActiveQuestions()]))
+        .then(() => {
+            setupHoldActions();
+            setupSettingsAndMenu();
+            renderCurrentQuestion();
 
-        document.getElementById('btn-export-all').addEventListener('click', exportAllDataAndConfig);
-        document.getElementById('file-import').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            const mode = confirm("Click [OK] to MERGE file data natively.\nClick [Cancel] to completely WIPEOUT and REPLACE device logs.") ? 'merge' : 'replace';
-            handleFileImport(file, mode);
+            document.getElementById('btn-export-all').addEventListener('click', exportAllDataAndConfig);
+            document.getElementById('file-import').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                const mode = confirm("Click [OK] to MERGE file data natively.\nClick [Cancel] to completely WIPEOUT and REPLACE device logs.") ? 'merge' : 'replace';
+                handleFileImport(file, mode);
+            });
+        })
+        .catch(err => {
+            console.error('Initialization failed:', err);
+            document.getElementById('question-text').textContent = "Could not open local storage.";
         });
-    });
 });
