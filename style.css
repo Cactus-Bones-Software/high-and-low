@@ -102,6 +102,13 @@ html, body {
     overflow: hidden;
 }
 
+.app-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
 /* Top-right hamburger: entry point to settings & data tools. Hidden while the
    settings drawer is open. */
 .menu-toggle {
@@ -121,7 +128,7 @@ html, body {
     border-radius: 12px;
     background-color: var(--box-bg);
     cursor: pointer;
-    transition: opacity var(--transition-speed) ease-out;
+    transition: opacity var(--transition-speed) ease-out, transform 150ms var(--transition-curve), background-color 150ms var(--transition-curve), border-color 150ms var(--transition-curve);
 }
 
 .menu-toggle span {
@@ -237,6 +244,7 @@ h3 {
     cursor: pointer;
     text-align: left;
     background-color: var(--btn-color, var(--btn-default));
+    transition: transform 150ms var(--transition-curve), filter 150ms var(--transition-curve), background-color 150ms var(--transition-curve);
 }
 
 .score-btn .num {
@@ -252,6 +260,7 @@ h3 {
     opacity: 0.85;
 }
 
+.score-btn:active,
 .score-btn.desktop-click:active {
     transform: scale(0.99);
 }
@@ -390,7 +399,7 @@ body[data-theme="light"] .hold-indicator {
     color: var(--text-primary);
 }
 
-select, .utility-btn {
+select, .utility-btn, .form-input {
     padding: 10px 14px;
     border-radius: 10px;
     border: 1px solid var(--border-color);
@@ -411,8 +420,91 @@ select, .utility-btn {
     text-align: center;
 }
 
+.utility-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
 /* ==========================================================================
-7. DESKTOP ORIENTATION CONVERSION (MEDIA QUERY)
+7. CUSTOM-QUESTION AUTHORING FORM
+========================================================================== */
+
+/* The drawer now holds more than a couple of toggles, so let it scroll. */
+#settings-canvas {
+    overflow-y: auto;
+}
+
+.question-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--text-primary);
+}
+
+.form-field label,
+.preview-caption {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.form-input {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.required-marker {
+    color: #d9534f;
+    font-weight: 700;
+}
+
+.optional-hint {
+    color: var(--text-muted);
+    font-weight: 400;
+    font-size: 0.8rem;
+}
+
+.form-hint {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.question-preview {
+    height: 300px;
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-color);
+    display: flex;
+    flex-direction: column;
+}
+
+.checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+.checkbox-row input {
+    width: 18px;
+    height: 18px;
+}
+
+/* ==========================================================================
+8. DESKTOP ORIENTATION CONVERSION (MEDIA QUERY)
 ========================================================================== */
 @media (min-width: 768px) {
     .app-canvas {

@@ -13,12 +13,13 @@
 <body data-theme="dark" data-contrast="low">
 
 <div class="viewport-wrapper" id="viewport-wrapper">
+    <div class="app-container" id="app-container">
 
-    <button id="btn-menu" class="menu-toggle" aria-label="Open menu &amp; data tools">
-        <span></span><span></span><span></span>
-    </button>
+        <button id="btn-menu" class="menu-toggle" aria-label="Open menu &amp; data tools">
+            <span></span><span></span><span></span>
+        </button>
 
-    <main id="tracker-canvas" class="app-canvas view-active">
+        <main id="tracker-canvas" class="app-canvas view-active">
 
         <header class="canvas-box header-box" id="header-box">
             <div class="progress-indicator">
@@ -75,6 +76,63 @@
         </section>
 
         <section class="canvas-box menu-box">
+            <h3>Custom Questions</h3>
+            <div class="button-grid">
+                <button type="button" id="btn-add-question" class="utility-btn">Add a Question</button>
+            </div>
+
+            <form id="question-form" class="question-form" hidden>
+                <div class="form-field">
+                    <label for="q-text">Question <span class="required-marker" aria-hidden="true">*</span></label>
+                    <textarea id="q-text" class="form-input" rows="2" placeholder="e.g. How rested do you feel?" required></textarea>
+                </div>
+
+                <div class="form-field">
+                    <label for="q-curve">Scale direction <span class="required-marker" aria-hidden="true">*</span></label>
+                    <select id="q-curve">
+                        <option value="more-is-better" selected>Higher is better</option>
+                        <option value="less-is-better">Lower is better</option>
+                        <option value="middle-is-best">Middle is best</option>
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="q-max-label">Top label <span class="optional-hint">(optional)</span></label>
+                    <input type="text" id="q-max-label" class="form-input" placeholder="e.g. Fully Charged">
+                </div>
+
+                <div class="form-field" id="field-mid-label" hidden>
+                    <label for="q-mid-label">Middle label <span class="optional-hint">(optional)</span></label>
+                    <input type="text" id="q-mid-label" class="form-input" placeholder="e.g. Stable &amp; Even">
+                </div>
+
+                <div class="form-field">
+                    <label for="q-min-label">Bottom label <span class="optional-hint">(optional)</span></label>
+                    <input type="text" id="q-min-label" class="form-input" placeholder="e.g. Depleted">
+                </div>
+
+                <p class="form-hint">Leave a label blank and that button simply shows its number.</p>
+
+                <div class="form-field">
+                    <span class="preview-caption">Preview</span>
+                    <section class="input-box question-preview" id="question-preview" data-curve="more-is-better">
+                        <div class="button-stack" id="question-preview-stack"></div>
+                    </section>
+                </div>
+
+                <label class="checkbox-row" for="q-add-to-set">
+                    <input type="checkbox" id="q-add-to-set">
+                    <span>Add to my daily set now</span>
+                </label>
+
+                <div class="button-grid">
+                    <button type="button" id="btn-cancel-question" class="utility-btn">Cancel</button>
+                    <button type="submit" id="btn-save-question" class="utility-btn" disabled>Save Question</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="canvas-box menu-box">
             <h3>Data Management</h3>
             <div class="button-grid">
                 <button id="btn-export-all" class="utility-btn">Backup Data & Settings</button>
@@ -90,6 +148,7 @@
         </footer>
     </main>
 
+    </div>
 </div>
 
 <script src="app.js" defer></script>

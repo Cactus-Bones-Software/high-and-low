@@ -130,6 +130,9 @@ async function seedDefaults() {
             if (!existingIds.has(q.id)) {
                 store.add({
                     ...q,
+                    // Frozen collision-audit anchor: recompute makeCustomId(originalText)
+                    // to verify id integrity and tell a legit text edit from a hash
+                    // collision on merge (see docs/design-decisions.md).
                     originalText: q.text,
                     builtIn: true,
                     archived: false,
@@ -159,7 +162,104 @@ async function loadActiveQuestions() {
     STATE.activeQuestions = set.map(id => byId.get(id)).filter(q => q && !q.archived);
 }
 
+// Persist a user-authored question. The practitioner supplies only meaning
+// (text + curve + optional labels); everything else is inferred here so the
+// record stays consistent with seedDefaults. Returns a Promise resolving to an
+// outcome the UI can surface:
+//   { status: 'added',    id, question }  - a brand-new question was stored
+//   { status: 'restored', id, question }  - an archived twin was un-archived
+//   { status: 'exists',   id, question }  - an active twin already exists (no dup)
+// Duplicate handling leans on content-addressing: identical normalized text
+// yields the same id, so we never store two copies of the same question.
+async function createCustomQuestion({ text, curve, minLabel, maxLabel, midLabel, addToSet }) {
+    const normalized = normalizeQuestionText(text || '');
+    if (!normalized) throw new Error('Question text is required.');
+
+    const id = makeCustomId(normalized);
+    const now = new Date().toISOString();
+
+    const outcome = await new Promise((resolve, reject) => {
+        const tx = db.transaction(['questions'], 'readwrite');
+        const store = tx.objectStore('questions');
+        let result = null;
+
+        const getReq = store.get(id);
+        getReq.onsuccess = () => {
+            const existing = getReq.result;
+            if (existing) {
+                if (existing.archived) {
+                    // Content-addressed twin was archived: restore it rather than
+                    // adding a duplicate under the same id.
+                    const restored = { ...existing, archived: false, updatedAt: now };
+                    store.put(restored);
+                    result = { status: 'restored', id, question: restored };
+                } else {
+                    // Already active: self-dedupe, report instead of duplicating.
+                    result = { status: 'exists', id, question: existing };
+                }
+            } else {
+                const question = {
+                    id,
+                    text: normalized,
+                    originalText: normalized,
+                    curve,
+                    minLabel: minLabel || null,
+                    maxLabel: maxLabel || null,
+                    midLabel: curve === 'middle-is-best' ? (midLabel || null) : null,
+                    builtIn: false,
+                    archived: false,
+                    createdAt: now,
+                    updatedAt: now
+                };
+                store.add(question);
+                result = { status: 'added', id, question };
+            }
+        };
+
+        tx.oncomplete = () => resolve(result);
+        tx.onerror = () => reject(tx.error);
+    });
+
+    // Optional bridge to the daily tracker: append the id to the active set so a
+    // freshly authored question is reachable without the (separate) set editor.
+    // Skip when the id is already present to avoid duplicate entries.
+    if (addToSet) {
+        const activeSet = await getConfig('activeQuestionSet');
+        const set = Array.isArray(activeSet) ? activeSet.slice() : DEFAULT_ACTIVE_SET.slice();
+        if (!set.includes(outcome.id)) {
+            set.push(outcome.id);
+            await setConfig('activeQuestionSet', set);
+        }
+    }
+
+    return outcome;
+}
+
 // --- 3. DOM ROUTING & ORTHOGONAL SWAPPING ENGINE ---
+
+// Build the 5→1 score-button markup for a question. Shared by the live tracker
+// (renderCurrentQuestion) and the authoring preview so the preview matches
+// production exactly. Endpoints always carry their labels; the midpoint is only
+// meaningful for the middle-is-best curve (e.g. "Stable & Even"). Blank labels
+// fall back to '' so the button simply shows its number.
+function buildScoreButtonsHTML(question) {
+    let buttonsHTML = '';
+    for (let score = 5; score >= 1; score--) {
+        let contextLabel = '';
+        if (score === 5) contextLabel = question.maxLabel || '';
+        else if (score === 1) contextLabel = question.minLabel || '';
+        else if (score === 3 && question.curve === 'middle-is-best') contextLabel = question.midLabel || '';
+
+        buttonsHTML += `
+      <button class="score-btn" data-score="${score}">
+        <span class="num">${score}</span>
+        <span class="label-desc">${contextLabel}</span>
+      </button>
+    `;
+    }
+    return buttonsHTML;
+}
+
 function renderCurrentQuestion() {
     const currentQuestion = STATE.activeQuestions[STATE.currentQuestionIndex];
 
@@ -174,23 +274,7 @@ function renderCurrentQuestion() {
     const inputBox = document.getElementById('input-box');
     inputBox.setAttribute('data-curve', currentQuestion.curve);
 
-    let buttonsHTML = '';
-    for (let score = 5; score >= 1; score--) {
-        // Endpoints always carry their labels; the midpoint is only meaningful
-        // for the middle-is-best curve (e.g. "Stable & Even").
-        let contextLabel = '';
-        if (score === 5) contextLabel = currentQuestion.maxLabel || '';
-        else if (score === 1) contextLabel = currentQuestion.minLabel || '';
-        else if (score === 3 && currentQuestion.curve === 'middle-is-best') contextLabel = currentQuestion.midLabel || '';
-
-        buttonsHTML += `
-      <button class="score-btn" data-score="${score}">
-        <span class="num">${score}</span>
-        <span class="label-desc">${contextLabel}</span>
-      </button>
-    `;
-    }
-    document.getElementById('button-stack').innerHTML = buttonsHTML;
+    document.getElementById('button-stack').innerHTML = buildScoreButtonsHTML(currentQuestion);
 
     document.querySelectorAll('.score-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -429,6 +513,117 @@ function closeSettings() {
     document.getElementById('tracker-canvas').className = 'app-canvas view-active';
 }
 
+// Wire up the custom-question authoring form: reveal/hide, conditional midLabel,
+// live preview (via the shared buildScoreButtonsHTML), save-disabled-until-text,
+// and save/cancel handling with duplicate/restore/already-exists messaging.
+function setupQuestionAuthoring() {
+    const toggleBtn = document.getElementById('btn-add-question');
+    const form = document.getElementById('question-form');
+    const textInput = document.getElementById('q-text');
+    const curveInput = document.getElementById('q-curve');
+    const maxInput = document.getElementById('q-max-label');
+    const midField = document.getElementById('field-mid-label');
+    const midInput = document.getElementById('q-mid-label');
+    const minInput = document.getElementById('q-min-label');
+    const preview = document.getElementById('question-preview');
+    const previewStack = document.getElementById('question-preview-stack');
+    const addToSetInput = document.getElementById('q-add-to-set');
+    const saveBtn = document.getElementById('btn-save-question');
+    const cancelBtn = document.getElementById('btn-cancel-question');
+
+    // Render the preview from the current field values, reusing the exact markup
+    // the live tracker uses so the practitioner sees production behaviour.
+    function refreshPreview() {
+        const curve = curveInput.value;
+        preview.setAttribute('data-curve', curve);
+        previewStack.innerHTML = buildScoreButtonsHTML({
+            curve,
+            maxLabel: maxInput.value,
+            minLabel: minInput.value,
+            midLabel: midInput.value
+        });
+    }
+
+    // midLabel is only meaningful for middle-is-best; its presence signals
+    // relevance, so we hide it entirely otherwise.
+    function syncMidVisibility() {
+        midField.hidden = curveInput.value !== 'middle-is-best';
+    }
+
+    // curve always has a valid default, so text is the only gate on Save.
+    function syncSaveEnabled() {
+        saveBtn.disabled = normalizeQuestionText(textInput.value) === '';
+    }
+
+    function resetForm() {
+        form.reset();
+        syncMidVisibility();
+        syncSaveEnabled();
+        refreshPreview();
+    }
+
+    toggleBtn.addEventListener('click', () => {
+        const opening = form.hidden;
+        form.hidden = !opening;
+        toggleBtn.textContent = opening ? 'Hide Form' : 'Add a Question';
+        if (opening) resetForm();
+    });
+
+    curveInput.addEventListener('change', () => {
+        syncMidVisibility();
+        refreshPreview();
+    });
+
+    [textInput, maxInput, midInput, minInput].forEach(el => {
+        el.addEventListener('input', () => {
+            syncSaveEnabled();
+            refreshPreview();
+        });
+    });
+
+    cancelBtn.addEventListener('click', () => {
+        resetForm();
+        form.hidden = true;
+        toggleBtn.textContent = 'Add a Question';
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        saveBtn.disabled = true;
+        try {
+            const outcome = await createCustomQuestion({
+                text: textInput.value,
+                curve: curveInput.value,
+                minLabel: minInput.value,
+                maxLabel: maxInput.value,
+                midLabel: midInput.value,
+                addToSet: addToSetInput.checked
+            });
+
+            if (outcome.status === 'added') {
+                alert('Question saved. It will appear in your tracker on next load.');
+            } else if (outcome.status === 'restored') {
+                alert('That question already existed but was archived — it has been restored.');
+            } else {
+                alert('You already have that question, so nothing was added.');
+            }
+
+            resetForm();
+            form.hidden = true;
+            toggleBtn.textContent = 'Add a Question';
+        } catch (err) {
+            console.error('Failed to save question:', err);
+            alert('Could not save the question. Please try again.');
+            syncSaveEnabled();
+        }
+    });
+
+    // Establish the initial (hidden) state.
+    syncMidVisibility();
+    syncSaveEnabled();
+    refreshPreview();
+}
+
 // Apply persisted display preferences (fall back to the HTML defaults if unset).
 async function applyStoredDisplay() {
     const [theme, contrast] = await Promise.all([getConfig('theme'), getConfig('contrast')]);
@@ -450,6 +645,7 @@ document.addEventListener("DOMContentLoaded", () => {
         .then(() => {
             setupHoldActions();
             setupSettingsAndMenu();
+            setupQuestionAuthoring();
             renderCurrentQuestion();
 
             document.getElementById('btn-export-all').addEventListener('click', exportAllDataAndConfig);
