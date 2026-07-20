@@ -5,8 +5,8 @@ This document outlines the tasks that need to be completed for the project.
 ## High Priority
 
 1. **Enhance Logging**:
-   - Add more detailed logging for user actions.
-   - Implement logging for configuration changes.
+   - Add more detailed logging for user actions, including timestamps, action types, and relevant data.
+   - Implement logging for configuration changes, including the old and new values.
 
 2. **Improve UI/UX**:
    - Add animations and transitions for better user experience.
