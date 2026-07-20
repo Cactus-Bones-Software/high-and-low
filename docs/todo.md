@@ -4,27 +4,23 @@ This document outlines the tasks that need to be completed for the project.
 
 ## High Priority
 
-1. **Implement User Authentication**:
-   - Add user registration and login functionality.
-   - Store user credentials securely.
-
-2. **Enhance Logging**:
+1. **Enhance Logging**:
    - Add more detailed logging for user actions.
    - Implement logging for configuration changes.
 
-3. **Improve UI/UX**:
+2. **Improve UI/UX**:
    - Add animations and transitions for better user experience.
    - Improve the layout and design of the settings page.
 
-4. **Optimize Performance**:
+3. **Optimize Performance**:
    - Optimize database queries for faster data retrieval.
    - Minimize the number of DOM manipulations.
 
-5. **Add Multi-Language Support**:
+4. **Add Multi-Language Support**:
    - Implement localization for the user interface.
    - Provide translations for the most commonly used languages.
 
-6. **Implement Offline Support**:
+5. **Implement Offline Support**:
    - Ensure the app is always able to be offline.
    - Implement synchronization when the user is back online.
 
