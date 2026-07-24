@@ -24,10 +24,6 @@ This document outlines the tasks that need to be completed for the project.
    - Implement localization for the user interface.
    - Provide translations for the most commonly used languages.
 
-6. **Implement Offline Support**:
-   - Ensure the app is always able to be offline.
-   - Implement synchronization when the user is back online.
-
 ## Medium Priority
 
 1. **Implement Data Export/Import**:
@@ -48,14 +44,18 @@ This document outlines the tasks that need to be completed for the project.
 
 ## Low Priority
 
-1. **Add Custom Themes**:
+1. **Implement Offline Support**:
+   - Add support for offline mode to allow users to access the application without an internet connection.
+   - Implement synchronization when the user is back online.
+
+2. **Add Custom Themes**:
    - Allow users to create and share custom themes.
    - Provide a library of community-contributed themes.
 
-2. **Enhance Documentation**:
+3. **Enhance Documentation**:
    - Add more detailed documentation for developers.
    - Provide examples and best practices for using the application.
 
-3. **Add Feedback Mechanism**:
+4. **Add Feedback Mechanism**:
    - Implement a feedback form for users to report issues and suggest improvements.
    - Regularly review and address user feedback.
