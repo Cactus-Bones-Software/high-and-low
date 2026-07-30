@@ -26,6 +26,11 @@ You are an autonomous software developer working on "High & Low", a local-first,
     - Refine `handleFileImport` in `app.js` to handle both `replace` and `merge` modes cleanly.
     - Implement millisecond-level exact matching on incoming log timestamps during merge operations to skip identical duplicates while appending unique historical logs without key collisions.
 
+- [ ] **Task 1.3: "Testing only" banner**
+    - Implement a bright yellow banner with bold black text that informs any user that the version they are looking at is for testing only, and should not be used for psychiatric purposes.
+    - Ensure that the banner is easily hidden from the user via changing a single line of CSS.
+    - Place the CSS 'testing switch' at the top of `style.css` and signpost it for easy finding by a web-master or developer.
+
 ---
 
 ### Phase 2: User Interface & Accessibility Refinements
