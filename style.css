@@ -18,6 +18,9 @@
     --btn-text: #1c1c1e;
 }
 
+/* Testing switch: Uncomment the following line to hide the testing banner */
+/* .testing-banner { display: none; } */
+
 /* System Match: Dark Mode Preference */
 @media (prefers-color-scheme: dark) {
     :root {
@@ -90,6 +93,20 @@ html, body {
     font-family: var(--font-stack), sans-serif;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
+}
+
+/* Testing banner styles */
+.testing-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background-color: #ffeb3b; /* Bright yellow */
+    color: #000000; /* Bold black text */
+    text-align: center;
+    padding: 10px 0;
+    z-index: 1000;
+    font-weight: bold;
 }
 
 /* ==========================================================================
