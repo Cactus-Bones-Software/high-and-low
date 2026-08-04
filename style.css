@@ -530,13 +530,25 @@ select, .utility-btn, .form-input {
 8. DESKTOP ORIENTATION CONVERSION (MEDIA QUERY)
 ========================================================================== */
 @media (min-width: 768px) {
-    .app-canvas {
-        flex-direction: row;
+    /* Centering + card chrome live on .app-container, not .app-canvas.
+       .app-canvas is position:absolute and its transform is already doing the
+       220ms slide animation, so "margin: auto" on it can't center it (an
+       absolutely-positioned box only auto-centers when left AND right are
+       both set). .app-container is a normal block box, so margin:auto works
+       as expected — and the hamburger, which is absolutely positioned
+       relative to .app-container, now sits at the corner of the card the
+       user actually sees instead of the real edge of the browser window. */
+    .app-container {
         max-width: 1100px;
         height: 620px;
-        margin: calc(50vh - 310px) auto;
+        margin: calc(50vh - 310px) auto 0;
         box-shadow: 0 20px 40px rgba(0,0,0,0.15);
         border-radius: 24px;
+        overflow: hidden;
+    }
+
+    .app-canvas {
+        flex-direction: row;
     }
 
     .header-box {
@@ -549,10 +561,21 @@ select, .utility-btn, .form-input {
         height: 100%;
     }
 
+    /* Fixed-width column instead of flex:1 so it doesn't stretch to fill the
+       card's full 620px height. */
     .footer-box {
-        flex: 1;
+        flex: 0 0 180px;
         flex-direction: column;
+        justify-content: center;
         height: 100%;
+        gap: 16px;
+    }
+
+    /* Override the mobile flex:1 (basis 0, grow 1), which is what was
+       letting each button balloon to ~half the footer column's height. */
+    .footer-box .control-btn {
+        flex: 0 0 64px;
+        width: 100%;
     }
 
     .button-stack {
