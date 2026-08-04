@@ -562,8 +562,10 @@ select, .utility-btn, .form-input {
     }
 
     /* Fixed-width column instead of flex:1 so it doesn't stretch to fill the
-       card's full 620px height. */
-    .footer-box {
+       card's full 620px height. Scoped to the tracker only: on the settings
+       drawer the footer is a *row* (single "Return to Tracker" button), and
+       this same flex-basis would set width instead of height there. */
+    #tracker-canvas .footer-box {
         flex: 0 0 180px;
         flex-direction: column;
         justify-content: center;
@@ -573,12 +575,57 @@ select, .utility-btn, .form-input {
 
     /* Override the mobile flex:1 (basis 0, grow 1), which is what was
        letting each button balloon to ~half the footer column's height. */
-    .footer-box .control-btn {
+    #tracker-canvas .footer-box .control-btn {
         flex: 0 0 64px;
         width: 100%;
     }
 
     .button-stack {
         gap: 12px;
+    }
+}
+
+/* ==========================================================================
+9. SETTINGS DRAWER — DESKTOP GRID LAYOUT
+========================================================================== */
+@media (min-width: 768px) {
+    /* This is the "high-energy" workflow surface — the one screen where a
+       desktop user has room to spread out, so it earns its own layout
+       rather than inheriting the tracker's flex-direction:row. Three
+       .menu-box panels of very different natural height (a couple of
+       dropdowns; a live-preview authoring form; two buttons) don't belong
+       as equal-width columns in a row — that's what was squeezing Custom
+       Questions into a sliver too narrow for its own preview box. */
+    #settings-canvas {
+        display: grid;
+        grid-template-columns: 1fr 1.4fr;
+        grid-template-rows: auto auto auto auto;
+        grid-template-areas:
+            "header  header"
+            "display custom"
+            "data    custom"
+            "footer  footer";
+        gap: 16px;
+        height: 100%;
+    }
+
+    #settings-canvas .header-box { grid-area: header; }
+    #panel-display  { grid-area: display; }
+    #panel-questions { grid-area: custom; }
+    #panel-data     { grid-area: data; }
+
+    /* Single-button footer: don't inherit the tracker footer's fixed-width
+       column treatment, it just needs to span the bottom and center itself. */
+    #settings-canvas .footer-box {
+        grid-area: footer;
+        flex: unset;
+        flex-direction: row;
+        height: auto;
+    }
+
+    /* Custom Questions now owns a real column instead of a flex sliver, so
+       the preview can afford a bit more height too. */
+    #panel-questions .question-preview {
+        height: 280px;
     }
 }

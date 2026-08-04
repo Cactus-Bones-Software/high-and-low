@@ -25,132 +25,132 @@
 
         <main id="tracker-canvas" class="app-canvas view-active">
 
-        <header class="canvas-box header-box" id="header-box">
-            <div class="progress-indicator">
-                <span id="progress-text" class="progress-text">Loading tracker...</span>
-            </div>
-            <h1 id="question-text" class="question-text">Initializing High & Low...</h1>
-        </header>
-
-        <section class="canvas-box input-box" id="input-box" data-curve="neutral">
-            <div class="button-stack" id="button-stack">
-                <button class="score-btn" data-score="5"><span class="num">5</span> --</button>
-                <button class="score-btn" data-score="4"><span class="num">4</span> --</button>
-                <button class="score-btn" data-score="3"><span class="num">3</span> --</button>
-                <button class="score-btn" data-score="2"><span class="num">2</span> --</button>
-                <button class="score-btn" data-score="1"><span class="num">1</span> --</button>
-            </div>
-        </section>
-
-        <footer class="canvas-box footer-box" id="footer-box">
-            <button id="btn-notes" class="control-btn hold-action" aria-label="Hold to add custom note">
-                <span class="hold-indicator"></span>
-                <span class="btn-label">Add Note</span>
-            </button>
-            <button id="btn-skip" class="control-btn hold-action" aria-label="Hold to skip the remaining questions">
-                <span class="hold-indicator"></span>
-                <span class="btn-label">Skip the Rest</span>
-            </button>
-        </footer>
-    </main>
-
-    <main id="settings-canvas" class="app-canvas view-hidden-right">
-
-        <header class="canvas-box header-box">
-            <h1 class="question-text">App Settings & Data</h1>
-        </header>
-
-        <section class="canvas-box menu-box">
-            <h3>Display Options</h3>
-            <div class="setting-row">
-                <label for="theme-select">Theme:</label>
-                <select id="theme-select">
-                    <option value="system">Match System</option>
-                    <option value="dark" selected>Muted Dark</option>
-                    <option value="light">Clean Light</option>
-                </select>
-            </div>
-            <div class="setting-row">
-                <label for="contrast-select">Contrast:</label>
-                <select id="contrast-select">
-                    <option value="low" selected>Low (Gentle on eyes)</option>
-                    <option value="high">High (Crisp Text)</option>
-                </select>
-            </div>
-        </section>
-
-        <section class="canvas-box menu-box">
-            <h3>Custom Questions</h3>
-            <div class="button-grid">
-                <button type="button" id="btn-add-question" class="utility-btn">Add a Question</button>
-            </div>
-
-            <form id="question-form" class="question-form" hidden>
-                <div class="form-field">
-                    <label for="q-text">Question <span class="required-marker" aria-hidden="true">*</span></label>
-                    <textarea id="q-text" class="form-input" rows="2" placeholder="e.g. How rested do you feel?" required></textarea>
+            <header class="canvas-box header-box" id="header-box">
+                <div class="progress-indicator">
+                    <span id="progress-text" class="progress-text">Loading tracker...</span>
                 </div>
+                <h1 id="question-text" class="question-text">Initializing High & Low...</h1>
+            </header>
 
-                <div class="form-field">
-                    <label for="q-curve">Scale direction <span class="required-marker" aria-hidden="true">*</span></label>
-                    <select id="q-curve">
-                        <option value="more-is-better" selected>Higher is better</option>
-                        <option value="less-is-better">Lower is better</option>
-                        <option value="middle-is-best">Middle is best</option>
+            <section class="canvas-box input-box" id="input-box" data-curve="neutral">
+                <div class="button-stack" id="button-stack">
+                    <button class="score-btn" data-score="5"><span class="num">5</span> --</button>
+                    <button class="score-btn" data-score="4"><span class="num">4</span> --</button>
+                    <button class="score-btn" data-score="3"><span class="num">3</span> --</button>
+                    <button class="score-btn" data-score="2"><span class="num">2</span> --</button>
+                    <button class="score-btn" data-score="1"><span class="num">1</span> --</button>
+                </div>
+            </section>
+
+            <footer class="canvas-box footer-box" id="footer-box">
+                <button id="btn-notes" class="control-btn hold-action" aria-label="Hold to add custom note">
+                    <span class="hold-indicator"></span>
+                    <span class="btn-label">Add Note</span>
+                </button>
+                <button id="btn-skip" class="control-btn hold-action" aria-label="Hold to skip the remaining questions">
+                    <span class="hold-indicator"></span>
+                    <span class="btn-label">Skip the Rest</span>
+                </button>
+            </footer>
+        </main>
+
+        <main id="settings-canvas" class="app-canvas view-hidden-right">
+
+            <header class="canvas-box header-box">
+                <h1 class="question-text">App Settings & Data</h1>
+            </header>
+
+            <section class="canvas-box menu-box" id="panel-display">
+                <h3>Display Options</h3>
+                <div class="setting-row">
+                    <label for="theme-select">Theme:</label>
+                    <select id="theme-select">
+                        <option value="system">Match System</option>
+                        <option value="dark" selected>Muted Dark</option>
+                        <option value="light">Clean Light</option>
                     </select>
                 </div>
-
-                <div class="form-field">
-                    <label for="q-max-label">Top label <span class="optional-hint">(optional)</span></label>
-                    <input type="text" id="q-max-label" class="form-input" placeholder="e.g. Fully Charged">
+                <div class="setting-row">
+                    <label for="contrast-select">Contrast:</label>
+                    <select id="contrast-select">
+                        <option value="low" selected>Low (Gentle on eyes)</option>
+                        <option value="high">High (Crisp Text)</option>
+                    </select>
                 </div>
+            </section>
 
-                <div class="form-field" id="field-mid-label" hidden>
-                    <label for="q-mid-label">Middle label <span class="optional-hint">(optional)</span></label>
-                    <input type="text" id="q-mid-label" class="form-input" placeholder="e.g. Stable &amp; Even">
-                </div>
-
-                <div class="form-field">
-                    <label for="q-min-label">Bottom label <span class="optional-hint">(optional)</span></label>
-                    <input type="text" id="q-min-label" class="form-input" placeholder="e.g. Depleted">
-                </div>
-
-                <p class="form-hint">Leave a label blank and that button simply shows its number.</p>
-
-                <div class="form-field">
-                    <span class="preview-caption">Preview</span>
-                    <section class="input-box question-preview" id="question-preview" data-curve="more-is-better">
-                        <div class="button-stack" id="question-preview-stack"></div>
-                    </section>
-                </div>
-
-                <label class="checkbox-row" for="q-add-to-set">
-                    <input type="checkbox" id="q-add-to-set">
-                    <span>Add to my daily set now</span>
-                </label>
-
+            <section class="canvas-box menu-box" id="panel-questions">
+                <h3>Custom Questions</h3>
                 <div class="button-grid">
-                    <button type="button" id="btn-cancel-question" class="utility-btn">Cancel</button>
-                    <button type="submit" id="btn-save-question" class="utility-btn" disabled>Save Question</button>
+                    <button type="button" id="btn-add-question" class="utility-btn">Add a Question</button>
                 </div>
-            </form>
-        </section>
 
-        <section class="canvas-box menu-box">
-            <h3>Data Management</h3>
-            <div class="button-grid">
-                <button id="btn-export-all" class="utility-btn">Backup Data & Settings</button>
-            </div>
-            <div class="file-import-zone">
-                <label class="utility-btn" for="file-import">Import Backup File</label>
-                <input type="file" id="file-import" accept=".json" style="display: none;">
-            </div>
-        </section>
+                <form id="question-form" class="question-form" hidden>
+                    <div class="form-field">
+                        <label for="q-text">Question <span class="required-marker" aria-hidden="true">*</span></label>
+                        <textarea id="q-text" class="form-input" rows="2" placeholder="e.g. How rested do you feel?" required></textarea>
+                    </div>
 
-        <footer class="canvas-box footer-box">
-            <button id="btn-close-settings" class="control-btn">Return to Tracker</button>
-        </footer>
-    </main>
+                    <div class="form-field">
+                        <label for="q-curve">Scale direction <span class="required-marker" aria-hidden="true">*</span></label>
+                        <select id="q-curve">
+                            <option value="more-is-better" selected>Higher is better</option>
+                            <option value="less-is-better">Lower is better</option>
+                            <option value="middle-is-best">Middle is best</option>
+                        </select>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="q-max-label">Top label <span class="optional-hint">(optional)</span></label>
+                        <input type="text" id="q-max-label" class="form-input" placeholder="e.g. Fully Charged">
+                    </div>
+
+                    <div class="form-field" id="field-mid-label" hidden>
+                        <label for="q-mid-label">Middle label <span class="optional-hint">(optional)</span></label>
+                        <input type="text" id="q-mid-label" class="form-input" placeholder="e.g. Stable &amp; Even">
+                    </div>
+
+                    <div class="form-field">
+                        <label for="q-min-label">Bottom label <span class="optional-hint">(optional)</span></label>
+                        <input type="text" id="q-min-label" class="form-input" placeholder="e.g. Depleted">
+                    </div>
+
+                    <p class="form-hint">Leave a label blank and that button simply shows its number.</p>
+
+                    <div class="form-field">
+                        <span class="preview-caption">Preview</span>
+                        <section class="input-box question-preview" id="question-preview" data-curve="more-is-better">
+                            <div class="button-stack" id="question-preview-stack"></div>
+                        </section>
+                    </div>
+
+                    <label class="checkbox-row" for="q-add-to-set">
+                        <input type="checkbox" id="q-add-to-set">
+                        <span>Add to my daily set now</span>
+                    </label>
+
+                    <div class="button-grid">
+                        <button type="button" id="btn-cancel-question" class="utility-btn">Cancel</button>
+                        <button type="submit" id="btn-save-question" class="utility-btn" disabled>Save Question</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="canvas-box menu-box" id="panel-data">
+                <h3>Data Management</h3>
+                <div class="button-grid">
+                    <button id="btn-export-all" class="utility-btn">Backup Data & Settings</button>
+                </div>
+                <div class="file-import-zone">
+                    <label class="utility-btn" for="file-import">Import Backup File</label>
+                    <input type="file" id="file-import" accept=".json" style="display: none;">
+                </div>
+            </section>
+
+            <footer class="canvas-box footer-box">
+                <button id="btn-close-settings" class="control-btn">Return to Tracker</button>
+            </footer>
+        </main>
 
     </div>
 </div>

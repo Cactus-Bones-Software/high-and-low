@@ -1,2 +1,3 @@
 # JetBrains IDE settings (machine-specific)
 .idea/
+.aider*
