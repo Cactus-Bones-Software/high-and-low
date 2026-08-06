@@ -132,8 +132,6 @@ body {
     overflow: hidden;
 }
 
-/* Top-right hamburger: entry point to settings & data tools. Hidden while the
-   settings drawer is open. */
 .menu-toggle {
     position: absolute;
     top: 24px;
@@ -288,52 +286,21 @@ h3 {
     transform: scale(0.99);
 }
 
+/* Hover effects for interactive buttons on devices supporting hover */
+@media (hover: hover) {
+    .score-btn:hover {
+        filter: brightness(1.08);
+    }
+    .control-btn:hover, .utility-btn:hover, .menu-toggle:hover {
+        background-color: var(--border-color);
+    }
+}
+
 /* ==========================================================================
 5. THE CHOREOGRAPHED MULTI-CURVE COLOR ENGINE (THEMED)
 ========================================================================== */
 
-/* --- DARK MODE PALETTE (Default & System Dark) --- */
-@media (prefers-color-scheme: dark) {
-    .input-box[data-curve="less-is-better"] button[data-score="1"] { --btn-color: #2e4a3f; }
-    .input-box[data-curve="less-is-better"] button[data-score="2"] { --btn-color: #3b4d36; }
-    .input-box[data-curve="less-is-better"] button[data-score="3"] { --btn-color: #524e31; }
-    .input-box[data-curve="less-is-better"] button[data-score="4"] { --btn-color: #5c3d2e; }
-    .input-box[data-curve="less-is-better"] button[data-score="5"] { --btn-color: #612f2f; }
-
-    .input-box[data-curve="more-is-better"] button[data-score="1"] { --btn-color: #612f2f; }
-    .input-box[data-curve="more-is-better"] button[data-score="2"] { --btn-color: #5c3d2e; }
-    .input-box[data-curve="more-is-better"] button[data-score="3"] { --btn-color: #524e31; }
-    .input-box[data-curve="more-is-better"] button[data-score="4"] { --btn-color: #3b4d36; }
-    .input-box[data-curve="more-is-better"] button[data-score="5"] { --btn-color: #2e4a3f; }
-
-    /* Middle-is-best: diverging blue (low) -> emerald (stable) -> orange (spiked) */
-    .input-box[data-curve="middle-is-best"] button[data-score="1"] { --btn-color: #2f3a61; }
-    .input-box[data-curve="middle-is-best"] button[data-score="2"] { --btn-color: #34485a; }
-    .input-box[data-curve="middle-is-best"] button[data-score="3"] { --btn-color: #2e4a3f; }
-    .input-box[data-curve="middle-is-best"] button[data-score="4"] { --btn-color: #5c4d2e; }
-    .input-box[data-curve="middle-is-best"] button[data-score="5"] { --btn-color: #6e3a24; }
-}
-
-body[data-theme="dark"] .input-box[data-curve="less-is-better"] button[data-score="1"] { --btn-color: #2e4a3f; }
-body[data-theme="dark"] .input-box[data-curve="less-is-better"] button[data-score="2"] { --btn-color: #3b4d36; }
-body[data-theme="dark"] .input-box[data-curve="less-is-better"] button[data-score="3"] { --btn-color: #524e31; }
-body[data-theme="dark"] .input-box[data-curve="less-is-better"] button[data-score="4"] { --btn-color: #5c3d2e; }
-body[data-theme="dark"] .input-box[data-curve="less-is-better"] button[data-score="5"] { --btn-color: #612f2f; }
-
-body[data-theme="dark"] .input-box[data-curve="more-is-better"] button[data-score="1"] { --btn-color: #612f2f; }
-body[data-theme="dark"] .input-box[data-curve="more-is-better"] button[data-score="2"] { --btn-color: #5c3d2e; }
-body[data-theme="dark"] .input-box[data-curve="more-is-better"] button[data-score="3"] { --btn-color: #524e31; }
-body[data-theme="dark"] .input-box[data-curve="more-is-better"] button[data-score="4"] { --btn-color: #3b4d36; }
-body[data-theme="dark"] .input-box[data-curve="more-is-better"] button[data-score="5"] { --btn-color: #2e4a3f; }
-
-body[data-theme="dark"] .input-box[data-curve="middle-is-best"] button[data-score="1"] { --btn-color: #2f3a61; }
-body[data-theme="dark"] .input-box[data-curve="middle-is-best"] button[data-score="2"] { --btn-color: #34485a; }
-body[data-theme="dark"] .input-box[data-curve="middle-is-best"] button[data-score="3"] { --btn-color: #2e4a3f; }
-body[data-theme="dark"] .input-box[data-curve="middle-is-best"] button[data-score="4"] { --btn-color: #5c4d2e; }
-body[data-theme="dark"] .input-box[data-curve="middle-is-best"] button[data-score="5"] { --btn-color: #6e3a24; }
-
-
-/* --- LIGHT MODE PALETTE (Default & System Light Pastels) --- */
+/* --- 5a. LIGHT MODE DEFAULT PALETTE --- */
 .input-box[data-curve="less-is-better"] button[data-score="1"] { --btn-color: #e2f0d9; }
 .input-box[data-curve="less-is-better"] button[data-score="2"] { --btn-color: #eef3db; }
 .input-box[data-curve="less-is-better"] button[data-score="3"] { --btn-color: #fff3cd; }
@@ -351,6 +318,46 @@ body[data-theme="dark"] .input-box[data-curve="middle-is-best"] button[data-scor
 .input-box[data-curve="middle-is-best"] button[data-score="3"] { --btn-color: #e2f0d9; }
 .input-box[data-curve="middle-is-best"] button[data-score="4"] { --btn-color: #fdeccf; }
 .input-box[data-curve="middle-is-best"] button[data-score="5"] { --btn-color: #ffd9c2; }
+
+/* --- 5b. SYSTEM DARK MODE PALETTE (Applies when System is Dark) --- */
+@media (prefers-color-scheme: dark) {
+    .input-box[data-curve="less-is-better"] button[data-score="1"] { --btn-color: #2e4a3f; }
+    .input-box[data-curve="less-is-better"] button[data-score="2"] { --btn-color: #3b4d36; }
+    .input-box[data-curve="less-is-better"] button[data-score="3"] { --btn-color: #524e31; }
+    .input-box[data-curve="less-is-better"] button[data-score="4"] { --btn-color: #5c3d2e; }
+    .input-box[data-curve="less-is-better"] button[data-score="5"] { --btn-color: #612f2f; }
+
+    .input-box[data-curve="more-is-better"] button[data-score="1"] { --btn-color: #612f2f; }
+    .input-box[data-curve="more-is-better"] button[data-score="2"] { --btn-color: #5c3d2e; }
+    .input-box[data-curve="more-is-better"] button[data-score="3"] { --btn-color: #524e31; }
+    .input-box[data-curve="more-is-better"] button[data-score="4"] { --btn-color: #3b4d36; }
+    .input-box[data-curve="more-is-better"] button[data-score="5"] { --btn-color: #2e4a3f; }
+
+    .input-box[data-curve="middle-is-best"] button[data-score="1"] { --btn-color: #2f3a61; }
+    .input-box[data-curve="middle-is-best"] button[data-score="2"] { --btn-color: #34485a; }
+    .input-box[data-curve="middle-is-best"] button[data-score="3"] { --btn-color: #2e4a3f; }
+    .input-box[data-curve="middle-is-best"] button[data-score="4"] { --btn-color: #5c4d2e; }
+    .input-box[data-curve="middle-is-best"] button[data-score="5"] { --btn-color: #6e3a24; }
+}
+
+/* --- 5c. EXPLICIT BODY THEME OVERRIDES --- */
+body[data-theme="dark"] .input-box[data-curve="less-is-better"] button[data-score="1"] { --btn-color: #2e4a3f; }
+body[data-theme="dark"] .input-box[data-curve="less-is-better"] button[data-score="2"] { --btn-color: #3b4d36; }
+body[data-theme="dark"] .input-box[data-curve="less-is-better"] button[data-score="3"] { --btn-color: #524e31; }
+body[data-theme="dark"] .input-box[data-curve="less-is-better"] button[data-score="4"] { --btn-color: #5c3d2e; }
+body[data-theme="dark"] .input-box[data-curve="less-is-better"] button[data-score="5"] { --btn-color: #612f2f; }
+
+body[data-theme="dark"] .input-box[data-curve="more-is-better"] button[data-score="1"] { --btn-color: #612f2f; }
+body[data-theme="dark"] .input-box[data-curve="more-is-better"] button[data-score="2"] { --btn-color: #5c3d2e; }
+body[data-theme="dark"] .input-box[data-curve="more-is-better"] button[data-score="3"] { --btn-color: #524e31; }
+body[data-theme="dark"] .input-box[data-curve="more-is-better"] button[data-score="4"] { --btn-color: #3b4d36; }
+body[data-theme="dark"] .input-box[data-curve="more-is-better"] button[data-score="5"] { --btn-color: #2e4a3f; }
+
+body[data-theme="dark"] .input-box[data-curve="middle-is-best"] button[data-score="1"] { --btn-color: #2f3a61; }
+body[data-theme="dark"] .input-box[data-curve="middle-is-best"] button[data-score="2"] { --btn-color: #34485a; }
+body[data-theme="dark"] .input-box[data-curve="middle-is-best"] button[data-score="3"] { --btn-color: #2e4a3f; }
+body[data-theme="dark"] .input-box[data-curve="middle-is-best"] button[data-score="4"] { --btn-color: #5c4d2e; }
+body[data-theme="dark"] .input-box[data-curve="middle-is-best"] button[data-score="5"] { --btn-color: #6e3a24; }
 
 body[data-theme="light"] .input-box[data-curve="less-is-better"] button[data-score="1"] { --btn-color: #e2f0d9; }
 body[data-theme="light"] .input-box[data-curve="less-is-better"] button[data-score="2"] { --btn-color: #eef3db; }
@@ -452,7 +459,6 @@ select, .utility-btn, .form-input {
 7. CUSTOM-QUESTION AUTHORING FORM
 ========================================================================== */
 
-/* The drawer now holds more than a couple of toggles, so let it scroll. */
 #settings-canvas {
     overflow-y: auto;
 }
@@ -530,14 +536,6 @@ select, .utility-btn, .form-input {
 8. DESKTOP ORIENTATION CONVERSION (MEDIA QUERY)
 ========================================================================== */
 @media (min-width: 768px) {
-    /* Centering + card chrome live on .app-container, not .app-canvas.
-       .app-canvas is position:absolute and its transform is already doing the
-       220ms slide animation, so "margin: auto" on it can't center it (an
-       absolutely-positioned box only auto-centers when left AND right are
-       both set). .app-container is a normal block box, so margin:auto works
-       as expected — and the hamburger, which is absolutely positioned
-       relative to .app-container, now sits at the corner of the card the
-       user actually sees instead of the real edge of the browser window. */
     .app-container {
         max-width: 1100px;
         height: 620px;
@@ -561,10 +559,6 @@ select, .utility-btn, .form-input {
         height: 100%;
     }
 
-    /* Fixed-width column instead of flex:1 so it doesn't stretch to fill the
-       card's full 620px height. Scoped to the tracker only: on the settings
-       drawer the footer is a *row* (single "Return to Tracker" button), and
-       this same flex-basis would set width instead of height there. */
     #tracker-canvas .footer-box {
         flex: 0 0 180px;
         flex-direction: column;
@@ -573,8 +567,6 @@ select, .utility-btn, .form-input {
         gap: 16px;
     }
 
-    /* Override the mobile flex:1 (basis 0, grow 1), which is what was
-       letting each button balloon to ~half the footer column's height. */
     #tracker-canvas .footer-box .control-btn {
         flex: 0 0 64px;
         width: 100%;
@@ -589,13 +581,6 @@ select, .utility-btn, .form-input {
 9. SETTINGS DRAWER — DESKTOP GRID LAYOUT
 ========================================================================== */
 @media (min-width: 768px) {
-    /* This is the "high-energy" workflow surface — the one screen where a
-       desktop user has room to spread out, so it earns its own layout
-       rather than inheriting the tracker's flex-direction:row. Three
-       .menu-box panels of very different natural height (a couple of
-       dropdowns; a live-preview authoring form; two buttons) don't belong
-       as equal-width columns in a row — that's what was squeezing Custom
-       Questions into a sliver too narrow for its own preview box. */
     #settings-canvas {
         display: grid;
         grid-template-columns: 1fr 1.4fr;
@@ -614,8 +599,6 @@ select, .utility-btn, .form-input {
     #panel-questions { grid-area: custom; }
     #panel-data     { grid-area: data; }
 
-    /* Single-button footer: don't inherit the tracker footer's fixed-width
-       column treatment, it just needs to span the bottom and center itself. */
     #settings-canvas .footer-box {
         grid-area: footer;
         flex: unset;
@@ -623,8 +606,6 @@ select, .utility-btn, .form-input {
         height: auto;
     }
 
-    /* Custom Questions now owns a real column instead of a flex sliver, so
-       the preview can afford a bit more height too. */
     #panel-questions .question-preview {
         height: 280px;
     }
