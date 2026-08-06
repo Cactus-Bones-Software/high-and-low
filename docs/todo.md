@@ -8,10 +8,10 @@ You are an autonomous software developer working on "High & Low", a local-first,
 1. **Single Task Focus:** Execute **ONE single unchecked task (`[ ]`) at a time**. Do NOT move to the next task or combine multiple tasks into a single edit session.
 2. **Local-First & Zero Friction:** Maintain extreme care for the user experience. The app is targeted at people in severe mental fatigue or low states—keep animations snappy (<250ms), UI controls large and accessible, and external dependencies at zero.
 3. **Completion Workflow:**
-  - Implement the requested code or architectural change for the selected task.
-  - Test/verify the functionality within the bounds of the vanilla HTML/CSS/JS files (`index.html`, `style.css`, `app.js`).
-  - Mark the completed task as `[x]` in this `todo.md` file.
-  - Prompt the developer/user to inspect the change before proceeding to the next item.
+- Implement the requested code or architectural change for the selected task.
+- Test/verify the functionality within the bounds of the vanilla HTML/CSS/JS files (`index.html`, `style.css`, `app.js`).
+- Mark the completed task as `[x]` in this `todo.md` file.
+- Prompt the developer/user to inspect the change before proceeding to the next item.
 
 ---
 
@@ -45,6 +45,22 @@ You are an autonomous software developer working on "High & Low", a local-first,
 - [x] **Task 2.3: Pastel Palette Refinement for Light Mode**
   - Review color curves in `style.css` under `body[data-theme="light"]`.
   - Ensure "Less is Better", "More is Better", and "Middle is Best" question curves render soft, high-visibility pastel tones instead of dark, low-contrast hex values on light backgrounds.
+
+- [ ] **Task 2.4: Handedness Setting (Left/Right Layout Toggle)**
+  - Add a user preference setting for Handedness (Right-handed vs. Left-handed) to position the hamburger menu button on either top-right or top-left.
+  - Persist handedness preference in `localStorage` and dynamically update the header layout using a `data-handedness` attribute or CSS modifier class.
+
+- [ ] **Task 2.5: View Separation — Dedicated Settings View**
+  - Refactor the current side drawer into a dedicated `#settings-canvas` view focused strictly on application settings (Theme, Handedness, Custom Question Authoring).
+  - Ensure smooth navigation transitions into and out of the settings view with correct `aria` and focus management.
+
+- [ ] **Task 2.6: View Separation — Dedicated Data Management View**
+  - Create a dedicated `#data-canvas` view for all data management tools (Export All Data/Config, Import JSON, Reset Data).
+  - Add navigation routing between the main tracker, settings, and data views.
+
+- [ ] **Task 2.7: View Separation — Placeholder 'Graphs' View**
+  - Create a dedicated `#graphs-canvas` view scaffold to serve as the landing area for data visualization charts.
+  - Provide a clean placeholder interface and navigation entries from the main menu/drawer.
 
 ---
 
@@ -106,3 +122,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 
 - [ ] **Task 5.2: Workspace File Cleanup**
   - Remove any unneeded project boilerplate files (such as `package.json` or `index.js` if created by IDE defaults) and verify the repository remains strictly clean vanilla files.
+
+- [ ] **Task 5.3: Internationalization & Localization Pass**
+  - Extract all hardcoded user-facing UI strings across `index.html` and `app.js` into a centralized translation dictionary.
+  - Implement language switching and localization readiness for questions, controls, navigation, and settings interface elements.
