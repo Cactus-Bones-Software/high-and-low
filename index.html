@@ -106,26 +106,13 @@
                     </select>
                 </div>
                 <div class="setting-row">
-                    <label for="handedness-select">Handedness:</label>
-                    <select id="handedness-select">
-                        <option value="right" selected>Right-handed (Menu Top-Right)</option>
-                        <option value="left">Left-handed (Menu Top-Left)</option>
+                    <label for="menu-side-select">Menu Side:</label>
+                    <select id="menu-side-select">
+                        <option value="right" selected>Right</option>
+                        <option value="left">Left</option>
                     </select>
                 </div>
             </section>
-
-            <section class="canvas-box menu-box" id="panel-view-nav">
-                <h3>App Views &amp; Tools</h3>
-                <div class="button-grid" style="flex-direction: column;">
-                    <button type="button" id="nav-btn-graphs" class="utility-btn">Data Visualizations &amp; Graphs</button>
-                    <button type="button" id="nav-btn-questions" class="utility-btn">Questions Library &amp; Custom Prompts</button>
-                    <button type="button" id="nav-btn-data" class="utility-btn">Data Management &amp; Backups</button>
-                </div>
-            </section>
-
-            <footer class="canvas-box footer-box">
-                <button type="button" id="btn-close-settings" class="control-btn">Return to Tracker</button>
-            </footer>
         </section>
 
         <section id="questions-canvas" class="app-canvas view-hidden-right" role="region" aria-label="Custom Questions Library" inert>
@@ -190,11 +177,6 @@
                     </div>
                 </form>
             </section>
-
-            <footer class="canvas-box footer-box">
-                <button type="button" class="control-btn nav-to-settings">Back to Settings</button>
-                <button type="button" class="control-btn nav-to-tracker">Return to Tracker</button>
-            </footer>
         </section>
 
         <section id="data-canvas" class="app-canvas view-hidden-right" role="region" aria-label="Data Management" inert>
@@ -213,11 +195,6 @@
                     <input type="file" id="file-import" accept=".json" style="display: none;">
                 </div>
             </section>
-
-            <footer class="canvas-box footer-box">
-                <button type="button" class="control-btn nav-to-settings">Back to Settings</button>
-                <button type="button" class="control-btn nav-to-tracker">Return to Tracker</button>
-            </footer>
         </section>
 
         <section id="graphs-canvas" class="app-canvas view-hidden-right" role="region" aria-label="Data Visualizations" inert>
@@ -232,11 +209,6 @@
                     Visual charts and mood trend analytics will be displayed here.
                 </p>
             </section>
-
-            <footer class="canvas-box footer-box">
-                <button type="button" class="control-btn nav-to-settings">Back to Settings</button>
-                <button type="button" class="control-btn nav-to-tracker">Return to Tracker</button>
-            </footer>
         </section>
 
     </div>

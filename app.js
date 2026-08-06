@@ -13,7 +13,7 @@ const STATE = {
 };
 
 // Bump this whenever new entries are added to DEFAULT_QUESTIONS so that existing
-// installs pick up the new built-ins on next load (see seedDefaults) without
+// installations pick up the new built-ins on next load (see seedDefaults) without
 // disturbing the user's own active set or authored questions.
 const SEED_VERSION = 1;
 
@@ -479,7 +479,7 @@ function executeHoldAction(id) {
 function setupSettingsAndMenu() {
     const themeSel = document.getElementById('theme-select');
     const contrastSel = document.getElementById('contrast-select');
-    const handednessSel = document.getElementById('handedness-select');
+    const menuSideSel = document.getElementById('menu-side-select');
 
     const handleThemeChange = (val) => {
         document.body.setAttribute('data-theme', val);
@@ -516,15 +516,15 @@ function setupSettingsAndMenu() {
         return window.setDebugBounds(!currentState);
     };
 
-    const handleHandednessChange = (val) => {
-        document.body.setAttribute('data-handedness', val);
-        setConfig('handedness', val);
-        try { localStorage.setItem('handedness', val); } catch (e) {}
-        if (handednessSel) handednessSel.value = val;
+    const handleMenuSideChange = (val) => {
+        document.body.setAttribute('data-menu-side', val);
+        setConfig('menuSide', val);
+        try { localStorage.setItem('menuSide', val); } catch (e) {}
+        if (menuSideSel) menuSideSel.value = val;
     };
 
-    if (handednessSel) {
-        handednessSel.addEventListener('change', (e) => handleHandednessChange(e.target.value));
+    if (menuSideSel) {
+        menuSideSel.addEventListener('change', (e) => handleMenuSideChange(e.target.value));
     }
 
     // Dynamic listener for OS system theme changes
@@ -591,31 +591,10 @@ function setupSettingsAndMenu() {
         });
     });
 
-    // Navigation links between canvases inside views
-    const btnNavQuestions = document.getElementById('nav-btn-questions');
-    if (btnNavQuestions) {
-        btnNavQuestions.addEventListener('click', () => navigateTo('questions-canvas'));
-    }
-    const btnNavData = document.getElementById('nav-btn-data');
-    if (btnNavData) {
-        btnNavData.addEventListener('click', () => navigateTo('data-canvas'));
-    }
-    const btnNavGraphs = document.getElementById('nav-btn-graphs');
-    if (btnNavGraphs) {
-        btnNavGraphs.addEventListener('click', () => navigateTo('graphs-canvas'));
-    }
-
     const closeSettingsBtn = document.getElementById('btn-close-settings');
     if (closeSettingsBtn) {
         closeSettingsBtn.addEventListener('click', () => navigateTo('tracker-canvas'));
     }
-
-    document.querySelectorAll('.nav-to-settings').forEach(btn => {
-        btn.addEventListener('click', () => navigateTo('settings-canvas'));
-    });
-    document.querySelectorAll('.nav-to-tracker').forEach(btn => {
-        btn.addEventListener('click', () => navigateTo('tracker-canvas'));
-    });
 }
 
 function resetScrollPositions() {
@@ -926,10 +905,10 @@ function setupKeyboardNavigation() {
 }
 
 async function applyStoredDisplay() {
-    const [theme, contrast, handedness, debugBounds] = await Promise.all([
+    const [theme, contrast, menuSide, debugBounds] = await Promise.all([
         getConfig('theme'),
         getConfig('contrast'),
-        getConfig('handedness'),
+        getConfig('menuSide'),
         getConfig('debug-bounds')
     ]);
     const themeVal = theme || 'system';
@@ -945,14 +924,12 @@ async function applyStoredDisplay() {
         if (contrastSel) contrastSel.value = contrast;
     }
 
-    let localHandedness = null;
-    try { localHandedness = localStorage.getItem('handedness'); } catch (e) {}
-    const finalHandedness = handedness || localHandedness || 'right';
-    document.body.setAttribute('data-handedness', finalHandedness);
-    const handednessSel = document.getElementById('handedness-select');
-    const drawerHandednessSel = document.getElementById('drawer-handedness-select');
-    if (handednessSel) handednessSel.value = finalHandedness;
-    if (drawerHandednessSel) drawerHandednessSel.value = finalHandedness;
+    let localMenuSide = null;
+    try { localMenuSide = localStorage.getItem('menuSide'); } catch (e) {}
+    const finalMenuSide = menuSide || localMenuSide || 'right';
+    document.body.setAttribute('data-menu-side', finalMenuSide);
+    const menuSideSel = document.getElementById('menu-side-select');
+    if (menuSideSel) menuSideSel.value = finalMenuSide;
 
     // Ensure debug options/outlines are off on page load
     document.body.setAttribute('data-debug-bounds', 'false');
