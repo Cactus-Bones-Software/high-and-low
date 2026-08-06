@@ -40,6 +40,10 @@ const DB_VERSION = 2;
 
 function initDatabase() {
     return new Promise((resolve, reject) => {
+        if (!window.indexedDB) {
+            reject(new Error("IndexedDB is not supported in this environment."));
+            return;
+        }
         const request = indexedDB.open(DB_NAME, DB_VERSION);
         request.onerror = () => reject(request.error);
         request.onsuccess = () => {
@@ -130,9 +134,6 @@ async function seedDefaults() {
             if (!existingIds.has(q.id)) {
                 store.add({
                     ...q,
-                    // Frozen collision-audit anchor: recompute makeCustomId(originalText)
-                    // to verify id integrity and tell a legit text edit from a hash
-                    // collision on merge (see docs/design-decisions.md).
                     originalText: q.text,
                     builtIn: true,
                     archived: false,
@@ -145,8 +146,7 @@ async function seedDefaults() {
         tx.onerror = () => reject(tx.error);
     });
 
-    // First run only: establish the default active set. On later runs we leave
-    // the user's set alone even if it diverges from the defaults.
+    // First run only: establish the default active set.
     if (storedSeed === undefined) {
         await setConfig('activeQuestionSet', DEFAULT_ACTIVE_SET);
     }
@@ -162,15 +162,7 @@ async function loadActiveQuestions() {
     STATE.activeQuestions = set.map(id => byId.get(id)).filter(q => q && !q.archived);
 }
 
-// Persist a user-authored question. The practitioner supplies only meaning
-// (text + curve + optional labels); everything else is inferred here so the
-// record stays consistent with seedDefaults. Returns a Promise resolving to an
-// outcome the UI can surface:
-//   { status: 'added',    id, question }  - a brand-new question was stored
-//   { status: 'restored', id, question }  - an archived twin was un-archived
-//   { status: 'exists',   id, question }  - an active twin already exists (no dup)
-// Duplicate handling leans on content-addressing: identical normalized text
-// yields the same id, so we never store two copies of the same question.
+// Persist a user-authored question.
 async function createCustomQuestion({ text, curve, minLabel, maxLabel, midLabel, addToSet }) {
     const normalized = normalizeQuestionText(text || '');
     if (!normalized) throw new Error('Question text is required.');
@@ -188,13 +180,10 @@ async function createCustomQuestion({ text, curve, minLabel, maxLabel, midLabel,
             const existing = getReq.result;
             if (existing) {
                 if (existing.archived) {
-                    // Content-addressed twin was archived: restore it rather than
-                    // adding a duplicate under the same id.
                     const restored = { ...existing, archived: false, updatedAt: now };
                     store.put(restored);
                     result = { status: 'restored', id, question: restored };
                 } else {
-                    // Already active: self-dedupe, report instead of duplicating.
                     result = { status: 'exists', id, question: existing };
                 }
             } else {
@@ -220,9 +209,6 @@ async function createCustomQuestion({ text, curve, minLabel, maxLabel, midLabel,
         tx.onerror = () => reject(tx.error);
     });
 
-    // Optional bridge to the daily tracker: append the id to the active set so a
-    // freshly authored question is reachable without the (separate) set editor.
-    // Skip when the id is already present to avoid duplicate entries.
     if (addToSet) {
         const activeSet = await getConfig('activeQuestionSet');
         const set = Array.isArray(activeSet) ? activeSet.slice() : DEFAULT_ACTIVE_SET.slice();
@@ -237,11 +223,6 @@ async function createCustomQuestion({ text, curve, minLabel, maxLabel, midLabel,
 
 // --- 3. DOM ROUTING & ORTHOGONAL SWAPPING ENGINE ---
 
-// Build the 5→1 score-button markup for a question. Shared by the live tracker
-// (renderCurrentQuestion) and the authoring preview so the preview matches
-// production exactly. Endpoints always carry their labels; the midpoint is only
-// meaningful for the middle-is-best curve (e.g. "Stable & Even"). Blank labels
-// fall back to '' so the button simply shows its number.
 function buildScoreButtonsHTML(question) {
     let buttonsHTML = '';
     for (let score = 5; score >= 1; score--) {
@@ -288,7 +269,6 @@ function handleScoreSubmission(questionId, score) {
     STATE.sessionAnswers.push({ questionId, score, status: 'answered' });
     STATE.currentQuestionIndex++;
 
-    // Transition Left out, Left in
     const trackerCanvas = document.getElementById('tracker-canvas');
     trackerCanvas.className = 'app-canvas view-hidden-left';
 
@@ -302,10 +282,6 @@ function handleScoreSubmission(questionId, score) {
 }
 
 function finalizeSession() {
-    // Backfill: every active-set question the user did NOT answer is recorded as
-    // an explicit skip (score null, status 'skipped') rather than left absent.
-    // This preserves the distinction between "chose not to answer" (skipped) and
-    // "was never asked / didn't exist that day" (no record at all).
     const answeredIds = new Set(STATE.sessionAnswers.map(a => a.questionId));
     STATE.activeQuestions.forEach(q => {
         if (!answeredIds.has(q.id)) {
@@ -315,7 +291,7 @@ function finalizeSession() {
 
     const now = new Date();
     const logEntry = {
-        timestamp: now.toISOString(), // Standard Human-Readable ISO Identifier
+        timestamp: now.toISOString(),
         dateString: now.toISOString().split('T')[0],
         note: STATE.sessionNote || null,
         answers: STATE.sessionAnswers
@@ -333,9 +309,6 @@ function finalizeSession() {
 
 // --- 4. DATA LOG MANAGEMENT (JSON INTERFACE) ---
 function exportAllDataAndConfig() {
-    // Export dumps all three stores in full (questions includes archived ones),
-    // which is the only way to guarantee every exported log still resolves its
-    // question definitions after import.
     const backupData = { exportVersion: "2.0", exportTimestamp: new Date().toISOString(), config: [], questions: [], logs: [] };
     const transaction = db.transaction(['config', 'questions', 'logs'], 'readonly');
 
@@ -369,8 +342,6 @@ function handleFileImport(file, mode) {
     const reader = new FileReader();
     reader.onload = function(e) {
         const result = e.target.result;
-
-        // Explicit type guard (WebStorm: FileReader result is string | ArrayBuffer).
         if (typeof result !== 'string') {
             console.error("Invalid file format read. Expected text.");
             return;
@@ -381,7 +352,6 @@ function handleFileImport(file, mode) {
                 alert("Invalid file blueprint structure.");
                 return;
             }
-            // questions absent in legacy (v1) backups -> treat as empty.
             const importedQuestions = Array.isArray(importedData.questions) ? importedData.questions : [];
 
             const tx = db.transaction(['config', 'questions', 'logs'], 'readwrite');
@@ -407,9 +377,6 @@ function handleFileImport(file, mode) {
     reader.readAsText(file);
 }
 
-// Same id implies same original text (content-addressed). The only real conflict
-// is a divergent display-text/label edit; resolve it by newest updatedAt.
-// ISO-8601 strings compare lexicographically in chronological order.
 function mergeQuestionWithConflictCheck(store, incoming) {
     const getRequest = store.get(incoming.id);
     getRequest.onsuccess = (e) => {
@@ -424,27 +391,15 @@ function mergeQuestionWithConflictCheck(store, incoming) {
     };
 }
 
-// Millisecond-exact dedup on import: a log is treated as "the same log" only if
-// its timestamp key AND its full answer set match an existing record — that's
-// the "true redundancy" case and is silently dropped. Any other same-timestamp
-// record (different answers, e.g. two real entries that happened to serialize
-// to the same millisecond, or a legacy/foreign backup) is genuinely unique data
-// and must not be discarded; it's nudged forward 1ms at a time until it lands
-// on a free key, so merge never loses or silently overwrites history.
-// attempt guards against an unbounded recursion in the pathological case where
-// thousands of distinct logs collide on the same starting millisecond in a row.
 function safelyAddLogWithCollisionCheck(store, incomingLog, attempt = 0) {
     const MAX_COLLISION_ATTEMPTS = 1000;
     const getRequest = store.get(incomingLog.timestamp);
     getRequest.onsuccess = (e) => {
         const existingRecord = e.target.result;
         if (existingRecord) {
-            if (areLogAnswersIdentical(existingRecord.answers, incomingLog.answers)) return; // True Redundancy Blocked
+            if (areLogAnswersIdentical(existingRecord.answers, incomingLog.answers)) return;
 
             if (attempt >= MAX_COLLISION_ATTEMPTS) {
-                // Should be unreachable in practice (would need 1000 distinct logs
-                // stacked on consecutive milliseconds). Fail loudly rather than
-                // spin forever or silently drop real data.
                 console.error('safelyAddLogWithCollisionCheck: could not resolve a free timestamp key after', MAX_COLLISION_ATTEMPTS, 'attempts near', incomingLog.timestamp, '- log NOT imported:', incomingLog);
                 return;
             }
@@ -492,9 +447,6 @@ function executeHoldAction(id) {
     if (id === 'btn-notes') {
         const note = prompt("Add a short internal log note (Optional):");
         if (note) {
-            // MVP: notes accumulate into a single free-text field on the log.
-            // A structured, individually-timestamped multi-note array is a
-            // possible future feature (tabled pending interest).
             STATE.sessionNote = STATE.sessionNote ? STATE.sessionNote + '\n\n' + note : note;
         }
     }
@@ -514,12 +466,35 @@ function setupSettingsAndMenu() {
         setConfig('contrast', e.target.value);
     });
 
+    // Dynamic listener for OS system theme changes
+    const systemThemeMedia = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleSystemThemeChange = () => {
+        // If data-theme is "system", the DOM will automatically re-evaluate CSS media query rules
+        if (document.body.getAttribute('data-theme') === 'system') {
+            // Force layout/style re-evaluation for active question button stack and preview box
+            const inputBox = document.getElementById('input-box');
+            if (inputBox) {
+                const currentCurve = inputBox.getAttribute('data-curve');
+                inputBox.setAttribute('data-curve', currentCurve);
+            }
+            const previewBox = document.getElementById('question-preview');
+            if (previewBox) {
+                const previewCurve = previewBox.getAttribute('data-curve');
+                previewBox.setAttribute('data-curve', previewCurve);
+            }
+        }
+    };
+
+    if (systemThemeMedia.addEventListener) {
+        systemThemeMedia.addEventListener('change', handleSystemThemeChange);
+    } else if (systemThemeMedia.addListener) {
+        systemThemeMedia.addListener(handleSystemThemeChange);
+    }
+
     document.getElementById('btn-menu').addEventListener('click', openSettings);
     document.getElementById('btn-close-settings').addEventListener('click', closeSettings);
 }
 
-// Settings live in a drawer that slides in from the right (orthogonal swap):
-// tracker exits left, settings enters from the right edge.
 function openSettings() {
     document.body.classList.add('settings-open');
     document.getElementById('tracker-canvas').className = 'app-canvas view-hidden-left';
@@ -531,9 +506,6 @@ function closeSettings() {
     document.getElementById('tracker-canvas').className = 'app-canvas view-active';
 }
 
-// Wire up the custom-question authoring form: reveal/hide, conditional midLabel,
-// live preview (via the shared buildScoreButtonsHTML), save-disabled-until-text,
-// and save/cancel handling with duplicate/restore/already-exists messaging.
 function setupQuestionAuthoring() {
     const toggleBtn = document.getElementById('btn-add-question');
     const form = document.getElementById('question-form');
@@ -549,8 +521,6 @@ function setupQuestionAuthoring() {
     const saveBtn = document.getElementById('btn-save-question');
     const cancelBtn = document.getElementById('btn-cancel-question');
 
-    // Render the preview from the current field values, reusing the exact markup
-    // the live tracker uses so the practitioner sees production behaviour.
     function refreshPreview() {
         const curve = curveInput.value;
         preview.setAttribute('data-curve', curve);
@@ -562,13 +532,10 @@ function setupQuestionAuthoring() {
         });
     }
 
-    // midLabel is only meaningful for middle-is-best; its presence signals
-    // relevance, so we hide it entirely otherwise.
     function syncMidVisibility() {
         midField.hidden = curveInput.value !== 'middle-is-best';
     }
 
-    // curve always has a valid default, so text is the only gate on Save.
     function syncSaveEnabled() {
         saveBtn.disabled = normalizeQuestionText(textInput.value) === '';
     }
@@ -636,23 +603,33 @@ function setupQuestionAuthoring() {
         }
     });
 
-    // Establish the initial (hidden) state.
     syncMidVisibility();
     syncSaveEnabled();
     refreshPreview();
 }
 
-// Apply persisted display preferences (fall back to the HTML defaults if unset).
 async function applyStoredDisplay() {
     const [theme, contrast] = await Promise.all([getConfig('theme'), getConfig('contrast')]);
     if (theme) {
         document.body.setAttribute('data-theme', theme);
         document.getElementById('theme-select').value = theme;
+    } else {
+        document.body.setAttribute('data-theme', 'system');
+        document.getElementById('theme-select').value = 'system';
     }
     if (contrast) {
         document.body.setAttribute('data-contrast', contrast);
         document.getElementById('contrast-select').value = contrast;
     }
+}
+
+// Register service worker if available
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(err => {
+            console.log('SW registration failed:', err);
+        });
+    });
 }
 
 // --- 7. INITIALIZATION BOOTSTRAP ---

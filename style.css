@@ -83,6 +83,55 @@ body[data-theme="light"][data-contrast="high"] {
     --btn-text: #000000;
 }
 
+/* Explicit Override: System Theme Matching (Low & High Contrast) */
+body[data-theme="system"][data-contrast="low"] {
+    --bg-color: #f2f2f7;
+    --box-bg: #ffffff;
+    --text-primary: #3a3a3c;
+    --text-bright: #000000;
+    --text-muted: #8e8e93;
+    --border-color: rgba(0, 0, 0, 0.08);
+    --btn-default: #e5e5ea;
+    --btn-text: #1c1c1e;
+}
+
+@media (prefers-color-scheme: dark) {
+    body[data-theme="system"][data-contrast="low"] {
+        --bg-color: #121212;
+        --box-bg: #1c1c1e;
+        --text-primary: #a0a0a2;
+        --text-bright: #ffffff;
+        --text-muted: #636366;
+        --border-color: rgba(255, 255, 255, 0.05);
+        --btn-default: #2c2c2e;
+        --btn-text: #ffffff;
+    }
+}
+
+body[data-theme="system"][data-contrast="high"] {
+    --bg-color: #ffffff;
+    --box-bg: #ffffff;
+    --text-primary: #000000;
+    --text-bright: #000000;
+    --text-muted: #000000;
+    --border-color: #000000;
+    --btn-default: #e5e5ea;
+    --btn-text: #000000;
+}
+
+@media (prefers-color-scheme: dark) {
+    body[data-theme="system"][data-contrast="high"] {
+        --bg-color: #000000;
+        --box-bg: #121212;
+        --text-primary: #ffffff;
+        --text-bright: #ffffff;
+        --text-muted: #eaeaea;
+        --border-color: #ffffff;
+        --btn-default: #2c2c2e;
+        --btn-text: #ffffff;
+    }
+}
+
 html, body {
     margin: 0;
     padding: 0;
@@ -376,6 +425,44 @@ body[data-theme="light"] .input-box[data-curve="middle-is-best"] button[data-sco
 body[data-theme="light"] .input-box[data-curve="middle-is-best"] button[data-score="3"] { --btn-color: #e2f0d9; }
 body[data-theme="light"] .input-box[data-curve="middle-is-best"] button[data-score="4"] { --btn-color: #fdeccf; }
 body[data-theme="light"] .input-box[data-curve="middle-is-best"] button[data-score="5"] { --btn-color: #ffd9c2; }
+
+body[data-theme="system"] .input-box[data-curve="less-is-better"] button[data-score="1"] { --btn-color: #e2f0d9; }
+body[data-theme="system"] .input-box[data-curve="less-is-better"] button[data-score="2"] { --btn-color: #eef3db; }
+body[data-theme="system"] .input-box[data-curve="less-is-better"] button[data-score="3"] { --btn-color: #fff3cd; }
+body[data-theme="system"] .input-box[data-curve="less-is-better"] button[data-score="4"] { --btn-color: #fbe4db; }
+body[data-theme="system"] .input-box[data-curve="less-is-better"] button[data-score="5"] { --btn-color: #f8d7da; }
+
+body[data-theme="system"] .input-box[data-curve="more-is-better"] button[data-score="1"] { --btn-color: #f8d7da; }
+body[data-theme="system"] .input-box[data-curve="more-is-better"] button[data-score="2"] { --btn-color: #fbe4db; }
+body[data-theme="system"] .input-box[data-curve="more-is-better"] button[data-score="3"] { --btn-color: #fff3cd; }
+body[data-theme="system"] .input-box[data-curve="more-is-better"] button[data-score="4"] { --btn-color: #eef3db; }
+body[data-theme="system"] .input-box[data-curve="more-is-better"] button[data-score="5"] { --btn-color: #e2f0d9; }
+
+body[data-theme="system"] .input-box[data-curve="middle-is-best"] button[data-score="1"] { --btn-color: #d6e0f5; }
+body[data-theme="system"] .input-box[data-curve="middle-is-best"] button[data-score="2"] { --btn-color: #d8ece6; }
+body[data-theme="system"] .input-box[data-curve="middle-is-best"] button[data-score="3"] { --btn-color: #e2f0d9; }
+body[data-theme="system"] .input-box[data-curve="middle-is-best"] button[data-score="4"] { --btn-color: #fdeccf; }
+body[data-theme="system"] .input-box[data-curve="middle-is-best"] button[data-score="5"] { --btn-color: #ffd9c2; }
+
+@media (prefers-color-scheme: dark) {
+    body[data-theme="system"] .input-box[data-curve="less-is-better"] button[data-score="1"] { --btn-color: #2e4a3f; }
+    body[data-theme="system"] .input-box[data-curve="less-is-better"] button[data-score="2"] { --btn-color: #3b4d36; }
+    body[data-theme="system"] .input-box[data-curve="less-is-better"] button[data-score="3"] { --btn-color: #524e31; }
+    body[data-theme="system"] .input-box[data-curve="less-is-better"] button[data-score="4"] { --btn-color: #5c3d2e; }
+    body[data-theme="system"] .input-box[data-curve="less-is-better"] button[data-score="5"] { --btn-color: #612f2f; }
+
+    body[data-theme="system"] .input-box[data-curve="more-is-better"] button[data-score="1"] { --btn-color: #612f2f; }
+    body[data-theme="system"] .input-box[data-curve="more-is-better"] button[data-score="2"] { --btn-color: #5c3d2e; }
+    body[data-theme="system"] .input-box[data-curve="more-is-better"] button[data-score="3"] { --btn-color: #524e31; }
+    body[data-theme="system"] .input-box[data-curve="more-is-better"] button[data-score="4"] { --btn-color: #3b4d36; }
+    body[data-theme="system"] .input-box[data-curve="more-is-better"] button[data-score="5"] { --btn-color: #2e4a3f; }
+
+    body[data-theme="system"] .input-box[data-curve="middle-is-best"] button[data-score="1"] { --btn-color: #2f3a61; }
+    body[data-theme="system"] .input-box[data-curve="middle-is-best"] button[data-score="2"] { --btn-color: #34485a; }
+    body[data-theme="system"] .input-box[data-curve="middle-is-best"] button[data-score="3"] { --btn-color: #2e4a3f; }
+    body[data-theme="system"] .input-box[data-curve="middle-is-best"] button[data-score="4"] { --btn-color: #5c4d2e; }
+    body[data-theme="system"] .input-box[data-curve="middle-is-best"] button[data-score="5"] { --btn-color: #6e3a24; }
+}
 
 /* ==========================================================================
 6. HOLD-TO-ACTUATE ENGINE & UTILITIES

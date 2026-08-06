@@ -34,7 +34,7 @@ You are an autonomous software developer working on "High & Low", a local-first,
 ---
 
 ### Phase 2: User Interface & Accessibility Refinements
-- [ ] **Task 2.1: Dynamic System Theme Listener**
+- [x] **Task 2.1: Dynamic System Theme Listener**
   - Extend the theme switcher in `app.js` and `style.css` to listen for system-level dark/light mode preference changes (`window.matchMedia('(prefers-color-scheme: dark)')`).
   - Ensure theme transitions seamlessly when `data-theme="system"` is set without losing border visibility or color contrast.
 
