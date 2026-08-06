@@ -15,7 +15,7 @@
 * **Low Cognitive Load UX**: 1–5 rating scales presented via one-at-a-time sliding card steps with hardware-accelerated 220ms transitions.
 * **Data Portability**: Full JSON file backup exporter alongside both "Wipe & Replace" and non-destructive timestamp-driven "Native Merge" import options.
 * **Dynamic Accessibility**: Theme switching driven by `data-theme` (`dark`, `light`, `system`) and `data-contrast` (`low`, `high`) body attributes.
-* **Minimal UI Surface**: Settings drawer accessed via an orthogonal double-tap gesture on the main header.
+* **Minimal UI Surface**: Settings and navigation accessed via a hamburger menu icon that opens a slide-out drawer.
 
 ## Core Interfaces & Data Schema
 * **Active State**: `{ activeQuestions: [], currentQuestionIndex: 0, sessionAnswers: [], deviceMode: 'mouse' }`.
