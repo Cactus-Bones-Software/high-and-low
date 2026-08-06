@@ -42,7 +42,7 @@ You are an autonomous software developer working on "High & Low", a local-first,
   - Audit `index.html` to ensure all 1–5 scale buttons, hold actions, and utility triggers have proper `aria-label`, `role="button"`, and tabindex attributes.
   - Add full keyboard navigation support (Arrow keys for score selection, Enter/Space for hold buttons and drawer triggers).
 
-- [ ] **Task 2.3: Pastel Palette Refinement for Light Mode**
+- [x] **Task 2.3: Pastel Palette Refinement for Light Mode**
   - Review color curves in `style.css` under `body[data-theme="light"]`.
   - Ensure "Less is Better", "More is Better", and "Middle is Best" question curves render soft, high-visibility pastel tones instead of dark, low-contrast hex values on light backgrounds.
 
