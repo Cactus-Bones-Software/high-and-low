@@ -6,13 +6,17 @@ Locked design decisions and open questions for High & Low (menu, questions store
 
 - **Navigation:** Retire the double-tap-header settings gesture (it was testing scaffolding). Replace with a **hamburger icon top-right** opening a **drawer that slides in from the right** (reuse the orthogonal-slide system).
 - **Two workflows:** low-energy (daily/semi-daily) = the tracker canvas is the home screen, just answer the active question set; high-energy (occasional) = everything behind the menu: question library, custom-question authoring, analytics/line graph, backup/restore, theming. The bridge is an **"active question set"** persisted to `config` (today it's hard-coded in app.js: `[0],[1],[3]`).
-- **Questions store:** new `questions` IndexedDB object store (bump DB_VERSION 1→2). Keyed by an **immutable `id`**: built-ins get readable slugs (`q_energy`); custom questions get `c_` + FNV-1a-32 hex of normalized `originalText` (sync, dependency-free; content-addressing self-dedupes identical questions on merge). Id is FROZEN at creation — editing display `text` never changes the id, so edits don't orphan logs. **Never hard-delete a question — `archived: true` instead**, so historical logs always resolve. Fields: id, originalText (frozen), text (editable), curve, minLabel, maxLabel, midLabel, builtIn, archived, createdAt, updatedAt.
+- **Questions store:** new `questions` IndexedDB object store (bump DB_VERSION 1→2). Keyed by an **immutable `id`**: built-ins get readable slugs (`q_energy`); custom questions get `c_` + FNV-1a-32 hex of normalized `originalText` (sync, dependency-free; content-addressing self-dedupes identical questions on merge). ID is FROZEN at creation — editing display `text` never changes the id, so edits don't orphan logs. **Never hard-delete a question — `archived: true` instead**, so historical logs always resolve. Fields: id, originalText (frozen), text (editable), curve, minLabel, maxLabel, midLabel, builtIn, archived, createdAt, updatedAt.
   - **`originalText` is deliberately retained as the collision-audit / content-verification anchor** (decided 2026-07-16). Because the id is a lossy one-way FNV-1a-32 hash you cannot reconstruct the text from `c_<hash>`, so `originalText` is the only thing that keeps the id genuinely *content-addressed*: recompute `makeCustomId(originalText)` to confirm id integrity, and on a backup merge distinguish a legitimate display-`text` edit (same `originalText` → newest `updatedAt` wins) from a genuine 32-bit hash collision on two different questions (different `originalText` → must NOT be silently merged). It is written-once-never-read today, but becomes materially useful precisely once the custom-question authoring UI and real backup merges exist. Storage cost is negligible for a personal tracker; do not drop it without first widening the hash.
 - **Curves:** `middle-is-best` curve is IN scope (deep blue → emerald → fire orange). Needs JS mapping, CSS (only `more-is-better`/`less-is-better` exist), and a `midLabel` shown on score 3.
 - **No magic numbers for missing data (confirmed).** score stays 1–5 for real answers. Three states: answered = record with score 1–5 + `status:"answered"`; presented-but-skipped = record with `score:null` + `status:"skipped"`; not-asked/didn't-exist = NO record (absence). Never 0/-1 in the score field — it poisons the graph.
 - **Notes are a `note` field on the log**, not a fake `custom_note` answer (retire the old `score:0` note hack).
 - **Export dumps all three stores entire** (config + questions incl. archived + logs). Bump exportVersion→"2.0". Only merge conflict: same id, different text (an edit) → newest `updatedAt` wins.
 - **`config` formalized:** `activeQuestionSet` (ordered id list, replaces hard-coded `[0],[1],[3]` at app.js:260), `theme`, `contrast`, `seedVersion` (drives adding new built-in defaults on app refresh without touching the user's set).
+
+## Locked decisions (as of 2026-08-06)
+
+- **Navigation:** ~~hamburger icon top-right~~ **Hamburger icon with user-configurable side (right default)**, opening a drawer that slides in from the configured side. Handedness preference is persisted in localStorage and config.
 
 ## Implemented (2026-07-14)
 
@@ -35,10 +39,16 @@ Optimized the desktop viewport and responsive behavior to resolve layout breakag
   - Right Column houses the Custom Questions authoring form, giving it generous vertical and horizontal spacing to comfortably show the live preview.
 - **Interactive Hover Effects:** Added high-quality `:hover` styles to all interactive elements (`.score-btn`, `.control-btn`, `.utility-btn`, and `.menu-toggle`) with smooth 150ms transitions. To avoid sticky hover states on touch screens, these styles are wrapped inside a `@media (hover: hover)` media query.
 
+## Implemented (2026-8-06 - Navigation Rework)
+- "Graphs" → "History" rename (2026-07-17): The data visualization section is now called "History" to be more instantly recognizable and lower-cognitive-load for users in low-energy states. The canvas ID changed from #graphs-canvas to #history-canvas.
+- 'Extras' menu refactored as several views that each have a specific purpose: History, Questions, Data & Backups, and Settings
+- Navigation drawer added, and all other forms of navigation removed.
+- Setting added for side of the screen where the menu button lives. 
+- Added `manifest.json` because I was tired of the IDE warnings every time I committed `index.html`.
+
 ## Still parked / next up
 - Active-set editor UI (pick/reorder/archive questions from the library). Backed by config.activeQuestionSet.
-- Analytics / line graph (reads logs; skipped=null and absent both = gaps).
+- History view (formerly "Graphs" / "Analytics") — displays mood trends over time. Reads logs; skipped=null and absent both = gaps in the timeline.
 - Notes-as-array (`notes:[]`) — tabled possible feature.
 - manifest.json + service worker — parked until MVP. README parked until MVP.
 - Whether color-coding answer options is harmful — pending accessibility-expert / psychiatrist review.
-- `manifest.json` intentionally NOT created yet (referenced in index.html but absent). Wait until MVP. README also parked until MVP.

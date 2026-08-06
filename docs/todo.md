@@ -46,7 +46,7 @@ You are an autonomous software developer working on "High & Low", a local-first,
   - Review color curves in `style.css` under `body[data-theme="light"]`.
   - Ensure "Less is Better", "More is Better", and "Middle is Best" question curves render soft, high-visibility pastel tones instead of dark, low-contrast hex values on light backgrounds.
 
-- [ ] **Task 2.4: Handedness Setting (Left/Right Layout Toggle)**
+- [x] **Task 2.4: Handedness Setting (Left/Right Layout Toggle)**
   - Add a user preference setting for Handedness (Right-handed vs. Left-handed) to position the hamburger menu button on either top-right or top-left.
   - Persist handedness preference in `localStorage` and dynamically update the header layout using a `data-handedness` attribute or CSS modifier class.
 
@@ -58,8 +58,8 @@ You are an autonomous software developer working on "High & Low", a local-first,
   - Create a dedicated `#data-canvas` view for all data management tools (Export All Data/Config, Import JSON, Reset Data).
   - Add navigation routing between the main tracker, settings, and data views.
 
-- [ ] **Task 2.7: View Separation — Placeholder 'Graphs' View**
-  - Create a dedicated `#graphs-canvas` view scaffold to serve as the landing area for data visualization charts.
+- [x] **Task 2.7: View Separation — Placeholder History View**
+  - Create a dedicated `#history-canvas` view scaffold to serve as the landing area for data visualization charts.
   - Provide a clean placeholder interface and navigation entries from the main menu/drawer.
 
 ---
@@ -73,8 +73,8 @@ Patients and psychiatrists need a way to actually read the collected data back, 
   - Add a "Short label" input to the custom-question authoring form in `index.html`/`app.js`, with a low character cap, required alongside the existing text field. Surface it in the live preview.
   - This is a pure data-layer task — no chart or graph code here.
 
-- [ ] **Task 3.2: Analytics view scaffold**
-  - Add a new `app-canvas` view (e.g. `#analytics-canvas`) reachable from the settings drawer, wired into the existing orthogonal-slide transition system.
+- [ ] **Task 3.2: History view scaffold**
+  - Add a new `app-canvas` view (`#history-canvas`) reachable from the main drawer, wired into the existing orthogonal-slide transition system.
   - No chart rendering yet — just the empty canvas, navigation entry point, and a query that pulls `logs` + `questions` for the active question set into memory.
 
 - [ ] **Task 3.3: Line graph rendering engine**
