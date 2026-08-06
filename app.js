@@ -231,9 +231,10 @@ function buildScoreButtonsHTML(question) {
         else if (score === 1) contextLabel = question.minLabel || '';
         else if (score === 3 && question.curve === 'middle-is-best') contextLabel = question.midLabel || '';
 
+        const fullAriaLabel = `Score ${score} out of 5${contextLabel ? ': ' + contextLabel : ''}`;
         buttonsHTML += `
-      <button class="score-btn" data-score="${score}">
-        <span class="num">${score}</span>
+      <button type="button" class="score-btn" data-score="${score}" aria-label="${fullAriaLabel}">
+        <span class="num" aria-hidden="true">${score}</span>
         <span class="label-desc">${contextLabel}</span>
       </button>
     `;
@@ -439,7 +440,26 @@ function setupHoldActions() {
             btn.classList.add('desktop-click');
             btn.addEventListener('click', () => executeHoldAction(btn.id));
         }
+
+        // Support Enter / Space keypress on hold action buttons for keyboard accessibility
+        btn.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                executeHoldAction(btn.id);
+            }
+        });
     });
+
+    // Support Enter / Space keypress on the custom file import label
+    const importLabel = document.querySelector('label[for="file-import"]');
+    if (importLabel) {
+        importLabel.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                document.getElementById('file-import').click();
+            }
+        });
+    }
 }
 function resetHold(e) { clearTimeout(holdTimer); e.classList.remove('is-holding'); }
 function executeHoldAction(id) {
@@ -497,13 +517,38 @@ function setupSettingsAndMenu() {
 
 function openSettings() {
     document.body.classList.add('settings-open');
-    document.getElementById('tracker-canvas').className = 'app-canvas view-hidden-left';
-    document.getElementById('settings-canvas').className = 'app-canvas view-active';
+    const tracker = document.getElementById('tracker-canvas');
+    const settings = document.getElementById('settings-canvas');
+    if (tracker) {
+        tracker.className = 'app-canvas view-hidden-left';
+        tracker.inert = true;
+    }
+    if (settings) {
+        settings.className = 'app-canvas view-active';
+        settings.inert = false;
+    }
+    const menuBtn = document.getElementById('btn-menu');
+    if (menuBtn) menuBtn.setAttribute('aria-expanded', 'true');
+    const closeBtn = document.getElementById('btn-close-settings');
+    if (closeBtn) closeBtn.focus();
 }
 function closeSettings() {
     document.body.classList.remove('settings-open');
-    document.getElementById('settings-canvas').className = 'app-canvas view-hidden-right';
-    document.getElementById('tracker-canvas').className = 'app-canvas view-active';
+    const tracker = document.getElementById('tracker-canvas');
+    const settings = document.getElementById('settings-canvas');
+    if (settings) {
+        settings.className = 'app-canvas view-hidden-right';
+        settings.inert = true;
+    }
+    if (tracker) {
+        tracker.className = 'app-canvas view-active';
+        tracker.inert = false;
+    }
+    const menuBtn = document.getElementById('btn-menu');
+    if (menuBtn) {
+        menuBtn.setAttribute('aria-expanded', 'false');
+        menuBtn.focus();
+    }
 }
 
 function setupQuestionAuthoring() {
@@ -551,7 +596,11 @@ function setupQuestionAuthoring() {
         const opening = form.hidden;
         form.hidden = !opening;
         toggleBtn.textContent = opening ? 'Hide Form' : 'Add a Question';
-        if (opening) resetForm();
+        toggleBtn.setAttribute('aria-expanded', opening ? 'true' : 'false');
+        if (opening) {
+            resetForm();
+            textInput.focus();
+        }
     });
 
     curveInput.addEventListener('change', () => {
@@ -570,6 +619,8 @@ function setupQuestionAuthoring() {
         resetForm();
         form.hidden = true;
         toggleBtn.textContent = 'Add a Question';
+        toggleBtn.setAttribute('aria-expanded', 'false');
+        toggleBtn.focus();
     });
 
     form.addEventListener('submit', async (e) => {
@@ -596,6 +647,8 @@ function setupQuestionAuthoring() {
             resetForm();
             form.hidden = true;
             toggleBtn.textContent = 'Add a Question';
+            toggleBtn.setAttribute('aria-expanded', 'false');
+            toggleBtn.focus();
         } catch (err) {
             console.error('Failed to save question:', err);
             alert('Could not save the question. Please try again.');
@@ -606,6 +659,95 @@ function setupQuestionAuthoring() {
     syncMidVisibility();
     syncSaveEnabled();
     refreshPreview();
+}
+
+function setupKeyboardNavigation() {
+    window.addEventListener('scroll', () => {
+        if (window.scrollX !== 0 || window.scrollY !== 0) {
+            window.scrollTo(0, 0);
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        const activeEl = document.activeElement;
+        const isInputActive = activeEl && (
+            ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName) ||
+            activeEl.isContentEditable
+        );
+
+        // Escape key closes settings drawer from anywhere
+        if (e.key === 'Escape') {
+            if (document.body.classList.contains('settings-open')) {
+                closeSettings();
+                return;
+            }
+        }
+
+        if (isInputActive) return; // Do not trigger shortcuts when typing in inputs
+
+        // Keyboard interaction for active mood tracker canvas
+        if (!document.body.classList.contains('settings-open')) {
+            // Direct score submission via Number keys 1-5
+            if (['1', '2', '3', '4', '5'].includes(e.key)) {
+                const score = parseInt(e.key, 10);
+                const scoreBtn = document.querySelector(`.score-btn[data-score="${score}"]`);
+                if (scoreBtn) {
+                    scoreBtn.focus();
+                    scoreBtn.click();
+                }
+                return;
+            }
+
+            // Arrow key navigation through ALL interactive controls on the tracker canvas
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                const menuBtn = document.getElementById('btn-menu');
+                const scoreBtns = Array.from(document.querySelectorAll('#button-stack .score-btn'));
+                const notesBtn = document.getElementById('btn-notes');
+                const skipBtn = document.getElementById('btn-skip');
+
+                const focusables = [];
+                if (menuBtn) focusables.push(menuBtn);
+                focusables.push(...scoreBtns);
+                if (notesBtn) focusables.push(notesBtn);
+                if (skipBtn) focusables.push(skipBtn);
+
+                if (focusables.length === 0) return;
+
+                let currentIndex = focusables.indexOf(activeEl);
+                e.preventDefault();
+
+                if (currentIndex === -1) {
+                    const score5 = document.querySelector(`.score-btn[data-score="5"]`);
+                    if (score5) score5.focus();
+                    else focusables[0].focus();
+                } else {
+                    if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                        currentIndex = (currentIndex - 1 + focusables.length) % focusables.length;
+                    } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                        currentIndex = (currentIndex + 1) % focusables.length;
+                    }
+                    focusables[currentIndex].focus();
+                }
+                return;
+            }
+
+            // Quick key shortcuts
+            if (e.key === 'n' || e.key === 'N') {
+                e.preventDefault();
+                executeHoldAction('btn-notes');
+                return;
+            }
+            if (e.key === 's' || e.key === 'S') {
+                e.preventDefault();
+                executeHoldAction('btn-skip');
+                return;
+            }
+            if (e.key === 'm' || e.key === 'M') {
+                e.preventDefault();
+                openSettings();
+            }
+        }
+    });
 }
 
 async function applyStoredDisplay() {
@@ -641,6 +783,7 @@ document.addEventListener("DOMContentLoaded", () => {
             setupHoldActions();
             setupSettingsAndMenu();
             setupQuestionAuthoring();
+            setupKeyboardNavigation();
             renderCurrentQuestion();
 
             document.getElementById('btn-export-all').addEventListener('click', exportAllDataAndConfig);

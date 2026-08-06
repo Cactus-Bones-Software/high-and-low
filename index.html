@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>High & Low</title>
-    <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="style.css">
+    <title>High & Low - Zero-Friction Mood Tracker</title>
+<!--    <link rel="manifest" href="/manifest.json">-->
+    <link rel="stylesheet" href="/style.css">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#121212">
+    <meta name="description" content="A local-first, zero-friction privacy mood tracking web app for individuals with mood disorders." />
 </head>
 <body data-theme="dark" data-contrast="low">
 
@@ -19,45 +20,45 @@
 <div class="viewport-wrapper" id="viewport-wrapper">
     <div class="app-container" id="app-container">
 
-        <button id="btn-menu" class="menu-toggle" aria-label="Open menu &amp; data tools">
+        <button id="btn-menu" class="menu-toggle" type="button" aria-label="Open menu &amp; settings" aria-expanded="false" aria-controls="settings-canvas">
             <span></span><span></span><span></span>
         </button>
 
-        <main id="tracker-canvas" class="app-canvas view-active">
+        <main id="tracker-canvas" class="app-canvas view-active" aria-label="Mood Tracker Question Area">
 
             <header class="canvas-box header-box" id="header-box">
-                <div class="progress-indicator">
+                <div class="progress-indicator" aria-live="polite" aria-atomic="true">
                     <span id="progress-text" class="progress-text">Loading tracker...</span>
                 </div>
-                <h1 id="question-text" class="question-text">Initializing High & Low...</h1>
+                <h1 id="question-text" class="question-text">Initializing High &amp; Low...</h1>
             </header>
 
-            <section class="canvas-box input-box" id="input-box" data-curve="neutral">
-                <div class="button-stack" id="button-stack">
-                    <button class="score-btn" data-score="5"><span class="num">5</span> --</button>
-                    <button class="score-btn" data-score="4"><span class="num">4</span> --</button>
-                    <button class="score-btn" data-score="3"><span class="num">3</span> --</button>
-                    <button class="score-btn" data-score="2"><span class="num">2</span> --</button>
-                    <button class="score-btn" data-score="1"><span class="num">1</span> --</button>
+            <section class="canvas-box input-box" id="input-box" data-curve="neutral" aria-label="Score Options">
+                <div class="button-stack" id="button-stack" role="group" aria-label="Select score from 1 to 5">
+                    <button type="button" class="score-btn" data-score="5" aria-label="Score 5 out of 5"><span class="num" aria-hidden="true">5</span> --</button>
+                    <button type="button" class="score-btn" data-score="4" aria-label="Score 4 out of 5"><span class="num" aria-hidden="true">4</span> --</button>
+                    <button type="button" class="score-btn" data-score="3" aria-label="Score 3 out of 5"><span class="num" aria-hidden="true">3</span> --</button>
+                    <button type="button" class="score-btn" data-score="2" aria-label="Score 2 out of 5"><span class="num" aria-hidden="true">2</span> --</button>
+                    <button type="button" class="score-btn" data-score="1" aria-label="Score 1 out of 5"><span class="num" aria-hidden="true">1</span> --</button>
                 </div>
             </section>
 
             <footer class="canvas-box footer-box" id="footer-box">
-                <button id="btn-notes" class="control-btn hold-action" aria-label="Hold to add custom note">
-                    <span class="hold-indicator"></span>
+                <button type="button" id="btn-notes" class="control-btn hold-action" aria-label="Add custom note (Press or Hold)">
+                    <span class="hold-indicator" aria-hidden="true"></span>
                     <span class="btn-label">Add Note</span>
                 </button>
-                <button id="btn-skip" class="control-btn hold-action" aria-label="Hold to skip the remaining questions">
-                    <span class="hold-indicator"></span>
+                <button type="button" id="btn-skip" class="control-btn hold-action" aria-label="Skip remaining questions (Press or Hold)">
+                    <span class="hold-indicator" aria-hidden="true"></span>
                     <span class="btn-label">Skip the Rest</span>
                 </button>
             </footer>
         </main>
 
-        <main id="settings-canvas" class="app-canvas view-hidden-right">
+        <section id="settings-canvas" class="app-canvas view-hidden-right" role="region" aria-label="Settings and Data Drawer" inert>
 
             <header class="canvas-box header-box">
-                <h1 class="question-text">App Settings & Data</h1>
+                <h1 class="question-text">App Settings &amp; Data</h1>
             </header>
 
             <section class="canvas-box menu-box" id="panel-display">
@@ -82,7 +83,7 @@
             <section class="canvas-box menu-box" id="panel-questions">
                 <h3>Custom Questions</h3>
                 <div class="button-grid">
-                    <button type="button" id="btn-add-question" class="utility-btn">Add a Question</button>
+                    <button type="button" id="btn-add-question" class="utility-btn" aria-expanded="false" aria-controls="question-form">Add a Question</button>
                 </div>
 
                 <form id="question-form" class="question-form" hidden>
@@ -118,8 +119,8 @@
                     <p class="form-hint">Leave a label blank and that button simply shows its number.</p>
 
                     <div class="form-field">
-                        <span class="preview-caption">Preview</span>
-                        <section class="input-box question-preview" id="question-preview" data-curve="more-is-better">
+                        <span class="preview-caption" id="preview-caption-text">Preview</span>
+                        <section class="input-box question-preview" id="question-preview" data-curve="more-is-better" aria-labelledby="preview-caption-text">
                             <div class="button-stack" id="question-preview-stack"></div>
                         </section>
                     </div>
@@ -139,22 +140,22 @@
             <section class="canvas-box menu-box" id="panel-data">
                 <h3>Data Management</h3>
                 <div class="button-grid">
-                    <button id="btn-export-all" class="utility-btn">Backup Data & Settings</button>
+                    <button type="button" id="btn-export-all" class="utility-btn">Backup Data &amp; Settings</button>
                 </div>
                 <div class="file-import-zone">
-                    <label class="utility-btn" for="file-import">Import Backup File</label>
+                    <label class="utility-btn" for="file-import" tabindex="0" role="button" aria-label="Import Backup JSON File">Import Backup File</label>
                     <input type="file" id="file-import" accept=".json" style="display: none;">
                 </div>
             </section>
 
             <footer class="canvas-box footer-box">
-                <button id="btn-close-settings" class="control-btn">Return to Tracker</button>
+                <button type="button" id="btn-close-settings" class="control-btn">Return to Tracker</button>
             </footer>
-        </main>
+        </section>
 
     </div>
 </div>
 
-<script src="app.js" defer></script>
+<script src="/app.js" defer></script>
 </body>
 </html>

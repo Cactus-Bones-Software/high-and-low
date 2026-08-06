@@ -232,12 +232,14 @@ body.settings-open .menu-toggle {
     transform: translate(0, 0);
     opacity: 1;
     z-index: 10;
+    visibility: visible;
+    pointer-events: auto;
 }
 
-.view-hidden-bottom { transform: translateY(100vh); opacity: 0; z-index: 5; }
-.view-hidden-top { transform: translateY(-100vh); opacity: 0; z-index: 5; }
-.view-hidden-left { transform: translateX(-100vw); opacity: 0; z-index: 5; }
-.view-hidden-right { transform: translateX(100vw); opacity: 0; z-index: 5; }
+.view-hidden-bottom { transform: translateY(100vh); opacity: 0; z-index: 5; visibility: hidden; pointer-events: none; }
+.view-hidden-top { transform: translateY(-100vh); opacity: 0; z-index: 5; visibility: hidden; pointer-events: none; }
+.view-hidden-left { transform: translateX(-100vw); opacity: 0; z-index: 5; visibility: hidden; pointer-events: none; }
+.view-hidden-right { transform: translateX(100vw); opacity: 0; z-index: 5; visibility: hidden; pointer-events: none; }
 
 /* ==========================================================================
 3. BOX GRID COMPONENTS (THE FLEX ARCHITECTURE)
@@ -697,3 +699,29 @@ select, .utility-btn, .form-input {
         height: 280px;
     }
 }
+
+/* ==========================================================================
+10. ACCESSIBILITY & KEYBOARD FOCUS STYLES
+========================================================================== */
+:focus-visible,
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+label[tabindex="0"]:focus-visible {
+    outline: 3px solid #3b82f6;
+    outline-offset: 3px;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.4);
+}
+
+body[data-contrast="high"] :focus-visible,
+body[data-contrast="high"] button:focus-visible,
+body[data-contrast="high"] select:focus-visible,
+body[data-contrast="high"] input:focus-visible,
+body[data-contrast="high"] textarea:focus-visible,
+body[data-contrast="high"] label[tabindex="0"]:focus-visible {
+    outline: 4px solid var(--text-bright);
+    outline-offset: 3px;
+}
+
+

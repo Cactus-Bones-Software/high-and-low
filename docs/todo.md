@@ -38,7 +38,7 @@ You are an autonomous software developer working on "High & Low", a local-first,
   - Extend the theme switcher in `app.js` and `style.css` to listen for system-level dark/light mode preference changes (`window.matchMedia('(prefers-color-scheme: dark)')`).
   - Ensure theme transitions seamlessly when `data-theme="system"` is set without losing border visibility or color contrast.
 
-- [ ] **Task 2.2: Keyboard & Screen Reader Accessibility Pass**
+- [x] **Task 2.2: Keyboard & Screen Reader Accessibility Pass**
   - Audit `index.html` to ensure all 1–5 scale buttons, hold actions, and utility triggers have proper `aria-label`, `role="button"`, and tabindex attributes.
   - Add full keyboard navigation support (Arrow keys for score selection, Enter/Space for hold buttons and drawer triggers).
 
