@@ -733,7 +733,7 @@ select, .utility-btn, .form-input {
 #settings-canvas,
 #questions-canvas,
 #data-canvas,
-#graphs-canvas {
+#history-canvas {
     overflow-y: auto;
 }
 
