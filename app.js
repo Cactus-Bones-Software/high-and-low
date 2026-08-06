@@ -68,6 +68,7 @@ function initDatabase() {
 // Promise wrappers over the raw IndexedDB request API.
 function getAll(storeName) {
     return new Promise((resolve, reject) => {
+        if (!db) return resolve([]);
         const req = db.transaction([storeName], 'readonly').objectStore(storeName).getAll();
         req.onsuccess = () => resolve(req.result || []);
         req.onerror = () => reject(req.error);
@@ -75,6 +76,7 @@ function getAll(storeName) {
 }
 function getConfig(key) {
     return new Promise((resolve, reject) => {
+        if (!db) return resolve(undefined);
         const req = db.transaction(['config'], 'readonly').objectStore('config').get(key);
         req.onsuccess = () => resolve(req.result ? req.result.value : undefined);
         req.onerror = () => reject(req.error);
@@ -82,6 +84,7 @@ function getConfig(key) {
 }
 function setConfig(key, value) {
     return new Promise((resolve, reject) => {
+        if (!db) return resolve();
         const tx = db.transaction(['config'], 'readwrite');
         tx.objectStore('config').put({ key, value });
         tx.oncomplete = () => resolve();
@@ -426,7 +429,7 @@ function areLogAnswersIdentical(a, b) {
 // --- 5. TOUCH SAFETY TIME-BARRIER CONFIG ---
 let holdTimer = null;
 function setupHoldActions() {
-    STATE.deviceMode = window.matchMedia("(pointer: coarse)").matches ? 'touch' : 'mouse';
+    STATE.deviceMode = (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) ? 'touch' : 'mouse';
     document.querySelectorAll('.hold-action').forEach(btn => {
         if (STATE.deviceMode === 'touch') {
             btn.addEventListener('touchstart', (e) => {
@@ -476,79 +479,251 @@ function executeHoldAction(id) {
 function setupSettingsAndMenu() {
     const themeSel = document.getElementById('theme-select');
     const contrastSel = document.getElementById('contrast-select');
+    const handednessSel = document.getElementById('handedness-select');
 
-    themeSel.addEventListener('change', (e) => {
-        document.body.setAttribute('data-theme', e.target.value);
-        setConfig('theme', e.target.value);
-    });
-    contrastSel.addEventListener('change', (e) => {
-        document.body.setAttribute('data-contrast', e.target.value);
-        setConfig('contrast', e.target.value);
-    });
-
-    // Dynamic listener for OS system theme changes
-    const systemThemeMedia = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleSystemThemeChange = () => {
-        // If data-theme is "system", the DOM will automatically re-evaluate CSS media query rules
-        if (document.body.getAttribute('data-theme') === 'system') {
-            // Force layout/style re-evaluation for active question button stack and preview box
-            const inputBox = document.getElementById('input-box');
-            if (inputBox) {
-                const currentCurve = inputBox.getAttribute('data-curve');
-                inputBox.setAttribute('data-curve', currentCurve);
-            }
-            const previewBox = document.getElementById('question-preview');
-            if (previewBox) {
-                const previewCurve = previewBox.getAttribute('data-curve');
-                previewBox.setAttribute('data-curve', previewCurve);
-            }
-        }
+    const handleThemeChange = (val) => {
+        document.body.setAttribute('data-theme', val);
+        setConfig('theme', val);
+        if (themeSel) themeSel.value = val;
     };
 
-    if (systemThemeMedia.addEventListener) {
-        systemThemeMedia.addEventListener('change', handleSystemThemeChange);
-    } else if (systemThemeMedia.addListener) {
-        systemThemeMedia.addListener(handleSystemThemeChange);
+    if (themeSel) {
+        themeSel.addEventListener('change', (e) => handleThemeChange(e.target.value));
     }
 
-    document.getElementById('btn-menu').addEventListener('click', openSettings);
-    document.getElementById('btn-close-settings').addEventListener('click', closeSettings);
+    if (contrastSel) {
+        contrastSel.addEventListener('change', (e) => {
+            document.body.setAttribute('data-contrast', e.target.value);
+            setConfig('contrast', e.target.value);
+        });
+    }
+
+    // Debug bounds functionality (Console controllable: window.toggleDebugBounds() or window.setDebugBounds(true/false))
+    window.setDebugBounds = (enable) => {
+        const isEnabled = Boolean(enable);
+        document.body.setAttribute('data-debug-bounds', isEnabled ? 'true' : 'false');
+        setConfig('debug-bounds', isEnabled ? 'on' : 'off');
+        try { localStorage.setItem('debug-bounds', isEnabled ? 'on' : 'off'); } catch (e) {}
+        console.log(`[Layout Rig Outlines] ${isEnabled ? 'Enabled' : 'Disabled'}`);
+        return isEnabled;
+    };
+
+    window.toggleDebugBounds = (enable) => {
+        if (enable !== undefined) {
+            return window.setDebugBounds(enable);
+        }
+        const currentState = document.body.getAttribute('data-debug-bounds') === 'true';
+        return window.setDebugBounds(!currentState);
+    };
+
+    const handleHandednessChange = (val) => {
+        document.body.setAttribute('data-handedness', val);
+        setConfig('handedness', val);
+        try { localStorage.setItem('handedness', val); } catch (e) {}
+        if (handednessSel) handednessSel.value = val;
+    };
+
+    if (handednessSel) {
+        handednessSel.addEventListener('change', (e) => handleHandednessChange(e.target.value));
+    }
+
+    // Dynamic listener for OS system theme changes
+    if (window.matchMedia) {
+        const systemThemeMedia = window.matchMedia('(prefers-color-scheme: dark)');
+        const handleSystemThemeChange = () => {
+            if (document.body.getAttribute('data-theme') === 'system') {
+                const inputBox = document.getElementById('input-box');
+                if (inputBox) {
+                    const currentCurve = inputBox.getAttribute('data-curve');
+                    inputBox.setAttribute('data-curve', currentCurve);
+                }
+                const previewBox = document.getElementById('question-preview');
+                if (previewBox) {
+                    const previewCurve = previewBox.getAttribute('data-curve');
+                    previewBox.setAttribute('data-curve', previewCurve);
+                }
+            }
+        };
+
+        if (systemThemeMedia.addEventListener) {
+            systemThemeMedia.addEventListener('change', handleSystemThemeChange);
+        } else if (systemThemeMedia.addListener) {
+            systemThemeMedia.addListener(handleSystemThemeChange);
+        }
+    }
+
+    // Toggle menu drawer
+    const menuBtn = document.getElementById('btn-menu');
+    if (menuBtn) {
+        menuBtn.addEventListener('click', () => {
+            if (document.body.classList.contains('drawer-open')) {
+                closeDrawer();
+            } else {
+                openDrawer();
+            }
+        });
+    }
+
+    const closeDrawerBtn = document.getElementById('btn-close-drawer');
+    if (closeDrawerBtn) {
+        closeDrawerBtn.addEventListener('click', closeDrawer);
+    }
+
+    const overlay = document.getElementById('drawer-overlay');
+    if (overlay) {
+        overlay.addEventListener('click', closeDrawer);
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && document.body.classList.contains('drawer-open')) {
+            closeDrawer();
+        }
+    });
+
+    // Drawer Navigation Items
+    document.querySelectorAll('.drawer-nav-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const targetId = btn.getAttribute('data-target');
+            if (targetId) {
+                navigateTo(targetId);
+                closeDrawer();
+            }
+        });
+    });
+
+    // Navigation links between canvases inside views
+    const btnNavQuestions = document.getElementById('nav-btn-questions');
+    if (btnNavQuestions) {
+        btnNavQuestions.addEventListener('click', () => navigateTo('questions-canvas'));
+    }
+    const btnNavData = document.getElementById('nav-btn-data');
+    if (btnNavData) {
+        btnNavData.addEventListener('click', () => navigateTo('data-canvas'));
+    }
+    const btnNavGraphs = document.getElementById('nav-btn-graphs');
+    if (btnNavGraphs) {
+        btnNavGraphs.addEventListener('click', () => navigateTo('graphs-canvas'));
+    }
+
+    const closeSettingsBtn = document.getElementById('btn-close-settings');
+    if (closeSettingsBtn) {
+        closeSettingsBtn.addEventListener('click', () => navigateTo('tracker-canvas'));
+    }
+
+    document.querySelectorAll('.nav-to-settings').forEach(btn => {
+        btn.addEventListener('click', () => navigateTo('settings-canvas'));
+    });
+    document.querySelectorAll('.nav-to-tracker').forEach(btn => {
+        btn.addEventListener('click', () => navigateTo('tracker-canvas'));
+    });
 }
 
-function openSettings() {
-    document.body.classList.add('settings-open');
-    const tracker = document.getElementById('tracker-canvas');
-    const settings = document.getElementById('settings-canvas');
-    if (tracker) {
-        tracker.className = 'app-canvas view-hidden-left';
-        tracker.inert = true;
+function resetScrollPositions() {
+    try {
+        if (typeof window !== 'undefined' && window.scrollTo && !window.navigator?.userAgent?.includes('jsdom')) {
+            window.scrollTo(0, 0);
+        }
+    } catch (_) {}
+    const wrapper = document.getElementById('viewport-wrapper');
+    if (wrapper) wrapper.scrollLeft = 0;
+    const container = document.getElementById('app-container');
+    if (container) container.scrollLeft = 0;
+    if (document.body) document.body.scrollLeft = 0;
+    if (document.documentElement) document.documentElement.scrollLeft = 0;
+}
+
+function setInert(el, isInert) {
+    if (!el) return;
+    el.inert = isInert;
+    if (isInert) {
+        el.setAttribute('inert', '');
+    } else {
+        el.removeAttribute('inert');
     }
-    if (settings) {
-        settings.className = 'app-canvas view-active';
-        settings.inert = false;
-    }
+}
+
+function openDrawer() {
+    document.body.classList.add('drawer-open');
+    const drawer = document.getElementById('side-drawer');
+    if (drawer) setInert(drawer, false);
     const menuBtn = document.getElementById('btn-menu');
     if (menuBtn) menuBtn.setAttribute('aria-expanded', 'true');
-    const closeBtn = document.getElementById('btn-close-settings');
-    if (closeBtn) closeBtn.focus();
+
+    // Make all canvases inert while drawer is open
+    document.querySelectorAll('.app-canvas').forEach(canvas => {
+        setInert(canvas, true);
+    });
+
+    resetScrollPositions();
+
+    // Focus active or first button in drawer
+    if (drawer) {
+        const activeNavBtn = drawer.querySelector('.drawer-nav-btn.active') || drawer.querySelector('.drawer-nav-btn');
+        if (activeNavBtn) activeNavBtn.focus({ preventScroll: true });
+    }
 }
-function closeSettings() {
-    document.body.classList.remove('settings-open');
-    const tracker = document.getElementById('tracker-canvas');
-    const settings = document.getElementById('settings-canvas');
-    if (settings) {
-        settings.className = 'app-canvas view-hidden-right';
-        settings.inert = true;
-    }
-    if (tracker) {
-        tracker.className = 'app-canvas view-active';
-        tracker.inert = false;
-    }
+
+function closeDrawer() {
+    document.body.classList.remove('drawer-open');
+    const drawer = document.getElementById('side-drawer');
+    if (drawer) setInert(drawer, true);
     const menuBtn = document.getElementById('btn-menu');
     if (menuBtn) {
         menuBtn.setAttribute('aria-expanded', 'false');
-        menuBtn.focus();
+        menuBtn.focus({ preventScroll: true });
     }
+
+    // Restore active canvas interactive state
+    const currentCanvas = document.getElementById(currentViewId);
+    if (currentCanvas) {
+        setInert(currentCanvas, false);
+    }
+
+    resetScrollPositions();
+}
+
+let currentViewId = 'tracker-canvas';
+
+function navigateTo(targetViewId) {
+    if (targetViewId === currentViewId) return;
+
+    const currentCanvas = document.getElementById(currentViewId);
+    const targetCanvas = document.getElementById(targetViewId);
+
+    if (!targetCanvas) return;
+
+    if (currentCanvas) {
+        currentCanvas.className = 'app-canvas view-hidden-left';
+        setInert(currentCanvas, true);
+    }
+
+    targetCanvas.className = 'app-canvas view-active';
+    setInert(targetCanvas, false);
+
+    currentViewId = targetViewId;
+
+    // Update active state in drawer items
+    document.querySelectorAll('.drawer-nav-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-target') === targetViewId);
+    });
+
+    // Focus header or first interactive control in target canvas
+    const focusTarget = targetCanvas.querySelector('button, select, input, h1');
+    if (focusTarget) {
+        if (focusTarget.tagName === 'H1' && !focusTarget.hasAttribute('tabindex')) {
+            focusTarget.setAttribute('tabindex', '-1');
+        }
+        focusTarget.focus({ preventScroll: true });
+    }
+
+    resetScrollPositions();
+}
+
+function openSettings() {
+    navigateTo('settings-canvas');
+}
+function closeSettings() {
+    navigateTo('tracker-canvas');
 }
 
 function setupQuestionAuthoring() {
@@ -599,7 +774,7 @@ function setupQuestionAuthoring() {
         toggleBtn.setAttribute('aria-expanded', opening ? 'true' : 'false');
         if (opening) {
             resetForm();
-            textInput.focus();
+            textInput.focus({ preventScroll: true });
         }
     });
 
@@ -620,7 +795,7 @@ function setupQuestionAuthoring() {
         form.hidden = true;
         toggleBtn.textContent = 'Add a Question';
         toggleBtn.setAttribute('aria-expanded', 'false');
-        toggleBtn.focus();
+        toggleBtn.focus({ preventScroll: true });
     });
 
     form.addEventListener('submit', async (e) => {
@@ -648,7 +823,7 @@ function setupQuestionAuthoring() {
             form.hidden = true;
             toggleBtn.textContent = 'Add a Question';
             toggleBtn.setAttribute('aria-expanded', 'false');
-            toggleBtn.focus();
+            toggleBtn.focus({ preventScroll: true });
         } catch (err) {
             console.error('Failed to save question:', err);
             alert('Could not save the question. Please try again.');
@@ -692,7 +867,7 @@ function setupKeyboardNavigation() {
                 const score = parseInt(e.key, 10);
                 const scoreBtn = document.querySelector(`.score-btn[data-score="${score}"]`);
                 if (scoreBtn) {
-                    scoreBtn.focus();
+                    scoreBtn.focus({ preventScroll: true });
                     scoreBtn.click();
                 }
                 return;
@@ -718,15 +893,15 @@ function setupKeyboardNavigation() {
 
                 if (currentIndex === -1) {
                     const score5 = document.querySelector(`.score-btn[data-score="5"]`);
-                    if (score5) score5.focus();
-                    else focusables[0].focus();
+                    if (score5) score5.focus({ preventScroll: true });
+                    else focusables[0].focus({ preventScroll: true });
                 } else {
                     if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
                         currentIndex = (currentIndex - 1 + focusables.length) % focusables.length;
                     } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
                         currentIndex = (currentIndex + 1) % focusables.length;
                     }
-                    focusables[currentIndex].focus();
+                    focusables[currentIndex].focus({ preventScroll: true });
                 }
                 return;
             }
@@ -751,18 +926,38 @@ function setupKeyboardNavigation() {
 }
 
 async function applyStoredDisplay() {
-    const [theme, contrast] = await Promise.all([getConfig('theme'), getConfig('contrast')]);
-    if (theme) {
-        document.body.setAttribute('data-theme', theme);
-        document.getElementById('theme-select').value = theme;
-    } else {
-        document.body.setAttribute('data-theme', 'system');
-        document.getElementById('theme-select').value = 'system';
-    }
+    const [theme, contrast, handedness, debugBounds] = await Promise.all([
+        getConfig('theme'),
+        getConfig('contrast'),
+        getConfig('handedness'),
+        getConfig('debug-bounds')
+    ]);
+    const themeVal = theme || 'system';
+    document.body.setAttribute('data-theme', themeVal);
+    const themeSel = document.getElementById('theme-select');
+    const drawerThemeSel = document.getElementById('drawer-theme-select');
+    if (themeSel) themeSel.value = themeVal;
+    if (drawerThemeSel) drawerThemeSel.value = themeVal;
+
     if (contrast) {
         document.body.setAttribute('data-contrast', contrast);
-        document.getElementById('contrast-select').value = contrast;
+        const contrastSel = document.getElementById('contrast-select');
+        if (contrastSel) contrastSel.value = contrast;
     }
+
+    let localHandedness = null;
+    try { localHandedness = localStorage.getItem('handedness'); } catch (e) {}
+    const finalHandedness = handedness || localHandedness || 'right';
+    document.body.setAttribute('data-handedness', finalHandedness);
+    const handednessSel = document.getElementById('handedness-select');
+    const drawerHandednessSel = document.getElementById('drawer-handedness-select');
+    if (handednessSel) handednessSel.value = finalHandedness;
+    if (drawerHandednessSel) drawerHandednessSel.value = finalHandedness;
+
+    // Ensure debug options/outlines are off on page load
+    document.body.setAttribute('data-debug-bounds', 'false');
+    setConfig('debug-bounds', 'off');
+    try { localStorage.setItem('debug-bounds', 'off'); } catch (e) {}
 }
 
 // Register service worker if available
@@ -775,26 +970,43 @@ if ('serviceWorker' in navigator) {
 }
 
 // --- 7. INITIALIZATION BOOTSTRAP ---
-document.addEventListener("DOMContentLoaded", () => {
+let isAppInitialized = false;
+function initApp() {
+    if (isAppInitialized) return;
+    isAppInitialized = true;
+
+    setupHoldActions();
+    setupSettingsAndMenu();
+    setupQuestionAuthoring();
+    setupKeyboardNavigation();
+
+    const exportBtn = document.getElementById('btn-export-all');
+    if (exportBtn) exportBtn.addEventListener('click', exportAllDataAndConfig);
+
+    const importFileInput = document.getElementById('file-import');
+    if (importFileInput) {
+        importFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            const mode = confirm("Click [OK] to MERGE file data natively.\nClick [Cancel] to completely WIPEOUT and REPLACE device logs.") ? 'merge' : 'replace';
+            handleFileImport(file, mode);
+        });
+    }
+
     initDatabase()
         .then(seedDefaults)
         .then(() => Promise.all([applyStoredDisplay(), loadActiveQuestions()]))
         .then(() => {
-            setupHoldActions();
-            setupSettingsAndMenu();
-            setupQuestionAuthoring();
-            setupKeyboardNavigation();
             renderCurrentQuestion();
-
-            document.getElementById('btn-export-all').addEventListener('click', exportAllDataAndConfig);
-            document.getElementById('file-import').addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                const mode = confirm("Click [OK] to MERGE file data natively.\nClick [Cancel] to completely WIPEOUT and REPLACE device logs.") ? 'merge' : 'replace';
-                handleFileImport(file, mode);
-            });
         })
         .catch(err => {
             console.error('Initialization failed:', err);
-            document.getElementById('question-text').textContent = "Could not open local storage.";
+            const qText = document.getElementById('question-text');
+            if (qText) qText.textContent = "Could not open local storage.";
         });
-});
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initApp);
+} else {
+    initApp();
+}

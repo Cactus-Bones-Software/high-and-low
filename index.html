@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>High & Low - Zero-Friction Mood Tracker</title>
-<!--    <link rel="manifest" href="/manifest.json">-->
+    <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="/style.css">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -20,9 +20,36 @@
 <div class="viewport-wrapper" id="viewport-wrapper">
     <div class="app-container" id="app-container">
 
-        <button id="btn-menu" class="menu-toggle" type="button" aria-label="Open menu &amp; settings" aria-expanded="false" aria-controls="settings-canvas">
+        <button id="btn-menu" class="menu-toggle" type="button" aria-label="Open menu &amp; navigation" aria-expanded="false" aria-controls="side-drawer">
             <span></span><span></span><span></span>
         </button>
+
+        <!-- Slide-over Drawer Overlay & Panel -->
+        <div id="drawer-overlay" class="drawer-overlay" aria-hidden="true"></div>
+
+        <aside id="side-drawer" class="side-drawer" role="dialog" aria-modal="true" aria-label="Navigation Menu" inert>
+            <div class="drawer-header">
+                <h2 class="drawer-title">Navigation Menu</h2>
+            </div>
+
+            <nav class="drawer-nav" aria-label="App Navigation">
+                <button type="button" class="drawer-nav-btn" data-target="tracker-canvas">
+                    <span class="nav-btn-text">Mood Tracker</span>
+                </button>
+                <button type="button" class="drawer-nav-btn" data-target="graphs-canvas">
+                    <span class="nav-btn-text">Graphs</span>
+                </button>
+                <button type="button" class="drawer-nav-btn" data-target="questions-canvas">
+                    <span class="nav-btn-text">Questions</span>
+                </button>
+                <button type="button" class="drawer-nav-btn" data-target="data-canvas">
+                    <span class="nav-btn-text">Data &amp; Backups</span>
+                </button>
+                <button type="button" class="drawer-nav-btn" data-target="settings-canvas">
+                    <span class="nav-btn-text">Settings</span>
+                </button>
+            </nav>
+        </aside>
 
         <main id="tracker-canvas" class="app-canvas view-active" aria-label="Mood Tracker Question Area">
 
@@ -55,14 +82,14 @@
             </footer>
         </main>
 
-        <section id="settings-canvas" class="app-canvas view-hidden-right" role="region" aria-label="Settings and Data Drawer" inert>
+        <section id="settings-canvas" class="app-canvas view-hidden-right" role="region" aria-label="Application Settings" inert>
 
             <header class="canvas-box header-box">
-                <h1 class="question-text">App Settings &amp; Data</h1>
+                <h1 class="question-text">Application Settings</h1>
             </header>
 
             <section class="canvas-box menu-box" id="panel-display">
-                <h3>Display Options</h3>
+                <h3>Display &amp; Interaction Preferences</h3>
                 <div class="setting-row">
                     <label for="theme-select">Theme:</label>
                     <select id="theme-select">
@@ -78,7 +105,34 @@
                         <option value="high">High (Crisp Text)</option>
                     </select>
                 </div>
+                <div class="setting-row">
+                    <label for="handedness-select">Handedness:</label>
+                    <select id="handedness-select">
+                        <option value="right" selected>Right-handed (Menu Top-Right)</option>
+                        <option value="left">Left-handed (Menu Top-Left)</option>
+                    </select>
+                </div>
             </section>
+
+            <section class="canvas-box menu-box" id="panel-view-nav">
+                <h3>App Views &amp; Tools</h3>
+                <div class="button-grid" style="flex-direction: column;">
+                    <button type="button" id="nav-btn-graphs" class="utility-btn">Data Visualizations &amp; Graphs</button>
+                    <button type="button" id="nav-btn-questions" class="utility-btn">Questions Library &amp; Custom Prompts</button>
+                    <button type="button" id="nav-btn-data" class="utility-btn">Data Management &amp; Backups</button>
+                </div>
+            </section>
+
+            <footer class="canvas-box footer-box">
+                <button type="button" id="btn-close-settings" class="control-btn">Return to Tracker</button>
+            </footer>
+        </section>
+
+        <section id="questions-canvas" class="app-canvas view-hidden-right" role="region" aria-label="Custom Questions Library" inert>
+
+            <header class="canvas-box header-box">
+                <h1 class="question-text">Questions Library &amp; Authoring</h1>
+            </header>
 
             <section class="canvas-box menu-box" id="panel-questions">
                 <h3>Custom Questions</h3>
@@ -137,8 +191,20 @@
                 </form>
             </section>
 
+            <footer class="canvas-box footer-box">
+                <button type="button" class="control-btn nav-to-settings">Back to Settings</button>
+                <button type="button" class="control-btn nav-to-tracker">Return to Tracker</button>
+            </footer>
+        </section>
+
+        <section id="data-canvas" class="app-canvas view-hidden-right" role="region" aria-label="Data Management" inert>
+
+            <header class="canvas-box header-box">
+                <h1 class="question-text">Data Management &amp; Backups</h1>
+            </header>
+
             <section class="canvas-box menu-box" id="panel-data">
-                <h3>Data Management</h3>
+                <h3>Export &amp; Import Data</h3>
                 <div class="button-grid">
                     <button type="button" id="btn-export-all" class="utility-btn">Backup Data &amp; Settings</button>
                 </div>
@@ -149,7 +215,27 @@
             </section>
 
             <footer class="canvas-box footer-box">
-                <button type="button" id="btn-close-settings" class="control-btn">Return to Tracker</button>
+                <button type="button" class="control-btn nav-to-settings">Back to Settings</button>
+                <button type="button" class="control-btn nav-to-tracker">Return to Tracker</button>
+            </footer>
+        </section>
+
+        <section id="graphs-canvas" class="app-canvas view-hidden-right" role="region" aria-label="Data Visualizations" inert>
+
+            <header class="canvas-box header-box">
+                <h1 class="question-text">Data Visualizations &amp; Graphs</h1>
+            </header>
+
+            <section class="canvas-box menu-box" id="panel-graphs">
+                <h3>Analytics Dashboard</h3>
+                <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 8px;">
+                    Visual charts and mood trend analytics will be displayed here.
+                </p>
+            </section>
+
+            <footer class="canvas-box footer-box">
+                <button type="button" class="control-btn nav-to-settings">Back to Settings</button>
+                <button type="button" class="control-btn nav-to-tracker">Return to Tracker</button>
             </footer>
         </section>
 
