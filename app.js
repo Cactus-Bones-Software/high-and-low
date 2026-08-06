@@ -236,7 +236,7 @@ function buildScoreButtonsHTML(question) {
 
         const fullAriaLabel = `Score ${score} out of 5${contextLabel ? ': ' + contextLabel : ''}`;
         buttonsHTML += `
-      <button type="button" class="score-btn" data-score="${score}" aria-label="${fullAriaLabel}">
+      <button type="button" class="score-button" data-score="${score}" aria-label="${fullAriaLabel}">
         <span class="num" aria-hidden="true">${score}</span>
         <span class="label-desc">${contextLabel}</span>
       </button>
@@ -261,8 +261,8 @@ function renderCurrentQuestion() {
 
     document.getElementById('button-stack').innerHTML = buildScoreButtonsHTML(currentQuestion);
 
-    document.querySelectorAll('.score-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+    document.querySelectorAll('.score-button').forEach(button => {
+        button.addEventListener('click', (e) => {
             const targetScore = parseInt(e.currentTarget.getAttribute('data-score'), 10);
             handleScoreSubmission(currentQuestion.id, targetScore);
         });
@@ -430,25 +430,25 @@ function areLogAnswersIdentical(a, b) {
 let holdTimer = null;
 function setupHoldActions() {
     STATE.deviceMode = (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) ? 'touch' : 'mouse';
-    document.querySelectorAll('.hold-action').forEach(btn => {
+    document.querySelectorAll('.hold-action').forEach(button => {
         if (STATE.deviceMode === 'touch') {
-            btn.addEventListener('touchstart', (e) => {
+            button.addEventListener('touchstart', (e) => {
                 e.preventDefault();
-                btn.classList.add('is-holding');
-                holdTimer = setTimeout(() => { executeHoldAction(btn.id); resetHold(btn); }, 1500);
+                button.classList.add('is-holding');
+                holdTimer = setTimeout(() => { executeHoldAction(button.id); resetHold(button); }, 1500);
             });
-            btn.addEventListener('touchend', () => resetHold(btn));
-            btn.addEventListener('touchcancel', () => resetHold(btn));
+            button.addEventListener('touchend', () => resetHold(button));
+            button.addEventListener('touchcancel', () => resetHold(button));
         } else {
-            btn.classList.add('desktop-click');
-            btn.addEventListener('click', () => executeHoldAction(btn.id));
+            button.classList.add('desktop-click');
+            button.addEventListener('click', () => executeHoldAction(button.id));
         }
 
         // Support Enter / Space keypress on hold action buttons for keyboard accessibility
-        btn.addEventListener('keydown', (e) => {
+        button.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                executeHoldAction(btn.id);
+                executeHoldAction(button.id);
             }
         });
     });
@@ -466,8 +466,8 @@ function setupHoldActions() {
 }
 function resetHold(e) { clearTimeout(holdTimer); e.classList.remove('is-holding'); }
 function executeHoldAction(id) {
-    if (id === 'btn-skip') finalizeSession();
-    if (id === 'btn-notes') {
+    if (id === 'button-skip') finalizeSession();
+    if (id === 'button-notes') {
         const note = prompt("Add a short internal log note (Optional):");
         if (note) {
             STATE.sessionNote = STATE.sessionNote ? STATE.sessionNote + '\n\n' + note : note;
@@ -481,9 +481,9 @@ function setupSettingsAndMenu() {
     const contrastSel = document.getElementById('contrast-select');
     const menuSideSel = document.getElementById('menu-side-select');
 
-    const handleThemeChange = (val) => {
+    const handleThemeChange = async (val) => {
         document.body.setAttribute('data-theme', val);
-        setConfig('theme', val);
+        await setConfig('theme', val);
         if (themeSel) themeSel.value = val;
     };
 
@@ -492,18 +492,21 @@ function setupSettingsAndMenu() {
     }
 
     if (contrastSel) {
-        contrastSel.addEventListener('change', (e) => {
+        contrastSel.addEventListener('change', async (e) => {
             document.body.setAttribute('data-contrast', e.target.value);
-            setConfig('contrast', e.target.value);
+            await setConfig('contrast', e.target.value);
         });
     }
 
     // Debug bounds functionality (Console controllable: window.toggleDebugBounds() or window.setDebugBounds(true/false))
-    window.setDebugBounds = (enable) => {
+    window.setDebugBounds = async (enable) => {
         const isEnabled = Boolean(enable);
         document.body.setAttribute('data-debug-bounds', isEnabled ? 'true' : 'false');
-        setConfig('debug-bounds', isEnabled ? 'on' : 'off');
-        try { localStorage.setItem('debug-bounds', isEnabled ? 'on' : 'off'); } catch (e) {}
+        await setConfig('debug-bounds', isEnabled ? 'on' : 'off');
+        try {
+            localStorage.setItem('debug-bounds', isEnabled ? 'on' : 'off');
+        } catch (e) {
+        }
         console.log(`[Layout Rig Outlines] ${isEnabled ? 'Enabled' : 'Disabled'}`);
         return isEnabled;
     };
@@ -516,10 +519,13 @@ function setupSettingsAndMenu() {
         return window.setDebugBounds(!currentState);
     };
 
-    const handleMenuSideChange = (val) => {
+    const handleMenuSideChange = async (val) => {
         document.body.setAttribute('data-menu-side', val);
-        setConfig('menuSide', val);
-        try { localStorage.setItem('menuSide', val); } catch (e) {}
+        await setConfig('menuSide', val);
+        try {
+            localStorage.setItem('menuSide', val);
+        } catch (e) {
+        }
         if (menuSideSel) menuSideSel.value = val;
     };
 
@@ -547,15 +553,13 @@ function setupSettingsAndMenu() {
 
         if (systemThemeMedia.addEventListener) {
             systemThemeMedia.addEventListener('change', handleSystemThemeChange);
-        } else if (systemThemeMedia.addListener) {
-            systemThemeMedia.addListener(handleSystemThemeChange);
         }
     }
 
     // Toggle menu drawer
-    const menuBtn = document.getElementById('btn-menu');
-    if (menuBtn) {
-        menuBtn.addEventListener('click', () => {
+    const menuButton = document.getElementById('button-menu');
+    if (menuButton) {
+        menuButton.addEventListener('click', () => {
             if (document.body.classList.contains('drawer-open')) {
                 closeDrawer();
             } else {
@@ -564,9 +568,9 @@ function setupSettingsAndMenu() {
         });
     }
 
-    const closeDrawerBtn = document.getElementById('btn-close-drawer');
-    if (closeDrawerBtn) {
-        closeDrawerBtn.addEventListener('click', closeDrawer);
+    const closeDrawerButton = document.getElementById('button-close-drawer');
+    if (closeDrawerButton) {
+        closeDrawerButton.addEventListener('click', closeDrawer);
     }
 
     const overlay = document.getElementById('drawer-overlay');
@@ -581,9 +585,9 @@ function setupSettingsAndMenu() {
     });
 
     // Drawer Navigation Items
-    document.querySelectorAll('.drawer-nav-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const targetId = btn.getAttribute('data-target');
+    document.querySelectorAll('.drawer-nav-button').forEach(button => {
+        button.addEventListener('click', () => {
+            const targetId = button.getAttribute('data-target');
             if (targetId) {
                 navigateTo(targetId);
                 closeDrawer();
@@ -591,25 +595,12 @@ function setupSettingsAndMenu() {
         });
     });
 
-    const closeSettingsBtn = document.getElementById('btn-close-settings');
-    if (closeSettingsBtn) {
-        closeSettingsBtn.addEventListener('click', () => navigateTo('tracker-canvas'));
+    const closeSettingsButton = document.getElementById('button-close-settings');
+    if (closeSettingsButton) {
+        closeSettingsButton.addEventListener('click', () => navigateTo('tracker-canvas'));
     }
 }
 
-function resetScrollPositions() {
-    try {
-        if (typeof window !== 'undefined' && window.scrollTo && !window.navigator?.userAgent?.includes('jsdom')) {
-            window.scrollTo(0, 0);
-        }
-    } catch (_) {}
-    const wrapper = document.getElementById('viewport-wrapper');
-    if (wrapper) wrapper.scrollLeft = 0;
-    const container = document.getElementById('app-container');
-    if (container) container.scrollLeft = 0;
-    if (document.body) document.body.scrollLeft = 0;
-    if (document.documentElement) document.documentElement.scrollLeft = 0;
-}
 
 function setInert(el, isInert) {
     if (!el) return;
@@ -625,20 +616,18 @@ function openDrawer() {
     document.body.classList.add('drawer-open');
     const drawer = document.getElementById('side-drawer');
     if (drawer) setInert(drawer, false);
-    const menuBtn = document.getElementById('btn-menu');
-    if (menuBtn) menuBtn.setAttribute('aria-expanded', 'true');
+    const menuButton = document.getElementById('button-menu');
+    if (menuButton) menuButton.setAttribute('aria-expanded', 'true');
 
     // Make all canvases inert while drawer is open
     document.querySelectorAll('.app-canvas').forEach(canvas => {
         setInert(canvas, true);
     });
 
-    resetScrollPositions();
-
     // Focus active or first button in drawer
     if (drawer) {
-        const activeNavBtn = drawer.querySelector('.drawer-nav-btn.active') || drawer.querySelector('.drawer-nav-btn');
-        if (activeNavBtn) activeNavBtn.focus({ preventScroll: true });
+        const activeNavButton = drawer.querySelector('.drawer-nav-button.active') || drawer.querySelector('.drawer-nav-button');
+        if (activeNavButton) activeNavButton.focus({ preventScroll: true });
     }
 }
 
@@ -646,10 +635,10 @@ function closeDrawer() {
     document.body.classList.remove('drawer-open');
     const drawer = document.getElementById('side-drawer');
     if (drawer) setInert(drawer, true);
-    const menuBtn = document.getElementById('btn-menu');
-    if (menuBtn) {
-        menuBtn.setAttribute('aria-expanded', 'false');
-        menuBtn.focus({ preventScroll: true });
+    const menuButton = document.getElementById('button-menu');
+    if (menuButton) {
+        menuButton.setAttribute('aria-expanded', 'false');
+        menuButton.focus({ preventScroll: true });
     }
 
     // Restore active canvas interactive state
@@ -657,8 +646,6 @@ function closeDrawer() {
     if (currentCanvas) {
         setInert(currentCanvas, false);
     }
-
-    resetScrollPositions();
 }
 
 let currentViewId = 'tracker-canvas';
@@ -682,8 +669,8 @@ function navigateTo(targetViewId) {
     currentViewId = targetViewId;
 
     // Update active state in drawer items
-    document.querySelectorAll('.drawer-nav-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.getAttribute('data-target') === targetViewId);
+    document.querySelectorAll('.drawer-nav-button').forEach(button => {
+        button.classList.toggle('active', button.getAttribute('data-target') === targetViewId);
     });
 
     // Focus header or first interactive control in target canvas
@@ -694,8 +681,6 @@ function navigateTo(targetViewId) {
         }
         focusTarget.focus({ preventScroll: true });
     }
-
-    resetScrollPositions();
 }
 
 function openSettings() {
@@ -706,7 +691,7 @@ function closeSettings() {
 }
 
 function setupQuestionAuthoring() {
-    const toggleBtn = document.getElementById('btn-add-question');
+    const toggleButton = document.getElementById('button-add-question');
     const form = document.getElementById('question-form');
     const textInput = document.getElementById('q-text');
     const curveInput = document.getElementById('q-curve');
@@ -717,8 +702,8 @@ function setupQuestionAuthoring() {
     const preview = document.getElementById('question-preview');
     const previewStack = document.getElementById('question-preview-stack');
     const addToSetInput = document.getElementById('q-add-to-set');
-    const saveBtn = document.getElementById('btn-save-question');
-    const cancelBtn = document.getElementById('btn-cancel-question');
+    const saveButton = document.getElementById('button-save-question');
+    const cancelButton = document.getElementById('button-cancel-question');
 
     function refreshPreview() {
         const curve = curveInput.value;
@@ -736,7 +721,7 @@ function setupQuestionAuthoring() {
     }
 
     function syncSaveEnabled() {
-        saveBtn.disabled = normalizeQuestionText(textInput.value) === '';
+        saveButton.disabled = normalizeQuestionText(textInput.value) === '';
     }
 
     function resetForm() {
@@ -746,11 +731,11 @@ function setupQuestionAuthoring() {
         refreshPreview();
     }
 
-    toggleBtn.addEventListener('click', () => {
+    toggleButton.addEventListener('click', () => {
         const opening = form.hidden;
         form.hidden = !opening;
-        toggleBtn.textContent = opening ? 'Hide Form' : 'Add a Question';
-        toggleBtn.setAttribute('aria-expanded', opening ? 'true' : 'false');
+        toggleButton.textContent = opening ? 'Hide Form' : 'Add a Question';
+        toggleButton.setAttribute('aria-expanded', opening ? 'true' : 'false');
         if (opening) {
             resetForm();
             textInput.focus({ preventScroll: true });
@@ -769,17 +754,17 @@ function setupQuestionAuthoring() {
         });
     });
 
-    cancelBtn.addEventListener('click', () => {
+    cancelButton.addEventListener('click', () => {
         resetForm();
         form.hidden = true;
-        toggleBtn.textContent = 'Add a Question';
-        toggleBtn.setAttribute('aria-expanded', 'false');
-        toggleBtn.focus({ preventScroll: true });
+        toggleButton.textContent = 'Add a Question';
+        toggleButton.setAttribute('aria-expanded', 'false');
+        toggleButton.focus({ preventScroll: true });
     });
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        saveBtn.disabled = true;
+        saveButton.disabled = true;
         try {
             const outcome = await createCustomQuestion({
                 text: textInput.value,
@@ -800,9 +785,9 @@ function setupQuestionAuthoring() {
 
             resetForm();
             form.hidden = true;
-            toggleBtn.textContent = 'Add a Question';
-            toggleBtn.setAttribute('aria-expanded', 'false');
-            toggleBtn.focus({ preventScroll: true });
+            toggleButton.textContent = 'Add a Question';
+            toggleButton.setAttribute('aria-expanded', 'false');
+            toggleButton.focus({ preventScroll: true });
         } catch (err) {
             console.error('Failed to save question:', err);
             alert('Could not save the question. Please try again.');
@@ -844,26 +829,26 @@ function setupKeyboardNavigation() {
             // Direct score submission via Number keys 1-5
             if (['1', '2', '3', '4', '5'].includes(e.key)) {
                 const score = parseInt(e.key, 10);
-                const scoreBtn = document.querySelector(`.score-btn[data-score="${score}"]`);
-                if (scoreBtn) {
-                    scoreBtn.focus({ preventScroll: true });
-                    scoreBtn.click();
+                const scoreButton = document.querySelector(`.score-button[data-score="${score}"]`);
+                if (scoreButton) {
+                    scoreButton.focus({ preventScroll: true });
+                    scoreButton.click();
                 }
                 return;
             }
 
             // Arrow key navigation through ALL interactive controls on the tracker canvas
             if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
-                const menuBtn = document.getElementById('btn-menu');
-                const scoreBtns = Array.from(document.querySelectorAll('#button-stack .score-btn'));
-                const notesBtn = document.getElementById('btn-notes');
-                const skipBtn = document.getElementById('btn-skip');
+                const menuButton = document.getElementById('button-menu');
+                const scoreButtons = Array.from(document.querySelectorAll('#button-stack .score-button'));
+                const notesButton = document.getElementById('button-notes');
+                const skipButton = document.getElementById('button-skip');
 
                 const focusables = [];
-                if (menuBtn) focusables.push(menuBtn);
-                focusables.push(...scoreBtns);
-                if (notesBtn) focusables.push(notesBtn);
-                if (skipBtn) focusables.push(skipBtn);
+                if (menuButton) focusables.push(menuButton);
+                focusables.push(...scoreButtons);
+                if (notesButton) focusables.push(notesButton);
+                if (skipButton) focusables.push(skipButton);
 
                 if (focusables.length === 0) return;
 
@@ -871,7 +856,7 @@ function setupKeyboardNavigation() {
                 e.preventDefault();
 
                 if (currentIndex === -1) {
-                    const score5 = document.querySelector(`.score-btn[data-score="5"]`);
+                    const score5 = document.querySelector(`.score-button[data-score="5"]`);
                     if (score5) score5.focus({ preventScroll: true });
                     else focusables[0].focus({ preventScroll: true });
                 } else {
@@ -888,12 +873,12 @@ function setupKeyboardNavigation() {
             // Quick key shortcuts
             if (e.key === 'n' || e.key === 'N') {
                 e.preventDefault();
-                executeHoldAction('btn-notes');
+                executeHoldAction('button-notes');
                 return;
             }
             if (e.key === 's' || e.key === 'S') {
                 e.preventDefault();
-                executeHoldAction('btn-skip');
+                executeHoldAction('button-skip');
                 return;
             }
             if (e.key === 'm' || e.key === 'M') {
@@ -905,7 +890,11 @@ function setupKeyboardNavigation() {
 }
 
 async function applyStoredDisplay() {
-    const [theme, contrast, menuSide, debugBounds] = await Promise.all([
+    const [
+        theme,
+        contrast, 
+        menuSide
+    ] = await Promise.all([
         getConfig('theme'),
         getConfig('contrast'),
         getConfig('menuSide'),
@@ -933,7 +922,7 @@ async function applyStoredDisplay() {
 
     // Ensure debug options/outlines are off on page load
     document.body.setAttribute('data-debug-bounds', 'false');
-    setConfig('debug-bounds', 'off');
+    await setConfig('debug-bounds', 'off');
     try { localStorage.setItem('debug-bounds', 'off'); } catch (e) {}
 }
 
@@ -957,8 +946,8 @@ function initApp() {
     setupQuestionAuthoring();
     setupKeyboardNavigation();
 
-    const exportBtn = document.getElementById('btn-export-all');
-    if (exportBtn) exportBtn.addEventListener('click', exportAllDataAndConfig);
+    const exportButton = document.getElementById('button-export-all');
+    if (exportButton) exportButton.addEventListener('click', exportAllDataAndConfig);
 
     const importFileInput = document.getElementById('file-import');
     if (importFileInput) {

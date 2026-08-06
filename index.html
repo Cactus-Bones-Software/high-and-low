@@ -20,33 +20,33 @@
 <div class="viewport-wrapper" id="viewport-wrapper">
     <div class="app-container" id="app-container">
 
-        <button id="btn-menu" class="menu-toggle" type="button" aria-label="Open menu &amp; navigation" aria-expanded="false" aria-controls="side-drawer">
+        <button id="button-menu" class="menu-toggle" type="button" aria-label="Open menu &amp; navigation" aria-expanded="false" aria-controls="side-drawer">
             <span></span><span></span><span></span>
         </button>
 
         <!-- Slide-over Drawer Overlay & Panel -->
         <div id="drawer-overlay" class="drawer-overlay" aria-hidden="true"></div>
 
-        <aside id="side-drawer" class="side-drawer" role="dialog" aria-modal="true" aria-label="Navigation Menu" inert>
+        <aside id="side-drawer" class="side-drawer" aria-hidden="true" aria-label="Navigation Menu" inert>
             <div class="drawer-header">
                 <h2 class="drawer-title">Navigation Menu</h2>
             </div>
 
             <nav class="drawer-nav" aria-label="App Navigation">
-                <button type="button" class="drawer-nav-btn" data-target="tracker-canvas">
-                    <span class="nav-btn-text">Mood Tracker</span>
+                <button type="button" class="drawer-nav-button" data-target="tracker-canvas">
+                    <span class="nav-button-text">Mood Tracker</span>
                 </button>
-                <button type="button" class="drawer-nav-btn" data-target="history-canvas">
-                    <span class="nav-btn-text">History</span>
+                <button type="button" class="drawer-nav-button" data-target="history-canvas">
+                    <span class="nav-button-text">History</span>
                 </button>
-                <button type="button" class="drawer-nav-btn" data-target="questions-canvas">
-                    <span class="nav-btn-text">Questions</span>
+                <button type="button" class="drawer-nav-button" data-target="questions-canvas">
+                    <span class="nav-button-text">Questions</span>
                 </button>
-                <button type="button" class="drawer-nav-btn" data-target="data-canvas">
-                    <span class="nav-btn-text">Data &amp; Backups</span>
+                <button type="button" class="drawer-nav-button" data-target="data-canvas">
+                    <span class="nav-button-text">Data &amp; Backups</span>
                 </button>
-                <button type="button" class="drawer-nav-btn" data-target="settings-canvas">
-                    <span class="nav-btn-text">Settings</span>
+                <button type="button" class="drawer-nav-button" data-target="settings-canvas">
+                    <span class="nav-button-text">Settings</span>
                 </button>
             </nav>
         </aside>
@@ -62,22 +62,22 @@
 
             <section class="canvas-box input-box" id="input-box" data-curve="neutral" aria-label="Score Options">
                 <div class="button-stack" id="button-stack" role="group" aria-label="Select score from 1 to 5">
-                    <button type="button" class="score-btn" data-score="5" aria-label="Score 5 out of 5"><span class="num" aria-hidden="true">5</span> --</button>
-                    <button type="button" class="score-btn" data-score="4" aria-label="Score 4 out of 5"><span class="num" aria-hidden="true">4</span> --</button>
-                    <button type="button" class="score-btn" data-score="3" aria-label="Score 3 out of 5"><span class="num" aria-hidden="true">3</span> --</button>
-                    <button type="button" class="score-btn" data-score="2" aria-label="Score 2 out of 5"><span class="num" aria-hidden="true">2</span> --</button>
-                    <button type="button" class="score-btn" data-score="1" aria-label="Score 1 out of 5"><span class="num" aria-hidden="true">1</span> --</button>
+                    <button type="button" class="score-button" data-score="5" aria-label="Score 5 out of 5"><span class="num" aria-hidden="true">5</span> --</button>
+                    <button type="button" class="score-button" data-score="4" aria-label="Score 4 out of 5"><span class="num" aria-hidden="true">4</span> --</button>
+                    <button type="button" class="score-button" data-score="3" aria-label="Score 3 out of 5"><span class="num" aria-hidden="true">3</span> --</button>
+                    <button type="button" class="score-button" data-score="2" aria-label="Score 2 out of 5"><span class="num" aria-hidden="true">2</span> --</button>
+                    <button type="button" class="score-button" data-score="1" aria-label="Score 1 out of 5"><span class="num" aria-hidden="true">1</span> --</button>
                 </div>
             </section>
 
             <footer class="canvas-box footer-box" id="footer-box">
-                <button type="button" id="btn-notes" class="control-btn hold-action" aria-label="Add custom note (Press or Hold)">
+                <button type="button" id="button-notes" class="control-button hold-action" aria-label="Add custom note (Press or Hold)">
                     <span class="hold-indicator" aria-hidden="true"></span>
-                    <span class="btn-label">Add Note</span>
+                    <span class="button-label">Add Note</span>
                 </button>
-                <button type="button" id="btn-skip" class="control-btn hold-action" aria-label="Skip remaining questions (Press or Hold)">
+                <button type="button" id="button-skip" class="control-button hold-action" aria-label="Skip remaining questions (Press or Hold)">
                     <span class="hold-indicator" aria-hidden="true"></span>
-                    <span class="btn-label">Skip the Rest</span>
+                    <span class="button-label">Skip the Rest</span>
                 </button>
             </footer>
         </main>
@@ -124,7 +124,7 @@
             <section class="canvas-box menu-box" id="panel-questions">
                 <h3>Custom Questions</h3>
                 <div class="button-grid">
-                    <button type="button" id="btn-add-question" class="utility-btn" aria-expanded="false" aria-controls="question-form">Add a Question</button>
+                    <button type="button" id="button-add-question" class="utility-button" aria-expanded="false" aria-controls="question-form">Add a Question</button>
                 </div>
 
                 <form id="question-form" class="question-form" hidden>
@@ -172,8 +172,8 @@
                     </label>
 
                     <div class="button-grid">
-                        <button type="button" id="btn-cancel-question" class="utility-btn">Cancel</button>
-                        <button type="submit" id="btn-save-question" class="utility-btn" disabled>Save Question</button>
+                        <button type="button" id="button-cancel-question" class="utility-button">Cancel</button>
+                        <button type="submit" id="button-save-question" class="utility-button" disabled>Save Question</button>
                     </div>
                 </form>
             </section>
@@ -188,10 +188,10 @@
             <section class="canvas-box menu-box" id="panel-data">
                 <h3>Export &amp; Import Data</h3>
                 <div class="button-grid">
-                    <button type="button" id="btn-export-all" class="utility-btn">Backup Data &amp; Settings</button>
+                    <button type="button" id="button-export-all" class="utility-button">Backup Data &amp; Settings</button>
                 </div>
                 <div class="file-import-zone">
-                    <label class="utility-btn" for="file-import" tabindex="0" role="button" aria-label="Import Backup JSON File">Import Backup File</label>
+                    <label class="utility-button" for="file-import" tabindex="0" role="button" aria-label="Import Backup JSON File">Import Backup File</label>
                     <input type="file" id="file-import" accept=".json" style="display: none;">
                 </div>
             </section>
