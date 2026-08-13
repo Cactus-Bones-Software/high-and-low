@@ -137,12 +137,17 @@ html, body {
     padding: 0;
     width: 100vw;
     height: 100vh; /* Older viewport height spec*/
-    height: 100dvh; /* Dynamic viewport height for mobile devices */
     overflow: hidden;
     background-color: var(--bg-color);
     font-family: var(--font-stack), sans-serif;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
+}
+
+@supports (height: 100dvh) {
+    html, body {
+        height: 100dvh; /* Dynamic viewport height for mobile devices */
+    }
 }
 
 body {
