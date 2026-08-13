@@ -8,7 +8,6 @@
 * **Frontend Core**: Vanilla HTML5, Vanilla CSS3 (Custom Properties), Vanilla JavaScript (ES6+, zero dependencies/frameworks).
 * **Deployment Format**: Progressive Web App (PWA) with offline-first support (`manifest.json` & Service Worker).
 * **Local Persistence Engine**: IndexedDB (`HighAndLowDB` v1 with `config` and `logs` object stores).
-* **Development Environment**: Isolated Debian VM running WebStorm, integrated with Aider driving local `llama-server` (Qwen2.5-Coder-14B).
 
 ## Architectural Rules
 * **Local-First & Private**: 100% on-device storage with zero external APIs, backend servers, or analytics.

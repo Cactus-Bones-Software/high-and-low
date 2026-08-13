@@ -178,9 +178,6 @@ body {
 /* ==========================================================================
 2. VIEWPORT FRAMING & ORTHOGONAL TRANSITIONS
 ========================================================================== */
-/* ==========================================================================
-2. VIEWPORT FRAMING & ORTHOGONAL TRANSITIONS
-========================================================================== */
 .viewport-wrapper {
     position: relative;
     width: 100vw;
@@ -727,6 +724,34 @@ select, .utility-button, .form-input {
 .utility-button:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+}
+
+.canvas-back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    align-self: flex-start;
+    padding: 8px 14px 8px 10px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background-color: var(--button-default);
+    color: var(--button-text);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 150ms var(--transition-curve);
+}
+
+.canvas-back-button .back-arrow {
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+@media (hover: hover) {
+    .canvas-back-button:hover {
+        background-color: var(--border-color);
+    }
 }
 
 /* ==========================================================================

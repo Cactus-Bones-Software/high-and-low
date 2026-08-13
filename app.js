@@ -594,12 +594,18 @@ function setupSettingsAndMenu() {
             }
         });
     });
-
-    const closeSettingsButton = document.getElementById('button-close-settings');
-    if (closeSettingsButton) {
-        closeSettingsButton.addEventListener('click', () => navigateTo('tracker-canvas'));
-    }
 }
+
+function setupCanvasBackButtons() {
+    document.querySelectorAll('[data-close-view]').forEach(button => {
+        button.addEventListener('click', () => navigateTo('tracker-canvas'));
+    });
+}
+
+window.addEventListener('popstate', (e) => {
+    const targetView = (e.state && e.state.view) ? e.state.view : 'tracker-canvas';
+    navigateTo(targetView, { fromPopState: true });
+});
 
 
 function setInert(el, isInert) {
@@ -650,7 +656,7 @@ function closeDrawer() {
 
 let currentViewId = 'tracker-canvas';
 
-function navigateTo(targetViewId) {
+function navigateTo(targetViewId, opts = {}) {
     if (targetViewId === currentViewId) return;
 
     const currentCanvas = document.getElementById(currentViewId);
@@ -667,6 +673,13 @@ function navigateTo(targetViewId) {
     setInert(targetCanvas, false);
 
     currentViewId = targetViewId;
+
+    // Push a history entry so hardware/gesture 'back' steps back one view
+    // instead of exiting the app. Skip when we're already responding to
+    // a popstate event, or we'd push right back onto the stack we just popped.
+    if (!opts.fromPopState && window.history && window.history.pushState) {
+        history.pushState({ view: targetViewId }, '');
+    }
 
     // Update active state in drawer items
     document.querySelectorAll('.drawer-nav-button').forEach(button => {
@@ -945,6 +958,11 @@ function initApp() {
     setupSettingsAndMenu();
     setupQuestionAuthoring();
     setupKeyboardNavigation();
+    setupCanvasBackButtons();
+
+    if (window.history && window.history.replaceState) {
+        history.replaceState({ view: 'tracker-canvas' }, '');
+    }
 
     const exportButton = document.getElementById('button-export-all');
     if (exportButton) exportButton.addEventListener('click', exportAllDataAndConfig);

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>High & Low - Zero-Friction Mood Tracker</title>
+    <title>High & Low - Mood Tracker</title>
     <link rel="manifest" href="./manifest.json">
     <link rel="stylesheet" href="./style.css">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -85,6 +85,9 @@
         <section id="settings-canvas" class="app-canvas view-hidden-right" role="region" aria-label="Application Settings" inert>
 
             <header class="canvas-box header-box">
+                <button type="button" class="canvas-back-button" data-close-view aria-label="Back to Mood Tracker">
+                    <span class="back-arrow" aria-hidden="true">&larr;</span> Back
+                </button>
                 <h1 class="question-text">Application Settings</h1>
             </header>
 
@@ -118,6 +121,9 @@
         <section id="questions-canvas" class="app-canvas view-hidden-right" role="region" aria-label="Custom Questions Library" inert>
 
             <header class="canvas-box header-box">
+                <button type="button" class="canvas-back-button" data-close-view aria-label="Back to Mood Tracker">
+                    <span class="back-arrow" aria-hidden="true">&larr;</span> Back
+                </button>
                 <h1 class="question-text">Questions Library &amp; Authoring</h1>
             </header>
 
@@ -131,6 +137,11 @@
                     <div class="form-field">
                         <label for="q-text">Question <span class="required-marker" aria-hidden="true">*</span></label>
                         <textarea id="q-text" class="form-input" rows="2" placeholder="e.g. How rested do you feel?" required></textarea>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="q-short-label">Short label <span class="required-marker" aria-hidden="true">*</span> <span class="optional-hint">(for charts &amp; lists)</span></label>
+                        <input type="text" id="q-short-label" class="form-input" placeholder="e.g. Sleep Quality" required>
                     </div>
 
                     <div class="form-field">
@@ -161,6 +172,7 @@
 
                     <div class="form-field">
                         <span class="preview-caption" id="preview-caption-text">Preview</span>
+                        <div class="preview-title-box" id="preview-title-box" style="margin-top: 6px; font-weight: 600; font-size: 0.95rem; color: var(--text-bright); text-align: center;"></div>
                         <section class="input-box question-preview" id="question-preview" data-curve="more-is-better" aria-labelledby="preview-caption-text">
                             <div class="button-stack" id="question-preview-stack"></div>
                         </section>
@@ -182,6 +194,9 @@
         <section id="data-canvas" class="app-canvas view-hidden-right" role="region" aria-label="Data Management" inert>
 
             <header class="canvas-box header-box">
+                <button type="button" class="canvas-back-button" data-close-view aria-label="Back to Mood Tracker">
+                    <span class="back-arrow" aria-hidden="true">&larr;</span> Back
+                </button>
                 <h1 class="question-text">Data Management &amp; Backups</h1>
             </header>
 
@@ -200,6 +215,9 @@
         <section id="history-canvas" class="app-canvas view-hidden-right" role="region" aria-label="History" inert>
 
             <header class="canvas-box header-box">
+                <button type="button" class="canvas-back-button" data-close-view aria-label="Back to Mood Tracker">
+                    <span class="back-arrow" aria-hidden="true">&larr;</span> Back
+                </button>
                 <h1 class="question-text">History</h1>
             </header>
 
