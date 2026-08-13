@@ -21,13 +21,13 @@ const SEED_VERSION = 1;
 // same 'questions' store but with builtIn:false and a content-addressed id
 // (see makeCustomId). Built-ins use readable slugs for export/debug legibility.
 const DEFAULT_QUESTIONS = [
-    { id: 'q_energy',       text: 'What is your current energy level?',            curve: 'more-is-better',   minLabel: 'Bedbound/Depleted',      maxLabel: 'Fully Charged',   midLabel: null },
-    { id: 'q_sadness',      text: 'How heavy or deep is your sadness right now?',  curve: 'less-is-better',   minLabel: 'No Sadness',             maxLabel: 'Overwhelming',    midLabel: null },
-    { id: 'q_worth',        text: 'How is your sense of self-worth and guilt?',    curve: 'more-is-better',   minLabel: 'Intense Guilt/Worthless', maxLabel: 'At Peace',        midLabel: null },
-    { id: 'q_irritability', text: 'How irritable or easily agitated do you feel?', curve: 'less-is-better',   minLabel: 'Calm & Patient',         maxLabel: 'Highly Snappy',   midLabel: null },
-    { id: 'q_racing',       text: 'How fast are your thoughts moving?',            curve: 'less-is-better',   minLabel: 'Quiet & Focused',        maxLabel: 'Unstoppable Racing', midLabel: null },
-    { id: 'q_impulse',      text: 'Are you experiencing restless or reckless urges?', curve: 'less-is-better', minLabel: 'Deliberate',           maxLabel: 'Highly Impulsive', midLabel: null },
-    { id: 'q_overall',      text: 'Overall, where does your mood sit right now?',  curve: 'middle-is-best',   minLabel: 'Deeply Low',             maxLabel: 'Manic/Spiked',    midLabel: 'Stable & Even' }
+    { id: 'q_energy',       text: 'What is your current energy level?',            shortLabel: 'Energy Level',      curve: 'more-is-better',   minLabel: 'Bedbound/Depleted',      maxLabel: 'Fully Charged',   midLabel: null },
+    { id: 'q_sadness',      text: 'How heavy or deep is your sadness right now?',  shortLabel: 'Sadness Depth',     curve: 'less-is-better',   minLabel: 'No Sadness',             maxLabel: 'Overwhelming',    midLabel: null },
+    { id: 'q_worth',        text: 'How is your sense of self-worth and guilt?',    shortLabel: 'Self-Worth',        curve: 'more-is-better',   minLabel: 'Intense Guilt/Worthless', maxLabel: 'At Peace',        midLabel: null },
+    { id: 'q_irritability', text: 'How irritable or easily agitated do you feel?', shortLabel: 'Irritability',      curve: 'less-is-better',   minLabel: 'Calm & Patient',         maxLabel: 'Highly Snappy',   midLabel: null },
+    { id: 'q_racing',       text: 'How fast are your thoughts moving?',            shortLabel: 'Racing Thoughts',   curve: 'less-is-better',   minLabel: 'Quiet & Focused',        maxLabel: 'Unstoppable Racing', midLabel: null },
+    { id: 'q_impulse',      text: 'Are you experiencing restless or reckless urges?', shortLabel: 'Restless Urges', curve: 'less-is-better', minLabel: 'Deliberate',           maxLabel: 'Highly Impulsive', midLabel: null },
+    { id: 'q_overall',      text: 'Overall, where does your mood sit right now?',  shortLabel: 'Overall Mood',      curve: 'middle-is-best',   minLabel: 'Deeply Low',             maxLabel: 'Manic/Spiked',    midLabel: 'Stable & Even' }
 ];
 
 // Daily set established on first run (ids into the 'questions' store).
@@ -143,6 +143,15 @@ async function seedDefaults() {
                     createdAt: now,
                     updatedAt: now
                 });
+            } else {
+                const existingQuestion = existing.find(item => item.id === q.id);
+                if (existingQuestion && (!existingQuestion.shortLabel || existingQuestion.shortLabel !== q.shortLabel)) {
+                    store.put({
+                        ...existingQuestion,
+                        shortLabel: q.shortLabel,
+                        updatedAt: now
+                    });
+                }
             }
         });
         tx.oncomplete = () => resolve();
@@ -166,9 +175,11 @@ async function loadActiveQuestions() {
 }
 
 // Persist a user-authored question.
-async function createCustomQuestion({ text, curve, minLabel, maxLabel, midLabel, addToSet }) {
+async function createCustomQuestion({ text, shortLabel, curve, minLabel, maxLabel, midLabel, addToSet }) {
     const normalized = normalizeQuestionText(text || '');
+    const normalizedShort = normalizeQuestionText(shortLabel || '');
     if (!normalized) throw new Error('Question text is required.');
+    if (!normalizedShort) throw new Error('Short label is required.');
 
     const id = makeCustomId(normalized);
     const now = new Date().toISOString();
@@ -183,7 +194,7 @@ async function createCustomQuestion({ text, curve, minLabel, maxLabel, midLabel,
             const existing = getReq.result;
             if (existing) {
                 if (existing.archived) {
-                    const restored = { ...existing, archived: false, updatedAt: now };
+                    const restored = { ...existing, shortLabel: normalizedShort, archived: false, updatedAt: now };
                     store.put(restored);
                     result = { status: 'restored', id, question: restored };
                 } else {
@@ -193,6 +204,7 @@ async function createCustomQuestion({ text, curve, minLabel, maxLabel, midLabel,
                 const question = {
                     id,
                     text: normalized,
+                    shortLabel: normalizedShort,
                     originalText: normalized,
                     curve,
                     minLabel: minLabel || null,
@@ -707,12 +719,14 @@ function setupQuestionAuthoring() {
     const toggleButton = document.getElementById('button-add-question');
     const form = document.getElementById('question-form');
     const textInput = document.getElementById('q-text');
+    const shortLabelInput = document.getElementById('q-short-label');
     const curveInput = document.getElementById('q-curve');
     const maxInput = document.getElementById('q-max-label');
     const midField = document.getElementById('field-mid-label');
     const midInput = document.getElementById('q-mid-label');
     const minInput = document.getElementById('q-min-label');
     const preview = document.getElementById('question-preview');
+    const previewTitleBox = document.getElementById('preview-title-box');
     const previewStack = document.getElementById('question-preview-stack');
     const addToSetInput = document.getElementById('q-add-to-set');
     const saveButton = document.getElementById('button-save-question');
@@ -721,6 +735,11 @@ function setupQuestionAuthoring() {
     function refreshPreview() {
         const curve = curveInput.value;
         preview.setAttribute('data-curve', curve);
+        const shortVal = normalizeQuestionText(shortLabelInput ? shortLabelInput.value : '');
+        const fullVal = normalizeQuestionText(textInput ? textInput.value : '');
+        if (previewTitleBox) {
+            previewTitleBox.textContent = shortVal ? shortVal : (fullVal || 'Short Label Preview');
+        }
         previewStack.innerHTML = buildScoreButtonsHTML({
             curve,
             maxLabel: maxInput.value,
@@ -734,7 +753,9 @@ function setupQuestionAuthoring() {
     }
 
     function syncSaveEnabled() {
-        saveButton.disabled = normalizeQuestionText(textInput.value) === '';
+        const textOk = normalizeQuestionText(textInput.value) !== '';
+        const shortOk = shortLabelInput ? normalizeQuestionText(shortLabelInput.value) !== '' : true;
+        saveButton.disabled = !(textOk && shortOk);
     }
 
     function resetForm() {
@@ -760,7 +781,8 @@ function setupQuestionAuthoring() {
         refreshPreview();
     });
 
-    [textInput, maxInput, midInput, minInput].forEach(el => {
+    [textInput, shortLabelInput, maxInput, midInput, minInput].forEach(el => {
+        if (!el) return;
         el.addEventListener('input', () => {
             syncSaveEnabled();
             refreshPreview();
@@ -781,6 +803,7 @@ function setupQuestionAuthoring() {
         try {
             const outcome = await createCustomQuestion({
                 text: textInput.value,
+                shortLabel: shortLabelInput ? shortLabelInput.value : '',
                 curve: curveInput.value,
                 minLabel: minInput.value,
                 maxLabel: maxInput.value,
@@ -905,7 +928,7 @@ function setupKeyboardNavigation() {
 async function applyStoredDisplay() {
     const [
         theme,
-        contrast, 
+        contrast,
         menuSide
     ] = await Promise.all([
         getConfig('theme'),
