@@ -925,7 +925,9 @@ function navigateTo(targetViewId, opts = {}) {
     currentViewId = targetViewId;
 
     if (targetViewId === 'history-canvas') {
-        loadHistoryView();
+        void loadHistoryView().catch(err => {
+            console.error('Failed to load history view:', err);
+        });
     }
 
     // Push a history entry so hardware/gesture 'back' steps back one view
