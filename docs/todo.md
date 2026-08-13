@@ -73,11 +73,11 @@ Patients and psychiatrists need a way to actually read the collected data back, 
   - Add a "Short label" input to the custom-question authoring form in `index.html`/`app.js`, required alongside the existing text field. Surface it in the live preview.
   - This is a pure data-layer task — no chart or graph code here.
 
-- [ ] **Task 3.2: History view scaffold**
+- [x] **Task 3.2: History view scaffold**
   - Add a new `app-canvas` view (`#history-canvas`) reachable from the main drawer, wired into the existing orthogonal-slide transition system.
   - No chart rendering yet — just the empty canvas, navigation entry point, and a query that pulls `logs` + `questions` for the active question set into memory.
 
-- [ ] **Task 3.3: Line graph rendering engine**
+- [x] **Task 3.3: Line graph rendering engine**
   - Render one line per active question across its answered scores over time on a single shared 1–5 y-axis, using the `logs` + `questions` data loaded in Task 3.2.
   - Reuse the existing curve-to-color mapping conventions already established for `more-is-better` / `less-is-better` / `middle-is-best` where sensible.
 

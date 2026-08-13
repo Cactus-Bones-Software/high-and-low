@@ -668,6 +668,167 @@ function closeDrawer() {
 
 let currentViewId = 'tracker-canvas';
 
+function getCurveColor(curve, index) {
+    if (curve === 'more-is-better') return '#34c759';
+    if (curve === 'less-is-better') return '#ff3b30';
+    if (curve === 'middle-is-best') return '#007aff';
+    const fallbackPalette = ['#34c759', '#ff3b30', '#007aff', '#af52de', '#ff9500', '#5ac8fa'];
+    return fallbackPalette[index % fallbackPalette.length];
+}
+
+async function loadHistoryView() {
+    const container = document.getElementById('history-graph-container') || document.getElementById('panel-history');
+    if (!container) return;
+
+    try {
+        const [logs, questions, activeSet] = await Promise.all([
+            getAll('logs'),
+            getAll('questions'),
+            getConfig('activeQuestionSet')
+        ]);
+
+        const questionsById = new Map(questions.map(q => [q.id, q]));
+        const activeIds = Array.isArray(activeSet) ? activeSet : DEFAULT_ACTIVE_SET;
+        const activeQuestions = activeIds.map(id => questionsById.get(id)).filter(q => q && !q.archived);
+
+        const sortedLogs = (logs || []).slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+        STATE.historyData = {
+            logs: sortedLogs,
+            questions: activeQuestions,
+            allQuestionsMap: questionsById
+        };
+
+        renderLineGraph(container, STATE.historyData);
+    } catch (err) {
+        console.error('Failed to load history data:', err);
+    }
+}
+
+function renderLineGraph(container, { logs, questions }) {
+    if (!container) return;
+
+    if (!logs || logs.length === 0) {
+        container.innerHTML = `
+            <h3>Mood Timeline</h3>
+            <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 12px; line-height: 1.5; text-align: center;">
+                No recorded mood history yet.<br>Complete an entry in the Mood Tracker to view your history timeline.
+            </p>
+        `;
+        return;
+    }
+
+    const width = 600;
+    const height = 300;
+    const paddingTop = 30;
+    const paddingBottom = 40;
+    const paddingLeft = 35;
+    const paddingRight = 20;
+
+    const chartWidth = width - paddingLeft - paddingRight;
+    const chartHeight = height - paddingTop - paddingBottom;
+
+    function getY(score) {
+        if (score === null || score === undefined) return null;
+        const ratio = (score - 1) / 4;
+        return paddingTop + chartHeight * (1 - ratio);
+    }
+
+    const logCount = logs.length;
+    function getX(index) {
+        if (logCount === 1) return paddingLeft + chartWidth / 2;
+        return paddingLeft + (index / (logCount - 1)) * chartWidth;
+    }
+
+    function formatDateLabel(isoStr) {
+        try {
+            const d = new Date(isoStr);
+            return (d.getMonth() + 1) + '/' + d.getDate();
+        } catch (e) {
+            return isoStr;
+        }
+    }
+
+    let gridLinesHTML = '';
+    for (let score = 1; score <= 5; score++) {
+        const y = getY(score);
+        gridLinesHTML += `
+            <line x1="${paddingLeft}" y1="${y}" x2="${width - paddingRight}" y2="${y}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2,2" />
+            <text x="${paddingLeft - 8}" y="${y + 4}" fill="var(--text-muted)" font-size="11" text-anchor="end" font-weight="600">${score}</text>
+        `;
+    }
+
+    let xAxisHTML = '';
+    const maxLabels = 6;
+    const labelStep = Math.max(1, Math.floor(logCount / maxLabels));
+    logs.forEach((log, i) => {
+        if (i % labelStep === 0 || i === logCount - 1) {
+            const x = getX(i);
+            const dateStr = formatDateLabel(log.timestamp);
+            xAxisHTML += `
+                <text x="${x}" y="${height - 12}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${dateStr}</text>
+            `;
+        }
+    });
+
+    let linesHTML = '';
+    let legendHTML = '<div class="graph-legend" style="display: flex; flex-wrap: wrap; gap: 8px 12px; margin-top: 12px; justify-content: center;">';
+
+    questions.forEach((q, qIndex) => {
+        const color = getCurveColor(q.curve, qIndex);
+        legendHTML += `
+            <div style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--text-bright);">
+                <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${color};"></span>
+                <span>${q.shortLabel || q.text}</span>
+            </div>
+        `;
+
+        let pathD = '';
+        let pointsHTML = '';
+
+        logs.forEach((log, logIndex) => {
+            const answer = (log.answers || []).find(a => a.questionId === q.id);
+            const score = (answer && answer.status === 'answered') ? answer.score : null;
+
+            if (score !== null && score >= 1 && score <= 5) {
+                const x = getX(logIndex);
+                const y = getY(score);
+
+                if (pathD === '') {
+                    pathD = `M ${x} ${y}`;
+                } else {
+                    pathD += ` L ${x} ${y}`;
+                }
+
+                pointsHTML += `<circle cx="${x}" cy="${y}" r="4" fill="${color}" stroke="var(--box-bg)" stroke-width="1.5" />`;
+            }
+        });
+
+        if (pathD) {
+            linesHTML += `<path d="${pathD}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />`;
+        }
+        linesHTML += pointsHTML;
+    });
+
+    legendHTML += '</div>';
+
+    const svgHTML = `
+        <svg viewBox="0 0 ${width} ${height}" style="width: 100%; height: auto; max-height: 260px; overflow: visible;">
+            <g class="grid">${gridLinesHTML}</g>
+            <g class="x-axis">${xAxisHTML}</g>
+            <g class="lines">${linesHTML}</g>
+        </svg>
+    `;
+
+    container.innerHTML = `
+        <h3 style="margin-bottom: 4px;">Mood Timeline</h3>
+        <div style="width: 100%; overflow-x: auto;">
+            ${svgHTML}
+        </div>
+        ${legendHTML}
+    `;
+}
+
 function navigateTo(targetViewId, opts = {}) {
     if (targetViewId === currentViewId) return;
 
@@ -685,6 +846,10 @@ function navigateTo(targetViewId, opts = {}) {
     setInert(targetCanvas, false);
 
     currentViewId = targetViewId;
+
+    if (targetViewId === 'history-canvas') {
+        loadHistoryView();
+    }
 
     // Push a history entry so hardware/gesture 'back' steps back one view
     // instead of exiting the app. Skip when we're already responding to
