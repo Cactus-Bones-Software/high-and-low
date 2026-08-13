@@ -28,5 +28,4 @@ Locked design decisions and open questions for High & Low (menu, questions store
   - **Active Tracker Questions Section (Top):** Cards for questions currently active in the mood tracker, with handles/ordering controls to adjust position in the tracking sequence, tags display, and an "In Tracker" toggle.
   - **Library Catalog Section (Bottom):** Cards for all inactive questions (built-in and custom), displaying full question text, tags, "Add to Tracker" toggle, and Edit action on the non-dominant side.
   - **Intuitive Card Ergonomics:** Clean card UI with question text prominently featured at top, tags/chips below, and actions strategically positioned for thumb reachability.
-
-
+- **Yes/No Question Support:** Questions support binary Yes/No responses in addition to the standard 1–5 scale. Yes/No questions render as a streamlined 2-button choice deck in the tracker and plot cleanly on the analytics timeline.

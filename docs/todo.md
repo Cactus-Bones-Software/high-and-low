@@ -136,6 +136,14 @@ Patients and psychiatrists need a way to actually read the collected data back, 
   - Enable editing of existing custom questions (updating text, short label, tags, curve, and endpoint labels) while maintaining the immutable `id`.
   - Include soft-archive / restore capabilities for custom questions.
 
+- [ ] **Task 4.8: Yes/No Question Type Schema & Authoring**
+  - Extend question schema to support response types (`responseType: "scale" | "boolean"` or `curve: "boolean"`).
+  - Add response type selector (5-Point Scale vs. Yes/No) to the custom question authoring & editing dialogs in `index.html` and wire it into `app.js`.
+
+- [ ] **Task 4.9: Yes/No Question Tracker UI & Graph Analytics**
+  - Update `renderCurrentQuestion` in `app.js` to render a clean 2-button (Yes / No) input deck when `responseType: "boolean"`.
+  - Map Yes/No responses to binary score values (or boolean flags) that render accurately on the History line-graph without disrupting standard 1–5 scale questions.
+
 ---
 
 ### Phase 5: Offline Capabilities & PWA Readiness
