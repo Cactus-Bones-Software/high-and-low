@@ -674,12 +674,41 @@ body[data-theme="system"] .input-box[data-curve="middle-is-best"] button[data-sc
     left: 0;
     height: 100%;
     width: 0;
-    background-color: rgba(255, 255, 255, 0.08);
+    background-color: rgba(0, 0, 0, 0.18);
     pointer-events: none;
 }
 
-body[data-theme="light"] .hold-indicator {
-    background-color: rgba(0, 0, 0, 0.06);
+/* Light Mode (Explicit or System Default) */
+body[data-theme="light"] .hold-indicator,
+body:not([data-theme="dark"]) .hold-indicator {
+    background-color: rgba(0, 0, 0, 0.18);
+}
+
+/* Dark Mode (Explicit or System Preference) */
+body[data-theme="dark"] .hold-indicator {
+    background-color: rgba(255, 255, 255, 0.25);
+}
+
+@media (prefers-color-scheme: dark) {
+    body[data-theme="system"] .hold-indicator,
+    body:not([data-theme]) .hold-indicator {
+        background-color: rgba(255, 255, 255, 0.25);
+    }
+}
+
+/* High Contrast Adjustments */
+body[data-contrast="high"] .hold-indicator {
+    background-color: rgba(0, 0, 0, 0.35);
+}
+
+body[data-theme="dark"][data-contrast="high"] .hold-indicator {
+    background-color: rgba(255, 255, 255, 0.45);
+}
+
+@media (prefers-color-scheme: dark) {
+    body[data-theme="system"][data-contrast="high"] .hold-indicator {
+        background-color: rgba(255, 255, 255, 0.45);
+    }
 }
 
 .control-button.is-holding .hold-indicator {
