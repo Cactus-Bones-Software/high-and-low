@@ -68,12 +68,12 @@ You are an autonomous software developer working on "High & Low", a local-first,
 
 Patients and psychiatrists need a way to actually read the collected data back, not just record it. This phase adds a line-graph analytics view behind the navigation drawer. Each task below is scoped to a single concern — pull only the task you're working on into context rather than the whole phase.
 
-- [ ] **Task 3.1: Question schema — add `shortLabel`**
+- [x] **Task 3.1: Question schema — add `shortLabel`**
   - Add a `shortLabel` field (2-3 words) to the question object, separate from the full `text`. Hardcode a `shortLabel` for each of the 7 `DEFAULT_QUESTIONS` in `app.js`.
-  - Add a "Short label" input to the custom-question authoring form in `index.html`/`app.js`, with a low character cap, required alongside the existing text field. Surface it in the live preview.
+  - Add a "Short label" input to the custom-question authoring form in `index.html`/`app.js`, required alongside the existing text field. Surface it in the live preview.
   - This is a pure data-layer task — no chart or graph code here.
 
-- [x] **Task 3.2: History view scaffold**
+- [ ] **Task 3.2: History view scaffold**
   - Add a new `app-canvas` view (`#history-canvas`) reachable from the main drawer, wired into the existing orthogonal-slide transition system.
   - No chart rendering yet — just the empty canvas, navigation entry point, and a query that pulls `logs` + `questions` for the active question set into memory.
 
@@ -83,7 +83,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 
 - [ ] **Task 3.4: Skipped-vs-absent gap handling in the graph**
   - A `status:"skipped"` record (`score:null`) must render as a visible break in that question's line for that day.
-  - A day with no record at all (question wasn't in the active set / didn't exist yet) must also render as a gap, but must be visually distinguishable from a skip if feasible 
+  - A day with no record at all (question wasn't in the active set / didn't exist yet) must also render as a gap, but must be visually distinguishable from a skip if feasible
     - A psychiatrist needs to be able to tell "chose not to answer" from "wasn't asked."
 
 - [ ] **Task 3.5: Colorblind-safe line differentiation**
@@ -107,23 +107,54 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 
 ---
 
-### Phase 4: Offline Capabilities & PWA Readiness
-- [ ] **Task 4.1: Service Worker Implementation**
+### Phase 4: Question Library & Management
+
+- [ ] **Task 4.1: Database Schema & Default Question Tags**
+  - Add `tags` (array of strings, e.g., `["Energy", "Somatic"]`, `["Mood", "Affect"]`) to the question object schema in IndexedDB.
+  - Populate default tags for the 7 built-in questions during seeding.
+
+- [ ] **Task 4.2: Setting Alignment — Handedness (`handedness`)**
+  - Update settings label/key to `handedness` (`right` default / `left`).
+  - Dominant hand dictates menu drawer position (`right` or `left`), and non-dominant hand dictates edit button placement on cards to prevent accidental taps during single-handed use.
+
+- [ ] **Task 4.3: Custom Question Dialog — Tags Field**
+  - Add a comma-separated or pill-based Tags input field to the custom question form in `index.html` and wire it into `app.js` save handlers.
+
+- [ ] **Task 4.4: Questions View — Search & Layout Structure**
+  - Build the searchable Questions view in `index.html`/`app.js` featuring a search bar that filters questions by title, short label, or tags in real-time.
+  - Split the view into two clear visual card sections: **Active in Tracker** (top) and **Question Library Catalog** (bottom).
+
+- [ ] **Task 4.5: Active Tracker Cards & Reordering Handles**
+  - Render active tracker question cards with prominent question text at top, tags below, reordering handles/controls (move up / move down or drag handle) to adjust tracker sequence, and an "In Tracker" toggle switch to remove a question into the catalog.
+
+- [ ] **Task 4.6: Library Catalog Cards & Non-Dominant Edit Actions**
+  - Render inactive built-in and custom question cards in the library catalog.
+  - Position "Edit" buttons on the non-dominant side (based on `handedness` setting).
+  - Include an "Add to Tracker" toggle switch on each card to activate questions into the tracker.
+
+- [ ] **Task 4.7: Question Editing & Archiving Workflow**
+  - Enable editing of existing custom questions (updating text, short label, tags, curve, and endpoint labels) while maintaining the immutable `id`.
+  - Include soft-archive / restore capabilities for custom questions.
+
+---
+
+### Phase 5: Offline Capabilities & PWA Readiness
+- [ ] **Task 5.1: Service Worker Implementation**
   - Create a lightweight vanilla service worker (`sw.js`) to cache static assets (`index.html`, `style.css`, `app.js`, `manifest.json`).
   - Register the service worker inside `app.js` to enable 100% offline functionality.
 
-- [ ] **Task 4.2: Web App Manifest Verification**
+- [ ] **Task 5.2: Web App Manifest Verification**
   - Verify and complete `manifest.json` with correct relative paths, high-resolution app icons, theme colors (`#121212`), and `display: "standalone"` parameters.
 
 ---
 
-### Phase 5: Documentation & Final Cleanup
-- [ ] **Task 5.1: Code Base JSDoc & Architectural Comments**
+### Phase 6: Documentation & Final Cleanup
+- [ ] **Task 6.1: Code Base JSDoc & Architectural Comments**
   - Perform a complete documentation pass on `app.js`, adding JSDoc comments to all core functions (`initDatabase`, `renderCurrentQuestion`, `exportAllDataAndConfig`, `handleFileImport`).
 
-- [ ] **Task 5.2: Workspace File Cleanup**
+- [ ] **Task 6.2: Workspace File Cleanup**
   - Remove any unneeded project boilerplate files (such as `package.json` or `index.js` if created by IDE defaults) and verify the repository remains strictly clean vanilla files.
 
-- [ ] **Task 5.3: Internationalization & Localization Pass**
+- [ ] **Task 6.3: Internationalization & Localization Pass**
   - Extract all hardcoded user-facing UI strings across `index.html` and `app.js` into a centralized translation dictionary.
   - Implement language switching and localization readiness for questions, controls, navigation, and settings interface elements.

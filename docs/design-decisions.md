@@ -18,6 +18,17 @@ Locked design decisions and open questions for High & Low (menu, questions store
 
 - **Navigation:** ~~hamburger icon top-right~~ **Hamburger icon with user-configurable side (right default)**, opening a drawer that slides in from the configured side. Handedness preference is persisted in localStorage and config.
 
+## Locked decisions (as of 2026-08-13)
+
+- **No Question Rotation:** There is no automatic rotation. All questions enabled in `config.activeQuestionSet` appear directly in the tracker loop. Turning off a question removes it from the active tracker and places it strictly in the inactive question library.
+- **Question Tags:** Questions support an array of string tags (`tags: string[]`). Tags are included in the custom question authoring/editing form and stored on the question record in IndexedDB.
+- **Handedness & Non-Dominant Action Safety:** The layout setting is `handedness` (`right` vs `left`). Menu/drawer toggle sits on the dominant side, while potentially accidental actions like question `Edit` buttons sit on the **non-dominant side** to prevent accidental triggers during single-handed use.
+- **Questions View Architecture:**
+  - **Searchable List:** Live search filter at top filtering both text and tags.
+  - **Active Tracker Questions Section (Top):** Cards for questions currently active in the mood tracker, with handles/ordering controls to adjust position in the tracking sequence, tags display, and an "In Tracker" toggle.
+  - **Library Catalog Section (Bottom):** Cards for all inactive questions (built-in and custom), displaying full question text, tags, "Add to Tracker" toggle, and Edit action on the non-dominant side.
+  - **Intuitive Card Ergonomics:** Clean card UI with question text prominently featured at top, tags tags/chips below, and actions strategically positioned for thumb reachability.
+
 ## Implemented (2026-07-14)
 
 The full data model above is now in code (app.js DB_VERSION 2, questions store + seedDefaults + fnv1a32/makeCustomId, config-driven activeQuestionSet, persisted theme/contrast, skip-backfill in finalizeSession, note field, export v2.0 + questions import w/ updatedAt merge), the `middle-is-best` curve (JS midLabel on score 3 + CSS palettes in all 4 theme blocks; a built-in `q_overall` question exercises it), and the top-right hamburger + right-sliding settings drawer (double-tap gesture removed). Decided: skip-backfill YES; notes = single string for MVP (multi-note array is a tabled future feature, noted in executeHoldAction); v1→v2 = user wipes dev DB, no migration code.
@@ -43,7 +54,7 @@ Optimized the desktop viewport and responsive behavior to resolve layout breakag
 - "Graphs" → "History" rename (2026-07-17): The data visualization section is now called "History" to be more instantly recognizable and lower-cognitive-load for users in low-energy states. The canvas ID changed from #graphs-canvas to #history-canvas.
 - 'Extras' menu refactored as several views that each have a specific purpose: History, Questions, Data & Backups, and Settings
 - Navigation drawer added, and all other forms of navigation removed.
-- Setting added for side of the screen where the menu button lives. 
+- Setting added for side of the screen where the menu button lives.
 - Added `manifest.json` because I was tired of the IDE warnings every time I committed `index.html`.
 
 ## Still parked / next up
