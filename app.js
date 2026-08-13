@@ -320,6 +320,10 @@ function finalizeSession() {
         document.getElementById('progress-text').textContent = "Complete";
         document.getElementById('question-text').textContent = "Log recorded. Rest easy.";
         document.getElementById('button-stack').innerHTML = `<p style="text-align:center; margin-top:2rem; color: var(--text-primary)">Saved securely to device storage.</p>`;
+        const footerBox = document.getElementById('footer-box');
+        if (footerBox) {
+            footerBox.style.display = 'none';
+        }
     };
 }
 
@@ -440,21 +444,72 @@ function areLogAnswersIdentical(a, b) {
 
 // --- 5. TOUCH SAFETY TIME-BARRIER CONFIG ---
 let holdTimer = null;
+let isExecutingAction = false;
+let lastTouchTime = 0;
+
 function setupHoldActions() {
-    STATE.deviceMode = (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) ? 'touch' : 'mouse';
     document.querySelectorAll('.hold-action').forEach(button => {
-        if (STATE.deviceMode === 'touch') {
-            button.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                button.classList.add('is-holding');
-                holdTimer = setTimeout(() => { executeHoldAction(button.id); resetHold(button); }, 1500);
+        let touchActionCompleted = false;
+
+        const startTouchHold = () => {
+            lastTouchTime = Date.now();
+            touchActionCompleted = false;
+            button.classList.add('is-holding');
+            clearTimeout(holdTimer);
+            holdTimer = setTimeout(() => {
+                touchActionCompleted = true;
+                executeHoldAction(button.id);
+                resetHold(button);
+            }, 1500);
+        };
+
+        const cancelTouchHold = () => {
+            lastTouchTime = Date.now();
+            clearTimeout(holdTimer);
+            button.classList.remove('is-holding');
+        };
+
+        if (window.PointerEvent) {
+            button.addEventListener('pointerdown', (e) => {
+                if (e.pointerType === 'touch' || e.pointerType === 'pen') {
+                    startTouchHold();
+                }
             });
-            button.addEventListener('touchend', () => resetHold(button));
-            button.addEventListener('touchcancel', () => resetHold(button));
+            button.addEventListener('pointerup', (e) => {
+                if (e.pointerType === 'touch' || e.pointerType === 'pen') {
+                    cancelTouchHold();
+                }
+            });
+            button.addEventListener('pointercancel', (e) => {
+                if (e.pointerType === 'touch' || e.pointerType === 'pen') {
+                    cancelTouchHold();
+                }
+            });
         } else {
-            button.classList.add('desktop-click');
-            button.addEventListener('click', () => executeHoldAction(button.id));
+            button.addEventListener('touchstart', () => {
+                startTouchHold();
+            });
+            button.addEventListener('touchend', () => {
+                cancelTouchHold();
+            });
+            button.addEventListener('touchcancel', () => {
+                cancelTouchHold();
+            });
         }
+
+        // Standard click handler:
+        // - Mouse click (or non-touch interaction): executes immediately.
+        // - Touch interaction: hold-to-actuate (1.5s) is required, so short touch taps are ignored.
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            const isRecentTouch = (Date.now() - lastTouchTime) < 700;
+            if (isRecentTouch) {
+                // Ignore synthesized click from short touch taps
+                return;
+            }
+            // Mouse click or keyboard interaction: execute immediately
+            executeHoldAction(button.id);
+        });
 
         // Support Enter / Space keypress on hold action buttons for keyboard accessibility
         button.addEventListener('keydown', (e) => {
@@ -476,14 +531,36 @@ function setupHoldActions() {
         });
     }
 }
-function resetHold(e) { clearTimeout(holdTimer); e.classList.remove('is-holding'); }
+
+function resetHold(e) {
+    clearTimeout(holdTimer);
+    if (e && e.classList) e.classList.remove('is-holding');
+}
+
 function executeHoldAction(id) {
-    if (id === 'button-skip') finalizeSession();
+    if (isExecutingAction) return;
+    isExecutingAction = true;
+    setTimeout(() => { isExecutingAction = false; }, 300);
+
+    if (id === 'button-skip') {
+        finalizeSession();
+    }
     if (id === 'button-notes') {
-        const note = prompt("Add a short internal log note (Optional):");
-        if (note) {
-            STATE.sessionNote = STATE.sessionNote ? STATE.sessionNote + '\n\n' + note : note;
+        const existingNote = STATE.sessionNote || '';
+        const note = prompt("Add a short internal log note (Optional):", existingNote);
+        if (note !== null) {
+            STATE.sessionNote = note.trim() || null;
+            updateNotesButtonLabel();
         }
+    }
+}
+
+function updateNotesButtonLabel() {
+    const notesButton = document.getElementById('button-notes');
+    if (!notesButton) return;
+    const labelSpan = notesButton.querySelector('.button-label');
+    if (labelSpan) {
+        labelSpan.textContent = STATE.sessionNote ? 'Note Attached ✓' : 'Add Note';
     }
 }
 
