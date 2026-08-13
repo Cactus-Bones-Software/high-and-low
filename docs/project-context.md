@@ -2,24 +2,24 @@
 
 ## Project Overview
 * **Name**: High & Low
-* **Purpose**: A local-first, zero-friction mood-tracking web application designed specifically for individuals experiencing unipolar or bipolar mood disorders during "lowest of lows" states.
+* **Purpose**: A local-first, zero-friction mood tracker for bipolar and unipolar mood cycles (depressive lows & manic highs), optimized for low-energy states.
 
 ## Tech Stack
 * **Frontend Core**: Vanilla HTML5, Vanilla CSS3 (Custom Properties), Vanilla JavaScript (ES6+, zero dependencies/frameworks).
 * **Deployment Format**: Progressive Web App (PWA) with offline-first support (`manifest.json` & Service Worker).
-* **Local Persistence Engine**: IndexedDB (`HighAndLowDB` v1 with `config` and `logs` object stores).
+* **Local Persistence Engine**: IndexedDB (`HighAndLowDB` v2 with `config`, `logs`, and `questions` object stores).
 
 ## Architectural Rules
 * **Local-First & Private**: 100% on-device storage with zero external APIs, backend servers, or analytics.
-* **Low Cognitive Load UX**: 1–5 rating scales presented via one-at-a-time sliding card steps with hardware-accelerated 220ms transitions.
+* **Low Cognitive Load UX**: 1–5 rating scales & Yes/No choices, 220ms orthogonal transitions, "Skip the Rest" escape hatch, stacked full-width touch targets.
 * **Data Portability**: Full JSON file backup exporter alongside both "Wipe & Replace" and non-destructive timestamp-driven "Native Merge" import options.
-* **Dynamic Accessibility**: Theme switching driven by `data-theme` (`dark`, `light`, `system`) and `data-contrast` (`low`, `high`) body attributes.
-* **Minimal UI Surface**: Settings and navigation accessed via a hamburger menu icon that opens a slide-out drawer.
+* **Dynamic Accessibility**: Theme switching (`dark`, `light`, `system`), contrast modes (`low`, `high`), and configurable handedness (`right`, `left`).
+* **Minimal UI Surface**: Navigation and tools accessed via a slide-out drawer.
 
 ## Core Interfaces & Data Schema
 * **Active State**: `{ activeQuestions: [], currentQuestionIndex: 0, sessionAnswers: [], deviceMode: 'mouse' }`.
-* **Question Object**: `{ id: string, text: string, curve: 'more-is-better'|'less-is-better', minLabel: string, maxLabel: string }`.
-* **Log Entry**: `{ timestamp: string, answers: [{ questionId: string, score: number }] }` stored by timestamp key in IndexedDB.
+* **Question Object**: `{ id: string, text: string, shortLabel?: string, tags?: string[], curve: 'more-is-better'|'less-is-better'|'middle-is-best', responseType?: 'scale'|'boolean', minLabel?, maxLabel?, midLabel?, builtIn: boolean, archived: boolean }`.
+* **Log Entry**: `{ timestamp: string, answers: [{ questionId: string, score: number|null, status: 'answered'|'skipped' }] }` stored by ISO timestamp key in IndexedDB.
 
 ## Non-Goals & Constraints
 * **No Medical Advice**: The app strictly records user inputs without generating diagnostic or clinical guidance.
