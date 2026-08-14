@@ -445,72 +445,75 @@ function areLogAnswersIdentical(a, b) {
     return sA.every((v, i) => v.questionId === sB[i].questionId && v.score === sB[i].score && v.status === sB[i].status);
 }
 
-// --- 5. TOUCH SAFETY TIME-BARRIER CONFIG ---
+// --- 5. HOLD-TO-CONFIRM SAFETY DELAY CONFIG & SETTING ---
 let holdTimer = null;
 let isExecutingAction = false;
-let lastTouchTime = 0;
+let isHoldDelayEnabled = true; // Enabled on by default
 
 function setupHoldActions() {
     document.querySelectorAll('.hold-action').forEach(button => {
-        let touchActionCompleted = false;
+        let holdFinished = false;
 
-        const startTouchHold = () => {
-            lastTouchTime = Date.now();
-            touchActionCompleted = false;
+        const startHold = () => {
+            if (!isHoldDelayEnabled) return;
+            holdFinished = false;
             button.classList.add('is-holding');
             clearTimeout(holdTimer);
             holdTimer = setTimeout(() => {
-                touchActionCompleted = true;
+                holdFinished = true;
                 executeHoldAction(button.id);
                 resetHold(button);
             }, 1500);
         };
 
-        const cancelTouchHold = () => {
-            lastTouchTime = Date.now();
+        const cancelHold = () => {
+            if (!isHoldDelayEnabled) return;
             clearTimeout(holdTimer);
             button.classList.remove('is-holding');
         };
 
         if (window.PointerEvent) {
-            button.addEventListener('pointerdown', (e) => {
-                if (e.pointerType === 'touch' || e.pointerType === 'pen') {
-                    startTouchHold();
-                }
+            button.addEventListener('pointerdown', () => {
+                if (isHoldDelayEnabled) startHold();
             });
-            button.addEventListener('pointerup', (e) => {
-                if (e.pointerType === 'touch' || e.pointerType === 'pen') {
-                    cancelTouchHold();
-                }
+            button.addEventListener('pointerup', () => {
+                if (isHoldDelayEnabled) cancelHold();
             });
-            button.addEventListener('pointercancel', (e) => {
-                if (e.pointerType === 'touch' || e.pointerType === 'pen') {
-                    cancelTouchHold();
-                }
+            button.addEventListener('pointercancel', () => {
+                if (isHoldDelayEnabled) cancelHold();
+            });
+            button.addEventListener('pointerleave', () => {
+                if (isHoldDelayEnabled) cancelHold();
             });
         } else {
             button.addEventListener('touchstart', () => {
-                startTouchHold();
+                if (isHoldDelayEnabled) startHold();
             });
             button.addEventListener('touchend', () => {
-                cancelTouchHold();
+                if (isHoldDelayEnabled) cancelHold();
             });
             button.addEventListener('touchcancel', () => {
-                cancelTouchHold();
+                if (isHoldDelayEnabled) cancelHold();
+            });
+            button.addEventListener('mousedown', () => {
+                if (isHoldDelayEnabled) startHold();
+            });
+            button.addEventListener('mouseup', () => {
+                if (isHoldDelayEnabled) cancelHold();
+            });
+            button.addEventListener('mouseleave', () => {
+                if (isHoldDelayEnabled) cancelHold();
             });
         }
 
         // Standard click handler:
-        // - Mouse click (or non-touch interaction): executes immediately.
-        // - Touch interaction: hold-to-actuate (1.5s) is required, so short touch taps are ignored.
+        // - When hold delay is enabled: short clicks/taps are ignored because a 1.5s hold is required.
+        // - When hold delay is disabled: executes immediately on regular click/tap.
         button.addEventListener('click', (e) => {
             e.preventDefault();
-            const isRecentTouch = (Date.now() - lastTouchTime) < 700;
-            if (isRecentTouch) {
-                // Ignore synthesized click from short touch taps
+            if (isHoldDelayEnabled) {
                 return;
             }
-            // Mouse click or keyboard interaction: execute immediately
             executeHoldAction(button.id);
         });
 
@@ -754,6 +757,7 @@ function updateNotesButtonLabel() {
 function setupSettingsAndMenu() {
     const themeSel = document.getElementById('theme-select');
     const contrastSel = document.getElementById('contrast-select');
+    const holdDelaySel = document.getElementById('hold-delay-select');
     const menuSideSel = document.getElementById('menu-side-select');
 
     const handleThemeChange = async (val) => {
@@ -771,6 +775,20 @@ function setupSettingsAndMenu() {
             document.body.setAttribute('data-contrast', e.target.value);
             await setConfig('contrast', e.target.value);
         });
+    }
+
+    const handleHoldDelayChange = async (val) => {
+        isHoldDelayEnabled = (val !== 'disabled');
+        document.body.setAttribute('data-hold-delay', isHoldDelayEnabled ? 'enabled' : 'disabled');
+        await setConfig('holdDelay', isHoldDelayEnabled ? 'enabled' : 'disabled');
+        try {
+            localStorage.setItem('holdDelay', isHoldDelayEnabled ? 'enabled' : 'disabled');
+        } catch (e) {}
+        if (holdDelaySel) holdDelaySel.value = isHoldDelayEnabled ? 'enabled' : 'disabled';
+    };
+
+    if (holdDelaySel) {
+        holdDelaySel.addEventListener('change', (e) => handleHoldDelayChange(e.target.value));
     }
 
     // Debug bounds functionality (Console controllable: window.toggleDebugBounds() or window.setDebugBounds(true/false))
@@ -1359,11 +1377,13 @@ async function applyStoredDisplay() {
     const [
         theme,
         contrast,
-        menuSide
+        menuSide,
+        holdDelay
     ] = await Promise.all([
         getConfig('theme'),
         getConfig('contrast'),
         getConfig('menuSide'),
+        getConfig('holdDelay'),
         getConfig('debug-bounds')
     ]);
     const themeVal = theme || 'system';
@@ -1378,6 +1398,14 @@ async function applyStoredDisplay() {
         const contrastSel = document.getElementById('contrast-select');
         if (contrastSel) contrastSel.value = contrast;
     }
+
+    let localHoldDelay = null;
+    try { localHoldDelay = localStorage.getItem('holdDelay'); } catch (e) {}
+    const finalHoldDelay = holdDelay || localHoldDelay || 'enabled';
+    isHoldDelayEnabled = (finalHoldDelay !== 'disabled');
+    document.body.setAttribute('data-hold-delay', isHoldDelayEnabled ? 'enabled' : 'disabled');
+    const holdDelaySel = document.getElementById('hold-delay-select');
+    if (holdDelaySel) holdDelaySel.value = isHoldDelayEnabled ? 'enabled' : 'disabled';
 
     let localMenuSide = null;
     try { localMenuSide = localStorage.getItem('menuSide'); } catch (e) {}

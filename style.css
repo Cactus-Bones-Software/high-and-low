@@ -716,6 +716,10 @@ body[data-theme="dark"][data-contrast="high"] .hold-indicator {
     transition: width 1500ms linear;
 }
 
+body[data-hold-delay="disabled"] .hold-indicator {
+    display: none !important;
+}
+
 .button-label {
     position: relative;
     z-index: 2;
