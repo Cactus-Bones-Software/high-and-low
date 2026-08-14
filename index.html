@@ -255,6 +255,40 @@
             </div>
         </div>
 
+        <!-- Pop-in File Import Mode Modal Dialog -->
+        <div id="import-dialog-overlay" class="modal-overlay" aria-hidden="true" inert>
+            <div id="import-dialog" class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="import-dialog-title">
+                <header class="modal-header">
+                    <h2 id="import-dialog-title" class="modal-title">Import Data</h2>
+                    <p class="modal-subtitle">Choose how you want to restore or merge this backup.</p>
+                </header>
+                <div class="modal-body">
+                    <div id="import-file-badge" class="modal-info-badge">
+                        <span class="badge-label">Selected file:</span>
+                        <span id="import-file-name" class="badge-value">backup.json</span>
+                    </div>
+                    <div class="modal-info-text">
+                        <p><strong>Smart Merge</strong> combines backup records with your current history without erasing data.</p>
+                        <p><strong>Wipe &amp; Replace</strong> clears all local records and replaces them entirely with this backup.</p>
+                    </div>
+                </div>
+                <footer class="modal-footer modal-footer-stacked">
+                    <button type="button" id="button-import-merge" class="control-button hold-action modal-button modal-button-primary" aria-label="Smart Merge data (Press or Hold)">
+                        <span class="hold-indicator" aria-hidden="true"></span>
+                        <span class="button-label">Smart Merge</span>
+                    </button>
+                    <button type="button" id="button-import-replace" class="control-button hold-action modal-button modal-button-danger" aria-label="Wipe and Replace data (Press or Hold)">
+                        <span class="hold-indicator" aria-hidden="true"></span>
+                        <span class="button-label">Wipe &amp; Replace</span>
+                    </button>
+                    <button type="button" id="button-import-cancel" class="control-button hold-action modal-button" aria-label="Cancel import (Press or Hold)">
+                        <span class="hold-indicator" aria-hidden="true"></span>
+                        <span class="button-label">Cancel</span>
+                    </button>
+                </footer>
+            </div>
+        </div>
+
     </div>
 </div>
 

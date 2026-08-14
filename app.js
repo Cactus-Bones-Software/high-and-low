@@ -550,7 +550,69 @@ function executeHoldAction(id) {
         closeNotesDialog();
     } else if (id === 'button-note-save') {
         saveNotesFromDialog();
+    } else if (id === 'button-import-cancel') {
+        closeImportDialog();
+    } else if (id === 'button-import-merge') {
+        confirmImport('merge');
+    } else if (id === 'button-import-replace') {
+        confirmImport('replace');
     }
+}
+
+let pendingImportFile = null;
+
+function openImportDialog(file) {
+    if (!file) return;
+    pendingImportFile = file;
+
+    const overlay = document.getElementById('import-dialog-overlay');
+    const nameEl = document.getElementById('import-file-name');
+    if (!overlay) return;
+
+    if (nameEl) {
+        nameEl.textContent = file.name || 'backup.json';
+    }
+
+    overlay.removeAttribute('inert');
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.classList.add('is-open');
+
+    const mergeBtn = document.getElementById('button-import-merge');
+    if (mergeBtn) setTimeout(() => mergeBtn.focus(), 60);
+}
+
+function closeImportDialog() {
+    const overlay = document.getElementById('import-dialog-overlay');
+    const fileInput = document.getElementById('file-import');
+    if (fileInput) fileInput.value = '';
+    pendingImportFile = null;
+
+    if (!overlay) return;
+    overlay.classList.remove('is-open');
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.setAttribute('inert', '');
+
+    document.querySelectorAll('#import-dialog .hold-action').forEach(b => resetHold(b));
+}
+
+function confirmImport(mode) {
+    const file = pendingImportFile;
+    closeImportDialog();
+    if (file) {
+        handleFileImport(file, mode);
+    }
+}
+
+function setupImportDialog() {
+    const overlay = document.getElementById('import-dialog-overlay');
+    if (!overlay) return;
+
+    overlay.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            closeImportDialog();
+        }
+    });
 }
 
 function openNotesDialog() {
@@ -1286,6 +1348,7 @@ function initApp() {
 
     setupHoldActions();
     setupNotesDialog();
+    setupImportDialog();
     setupSettingsAndMenu();
     setupQuestionAuthoring();
     setupKeyboardNavigation();
@@ -1301,9 +1364,10 @@ function initApp() {
     const importFileInput = document.getElementById('file-import');
     if (importFileInput) {
         importFileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            const mode = confirm("Click [OK] to MERGE file data natively.\nClick [Cancel] to completely WIPEOUT and REPLACE device logs.") ? 'merge' : 'replace';
-            handleFileImport(file, mode);
+            const file = e.target.files && e.target.files[0];
+            if (file) {
+                openImportDialog(file);
+            }
         });
     }
 

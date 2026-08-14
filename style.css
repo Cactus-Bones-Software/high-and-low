@@ -1049,6 +1049,11 @@ body:not([data-theme="dark"]) .modal-overlay {
     margin-bottom: 0;
 }
 
+.modal-footer-stacked {
+    flex-direction: column;
+    gap: 10px;
+}
+
 .modal-button {
     height: 50px;
     border-radius: 12px;
@@ -1058,6 +1063,60 @@ body:not([data-theme="dark"]) .modal-overlay {
 
 .modal-button-primary {
     font-weight: 700;
+}
+
+.modal-button-danger {
+    color: var(--text-bright);
+    border-color: rgba(220, 38, 38, 0.4);
+}
+
+.modal-button-danger:hover {
+    border-color: rgba(220, 38, 38, 0.8);
+    background-color: rgba(220, 38, 38, 0.12);
+}
+
+.modal-info-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background-color: var(--button-default);
+    border: 1px solid var(--border-color);
+    font-size: 0.9rem;
+    overflow: hidden;
+}
+
+.modal-info-badge .badge-label {
+    color: var(--text-muted);
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.modal-info-badge .badge-value {
+    color: var(--text-bright);
+    font-family: monospace;
+    font-size: 0.88rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.modal-info-text {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.modal-info-text p {
+    margin: 0;
+}
+
+.modal-info-text strong {
+    color: var(--text-bright);
 }
 
 /* High Contrast Adjustments for Modal */
@@ -1072,6 +1131,14 @@ body[data-contrast="high"] .modal-textarea {
 
 body[data-contrast="high"] .modal-button {
     border: 2px solid var(--text-bright);
+}
+
+body[data-contrast="high"] .modal-button-danger {
+    border: 2px solid var(--text-bright);
+}
+
+body[data-contrast="high"] .modal-info-badge {
+    border: 1px solid var(--text-bright);
 }
 
 /* Screen reader only utility */
