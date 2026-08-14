@@ -106,7 +106,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
   - Build the one/two-column checklist of active questions using their `shortLabel` (Task 3.1), each with a color swatch matching its line.
   - Tapping a row toggles that question's line visibility on the graph. Keep at least one line always visible (never allow toggling to zero).
 
-- [ ] **Task 3.7: Legend — long-press to isolate/restore**
+- [x] **Task 3.7: Legend — long-press to isolate/restore**
   - Holding a legend row (~400-500ms, shorter than the existing 1500ms hold-actions since this isn't a destructive action) isolates the graph to that question alone, hiding all others.
   - Holding the same row again while it's the sole active line restores all questions.
 

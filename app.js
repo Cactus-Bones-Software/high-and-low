@@ -1354,9 +1354,89 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
 
     const legendEl = container.querySelector('.graph-legend');
     if (legendEl) {
+        let longPressTimer = null;
+        let isLongPressTriggered = false;
+        let activePointerId = null;
+        let startPos = { x: 0, y: 0 };
+
+        function clearLongPress() {
+            if (longPressTimer) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+            activePointerId = null;
+        }
+
+        function handleIsolateOrRestore(targetQId, btnEl) {
+            const allQuestionIds = questions.map(q => q.id);
+            const isCurrentlyIsolated = currentVisibleSet.size === 1 && currentVisibleSet.has(targetQId);
+
+            if (isCurrentlyIsolated) {
+                // Restore all questions
+                currentVisibleSet = new Set(allQuestionIds);
+            } else {
+                // Isolate to target question alone
+                currentVisibleSet = new Set([targetQId]);
+            }
+
+            STATE.historyVisibleQuestionIds = currentVisibleSet;
+            if (navigator.vibrate) {
+                try { navigator.vibrate(40); } catch (_) {}
+            }
+            renderLineGraph(container, { logs, questions, visibleQuestionIds: currentVisibleSet });
+        }
+
+        legendEl.addEventListener('pointerdown', (e) => {
+            const btn = e.target.closest('.legend-checklist-item');
+            if (!btn || (e.button !== undefined && e.button !== 0)) return;
+
+            const qId = btn.dataset.questionId;
+            if (!qId) return;
+
+            isLongPressTriggered = false;
+            activePointerId = e.pointerId;
+            startPos = { x: e.clientX, y: e.clientY };
+
+            clearLongPress();
+            longPressTimer = setTimeout(() => {
+                isLongPressTriggered = true;
+                handleIsolateOrRestore(qId, btn);
+            }, 450);
+        });
+
+        legendEl.addEventListener('pointermove', (e) => {
+            if (!longPressTimer) return;
+            const dist = Math.hypot(e.clientX - startPos.x, e.clientY - startPos.y);
+            if (dist > 10) {
+                clearLongPress();
+            }
+        });
+
+        legendEl.addEventListener('pointerup', () => {
+            clearLongPress();
+        });
+
+        legendEl.addEventListener('pointercancel', () => {
+            clearLongPress();
+        });
+
+        legendEl.addEventListener('contextmenu', (e) => {
+            if (e.target.closest('.legend-checklist-item')) {
+                e.preventDefault();
+            }
+        });
+
         legendEl.addEventListener('click', (e) => {
             const btn = e.target.closest('.legend-checklist-item');
             if (!btn) return;
+
+            if (isLongPressTriggered) {
+                isLongPressTriggered = false;
+                e.preventDefault();
+                e.stopPropagation();
+                return;
+            }
+
             const qId = btn.dataset.questionId;
             if (!qId) return;
 
