@@ -369,7 +369,7 @@ function handleFileImport(file, mode) {
         try {
             const importedData = JSON.parse(result);
             if (!importedData.logs || !importedData.config) {
-                alert("Invalid file blueprint structure.");
+                showNoticeDialog('Invalid Backup File', 'The selected file is missing required blueprint structure (logs or configuration).', 'file-import');
                 return;
             }
             const importedQuestions = Array.isArray(importedData.questions) ? importedData.questions : [];
@@ -392,7 +392,10 @@ function handleFileImport(file, mode) {
                 importedData.logs.forEach(i => safelyAddLogWithCollisionCheck(logStore, i));
             }
             tx.oncomplete = () => window.location.reload();
-        } catch (err) { alert("Corrupted file payload processing error."); }
+        } catch (err) {
+            console.error('File import failed:', err);
+            showNoticeDialog('Corrupted File', 'The selected file could not be parsed or contains corrupted data.', 'file-import');
+        }
     };
     reader.readAsText(file);
 }
@@ -556,15 +559,18 @@ function executeHoldAction(id) {
         confirmImport('merge');
     } else if (id === 'button-import-replace') {
         confirmImport('replace');
-    } else if (id === 'button-question-feedback-ok') {
-        closeQuestionFeedbackDialog();
+    } else if (id === 'button-question-feedback-ok' || id === 'button-notice-ok') {
+        closeNoticeDialog();
     }
 }
 
-function showQuestionFeedbackDialog(title, subtitle) {
-    const overlay = document.getElementById('question-feedback-dialog-overlay');
-    const titleEl = document.getElementById('question-feedback-title');
-    const subtitleEl = document.getElementById('question-feedback-subtitle');
+let noticeReturnFocusElement = null;
+
+function showNoticeDialog(title, subtitle, returnFocusTarget) {
+    noticeReturnFocusElement = returnFocusTarget || null;
+    const overlay = document.getElementById('notice-dialog-overlay') || document.getElementById('question-feedback-dialog-overlay');
+    const titleEl = document.getElementById('notice-dialog-title') || document.getElementById('question-feedback-title');
+    const subtitleEl = document.getElementById('notice-dialog-subtitle') || document.getElementById('question-feedback-subtitle');
     if (!overlay) return;
 
     if (titleEl) titleEl.textContent = title;
@@ -574,32 +580,42 @@ function showQuestionFeedbackDialog(title, subtitle) {
     overlay.setAttribute('aria-hidden', 'false');
     overlay.classList.add('is-open');
 
-    const okBtn = document.getElementById('button-question-feedback-ok');
+    const okBtn = document.getElementById('button-notice-ok') || document.getElementById('button-question-feedback-ok');
     if (okBtn) setTimeout(() => okBtn.focus(), 60);
 }
 
-function closeQuestionFeedbackDialog() {
-    const overlay = document.getElementById('question-feedback-dialog-overlay');
+function closeNoticeDialog() {
+    const overlay = document.getElementById('notice-dialog-overlay') || document.getElementById('question-feedback-dialog-overlay');
     if (!overlay) return;
 
     overlay.classList.remove('is-open');
     overlay.setAttribute('aria-hidden', 'true');
     overlay.setAttribute('inert', '');
 
-    document.querySelectorAll('#question-feedback-dialog .hold-action').forEach(b => resetHold(b));
+    const dialog = document.getElementById('notice-dialog') || document.getElementById('question-feedback-dialog');
+    if (dialog) {
+        dialog.querySelectorAll('.hold-action').forEach(b => resetHold(b));
+    }
 
-    const toggleButton = document.getElementById('button-toggle-add-question');
-    if (toggleButton) toggleButton.focus({ preventScroll: true });
+    if (noticeReturnFocusElement) {
+        const el = typeof noticeReturnFocusElement === 'string'
+            ? document.getElementById(noticeReturnFocusElement)
+            : noticeReturnFocusElement;
+        if (el && typeof el.focus === 'function') {
+            el.focus({ preventScroll: true });
+        }
+        noticeReturnFocusElement = null;
+    }
 }
 
-function setupQuestionFeedbackDialog() {
-    const overlay = document.getElementById('question-feedback-dialog-overlay');
+function setupNoticeDialog() {
+    const overlay = document.getElementById('notice-dialog-overlay') || document.getElementById('question-feedback-dialog-overlay');
     if (!overlay) return;
 
     overlay.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' || e.key === 'Enter') {
             e.preventDefault();
-            closeQuestionFeedbackDialog();
+            closeNoticeDialog();
         }
     });
 }
@@ -1226,11 +1242,11 @@ function setupQuestionAuthoring() {
             });
 
             if (outcome.status === 'added') {
-                showQuestionFeedbackDialog('Question Saved', 'Your custom question has been saved and will appear in your check-in tracker.');
+                showNoticeDialog('Question Saved', 'Your custom question has been saved and will appear in your check-in tracker.', toggleButton);
             } else if (outcome.status === 'restored') {
-                showQuestionFeedbackDialog('Question Restored', 'That question already existed in your archived items and has been restored.');
+                showNoticeDialog('Question Restored', 'That question already existed in your archived items and has been restored.', toggleButton);
             } else {
-                showQuestionFeedbackDialog('Question Exists', 'You already have an active question with this text in your library.');
+                showNoticeDialog('Question Exists', 'You already have an active question with this text in your library.', toggleButton);
             }
 
             resetForm();
@@ -1240,7 +1256,7 @@ function setupQuestionAuthoring() {
             toggleButton.focus({ preventScroll: true });
         } catch (err) {
             console.error('Failed to save question:', err);
-            showQuestionFeedbackDialog('Could Not Save', 'Could not save the question. Please check the fields and try again.');
+            showNoticeDialog('Could Not Save', 'Could not save the question. Please check the fields and try again.', toggleButton);
             syncSaveEnabled();
         }
     });
@@ -1394,7 +1410,7 @@ function initApp() {
     setupHoldActions();
     setupNotesDialog();
     setupImportDialog();
-    setupQuestionFeedbackDialog();
+    setupNoticeDialog();
     setupSettingsAndMenu();
     setupQuestionAuthoring();
     setupKeyboardNavigation();
