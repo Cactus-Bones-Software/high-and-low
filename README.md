@@ -61,7 +61,7 @@ High & Low is built as a zero-dependency, local-first Progressive Web Applicatio
 
 ### Interaction & Ergonomics Design
 
-* **Input Differentiation & Safety**: Touch interactions on destructive or session-terminating actions ("Skip the Rest") require a 1.5-second hold barrier with an animated progress bar to prevent accidental actuation. Mouse and keyboard interactions execute immediately on click/keypress.
+* **Input Differentiation & Safety**: Touch interactions on destructive, session-terminating, or dialog-dismissing actions ("Skip the Rest", "Cancel", "Save Note") require a 1.5-second hold barrier with an animated progress bar to prevent accidental actuation. Mouse and keyboard interactions execute immediately on click/keypress.
 * **Single-Card State Machine**: Check-in flows present questions sequentially in single-card viewports with 220ms orthogonal transitions, minimizing visual clutter and decision fatigue.
 * **Ergonomics & Handedness**: Dynamic positioning shifts drawer anchors and primary action targets to suit right- or left-thumb reach zones.
 * **Adaptive Contrast & Color**: CSS custom properties bind directly to `data-theme` and `data-contrast` body attributes for instant, flicker-free accessibility mode switching.

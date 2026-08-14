@@ -231,6 +231,30 @@
             </section>
         </section>
 
+        <!-- Pop-in Session Note Modal Dialog -->
+        <div id="notes-dialog-overlay" class="modal-overlay" aria-hidden="true" inert>
+            <div id="notes-dialog" class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="notes-dialog-title">
+                <header class="modal-header">
+                    <h2 id="notes-dialog-title" class="modal-title">Session Note</h2>
+                    <p class="modal-subtitle">Add optional observations, context, or triggers for this check-in.</p>
+                </header>
+                <div class="modal-body">
+                    <label for="session-note-input" class="sr-only">Note Content</label>
+                    <textarea id="session-note-input" class="form-input modal-textarea" rows="4" placeholder="e.g. Slept poorly, feeling restless or distracted..."></textarea>
+                </div>
+                <footer class="modal-footer">
+                    <button type="button" id="button-note-cancel" class="control-button hold-action modal-button" aria-label="Cancel note (Press or Hold)">
+                        <span class="hold-indicator" aria-hidden="true"></span>
+                        <span class="button-label">Cancel</span>
+                    </button>
+                    <button type="button" id="button-note-save" class="control-button hold-action modal-button modal-button-primary" aria-label="Save note (Press or Hold)">
+                        <span class="hold-indicator" aria-hidden="true"></span>
+                        <span class="button-label">Save Note</span>
+                    </button>
+                </footer>
+            </div>
+        </div>
+
     </div>
 </div>
 

@@ -544,15 +544,78 @@ function executeHoldAction(id) {
 
     if (id === 'button-skip') {
         finalizeSession();
+    } else if (id === 'button-notes') {
+        openNotesDialog();
+    } else if (id === 'button-note-cancel') {
+        closeNotesDialog();
+    } else if (id === 'button-note-save') {
+        saveNotesFromDialog();
     }
-    if (id === 'button-notes') {
-        const existingNote = STATE.sessionNote || '';
-        const note = prompt("Add a short internal log note (Optional):", existingNote);
-        if (note !== null) {
-            STATE.sessionNote = note.trim() || null;
-            updateNotesButtonLabel();
+}
+
+function openNotesDialog() {
+    const overlay = document.getElementById('notes-dialog-overlay');
+    const input = document.getElementById('session-note-input');
+    if (!overlay || !input) return;
+
+    input.value = STATE.sessionNote || '';
+    overlay.removeAttribute('inert');
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.classList.add('is-open');
+
+    // Smooth focus and cursor positioning
+    setTimeout(() => {
+        input.focus();
+        const len = input.value.length;
+        input.setSelectionRange(len, len);
+    }, 60);
+}
+
+function closeNotesDialog() {
+    const overlay = document.getElementById('notes-dialog-overlay');
+    if (!overlay) return;
+
+    overlay.classList.remove('is-open');
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.setAttribute('inert', '');
+
+    // Reset hold visual indicator state on dialog buttons
+    document.querySelectorAll('#notes-dialog .hold-action').forEach(b => resetHold(b));
+
+    // Return focus to notes button on the tracker canvas
+    const notesBtn = document.getElementById('button-notes');
+    if (notesBtn) notesBtn.focus({ preventScroll: true });
+}
+
+function saveNotesFromDialog() {
+    const input = document.getElementById('session-note-input');
+    if (input) {
+        const note = input.value.trim();
+        STATE.sessionNote = note.length > 0 ? note : null;
+        updateNotesButtonLabel();
+    }
+    closeNotesDialog();
+}
+
+function setupNotesDialog() {
+    const overlay = document.getElementById('notes-dialog-overlay');
+    const input = document.getElementById('session-note-input');
+    if (!overlay || !input) return;
+
+    // Handle Escape and Ctrl/Cmd+Enter inside the modal
+    overlay.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            closeNotesDialog();
         }
-    }
+    });
+
+    input.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            saveNotesFromDialog();
+        }
+    });
 }
 
 function updateNotesButtonLabel() {
@@ -1222,6 +1285,7 @@ function initApp() {
     isAppInitialized = true;
 
     setupHoldActions();
+    setupNotesDialog();
     setupSettingsAndMenu();
     setupQuestionAuthoring();
     setupKeyboardNavigation();
