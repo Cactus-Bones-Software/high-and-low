@@ -62,6 +62,14 @@ You are an autonomous software developer working on "High & Low", a local-first,
   - Create a dedicated `#history-canvas` view scaffold to serve as the landing area for data visualization charts.
   - Provide a clean placeholder interface and navigation entries from the main menu/drawer.
 
+- [x] **Task 2.8: Custom Modal Dialogs & Notice System**
+  - Replace native browser popups (`alert`, `confirm`, `prompt`) with custom, accessible `#notice-dialog` and modal dialog components with focus trap and keyboard dismissal.
+  - Integrate hold-to-confirm safety delay protection setting for modal and critical action buttons.
+
+- [x] **Task 2.9: Desktop & Landscape Layout Refinement**
+  - Refine non-tracker view layouts on desktop and landscape tablet orientations to use a clean vertical hierarchy with compact top header bars above scrollable content panels.
+  - Decouple view header typography and layout styling from tracker question presentation.
+
 ---
 
 ### Phase 3: Analytics & Data Visualization
