@@ -82,16 +82,16 @@
             </footer>
         </main>
 
-        <section id="settings-canvas" class="app-canvas view-hidden-right" role="region" aria-label="Application Settings" inert>
+        <section id="settings-canvas" class="app-canvas view-canvas view-hidden-right" role="region" aria-label="Application Settings" inert>
 
-            <header class="canvas-box header-box">
+            <header class="canvas-box view-header-box">
                 <button type="button" class="canvas-back-button" data-close-view aria-label="Back to Mood Tracker">
                     <span class="back-arrow" aria-hidden="true">&larr;</span> Back
                 </button>
-                <h1 class="question-text">Application Settings</h1>
+                <h1 class="view-title">Application Settings</h1>
             </header>
 
-            <section class="canvas-box menu-box" id="panel-display">
+            <section class="canvas-box view-content-box menu-box" id="panel-display">
                 <h3>Display &amp; Interaction Preferences</h3>
                 <div class="setting-row">
                     <label for="theme-select">Theme:</label>
@@ -125,16 +125,16 @@
             </section>
         </section>
 
-        <section id="questions-canvas" class="app-canvas view-hidden-right" role="region" aria-label="Custom Questions Library" inert>
+        <section id="questions-canvas" class="app-canvas view-canvas view-hidden-right" role="region" aria-label="Custom Questions Library" inert>
 
-            <header class="canvas-box header-box">
+            <header class="canvas-box view-header-box">
                 <button type="button" class="canvas-back-button" data-close-view aria-label="Back to Mood Tracker">
                     <span class="back-arrow" aria-hidden="true">&larr;</span> Back
                 </button>
-                <h1 class="question-text">Questions Library &amp; Authoring</h1>
+                <h1 class="view-title">Questions Library &amp; Authoring</h1>
             </header>
 
-            <section class="canvas-box menu-box" id="panel-questions">
+            <section class="canvas-box view-content-box menu-box" id="panel-questions">
                 <h3>Custom Questions</h3>
                 <div class="button-grid">
                     <button type="button" id="button-add-question" class="utility-button" aria-expanded="false" aria-controls="question-form">Add a Question</button>
@@ -198,16 +198,16 @@
             </section>
         </section>
 
-        <section id="data-canvas" class="app-canvas view-hidden-right" role="region" aria-label="Data Management" inert>
+        <section id="data-canvas" class="app-canvas view-canvas view-hidden-right" role="region" aria-label="Data Management" inert>
 
-            <header class="canvas-box header-box">
+            <header class="canvas-box view-header-box">
                 <button type="button" class="canvas-back-button" data-close-view aria-label="Back to Mood Tracker">
                     <span class="back-arrow" aria-hidden="true">&larr;</span> Back
                 </button>
-                <h1 class="question-text">Data Management &amp; Backups</h1>
+                <h1 class="view-title">Data Management &amp; Backups</h1>
             </header>
 
-            <section class="canvas-box menu-box" id="panel-data">
+            <section class="canvas-box view-content-box menu-box" id="panel-data">
                 <h3>Export &amp; Import Data</h3>
                 <div class="button-grid">
                     <button type="button" id="button-export-all" class="utility-button">Backup Data &amp; Settings</button>
@@ -219,16 +219,16 @@
             </section>
         </section>
 
-        <section id="history-canvas" class="app-canvas view-hidden-right" role="region" aria-label="History" inert>
+        <section id="history-canvas" class="app-canvas view-canvas view-hidden-right" role="region" aria-label="History" inert>
 
-            <header class="canvas-box header-box">
+            <header class="canvas-box view-header-box">
                 <button type="button" class="canvas-back-button" data-close-view aria-label="Back to Mood Tracker">
                     <span class="back-arrow" aria-hidden="true">&larr;</span> Back
                 </button>
-                <h1 class="question-text">History</h1>
+                <h1 class="view-title">History</h1>
             </header>
 
-            <section class="canvas-box menu-box" id="panel-history">
+            <section class="canvas-box view-content-box menu-box" id="panel-history">
                 <div id="history-graph-container" style="width: 100%; display: flex; flex-direction: column; gap: 12px;">
                     <h3>Mood Timeline</h3>
                     <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 8px;">

@@ -442,9 +442,34 @@ body.drawer-open .app-canvas.view-active {
     min-height: 60px;
 }
 
+.view-header-box {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 18px;
+    min-height: 56px;
+    text-align: left;
+}
+
+.view-header-box .canvas-back-button {
+    margin-bottom: 0;
+    align-self: center;
+    flex-shrink: 0;
+}
+
 .input-box, .menu-box {
     flex: 1;
     justify-content: space-around;
+}
+
+.view-content-box {
+    flex: 1;
+    overflow-y: auto;
+    justify-content: flex-start;
+    padding: 20px;
+    gap: 16px;
 }
 
 .footer-box {
@@ -467,6 +492,19 @@ body.drawer-open .app-canvas.view-active {
     margin: 8px 0 0 0;
     color: var(--text-bright);
     line-height: 1.3;
+}
+
+.view-title {
+    font-size: 1.18rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-bright);
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+}
+
+body[data-contrast="high"] .view-title {
+    font-weight: 800;
 }
 
 h3 {
@@ -788,14 +826,11 @@ select, .utility-button, .form-input {
 }
 
 /* ==========================================================================
-7. CUSTOM-QUESTION AUTHORING FORM
+7. CUSTOM-QUESTION AUTHORING FORM & VIEW PANELS
 ========================================================================== */
 
-#settings-canvas,
-#questions-canvas,
-#data-canvas,
-#history-canvas {
-    overflow-y: auto;
+.view-canvas {
+    overflow: hidden;
 }
 
 .question-form {
@@ -883,22 +918,25 @@ select, .utility-button, .form-input {
         overflow: hidden;
     }
 
-    .app-canvas {
+    /* 8a. Tracker Canvas: 3-column deck layout (Question on left, input in center, action buttons on right) */
+    #tracker-canvas {
         flex-direction: row;
+        gap: 16px;
     }
 
-    .header-box {
+    #tracker-canvas .header-box {
         flex: 1;
         height: 100%;
+        text-align: center;
     }
 
-    .input-box, .menu-box {
+    #tracker-canvas .input-box {
         flex: 2;
         height: 100%;
         overflow-y: auto;
     }
 
-    .footer-box {
+    #tracker-canvas .footer-box {
         flex: 0 0 180px;
         flex-direction: column;
         justify-content: center;
@@ -906,9 +944,40 @@ select, .utility-button, .form-input {
         gap: 16px;
     }
 
-    .footer-box .control-button {
+    #tracker-canvas .footer-box .control-button {
         flex: 0 0 64px;
         width: 100%;
+    }
+
+    /* 8b. Non-Tracker Views: Vertical hierarchy (Compact header bar on top above content, not taking full height side space) */
+    .view-canvas,
+    .app-canvas:not(#tracker-canvas) {
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .view-header-box {
+        flex: 0 0 auto;
+        width: 100%;
+        height: auto;
+        padding: 14px 20px;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .view-title {
+        font-size: 1.25rem;
+    }
+
+    .view-content-box,
+    .app-canvas:not(#tracker-canvas) .menu-box {
+        flex: 1;
+        width: 100%;
+        height: auto;
+        overflow-y: auto;
+        justify-content: flex-start;
     }
 
     .button-stack {
