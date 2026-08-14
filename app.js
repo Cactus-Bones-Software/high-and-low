@@ -986,6 +986,16 @@ async function loadHistoryView() {
     }
 }
 
+function escapeHTML(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 function renderLineGraph(container, { logs, questions }) {
     if (!container) return;
 
@@ -1000,11 +1010,11 @@ function renderLineGraph(container, { logs, questions }) {
     }
 
     const width = 600;
-    const height = 300;
-    const paddingTop = 30;
-    const paddingBottom = 40;
-    const paddingLeft = 35;
-    const paddingRight = 20;
+    const height = 320;
+    const paddingTop = 24;
+    const paddingBottom = 60;
+    const paddingLeft = 42;
+    const paddingRight = 24;
 
     const chartWidth = width - paddingLeft - paddingRight;
     const chartHeight = height - paddingTop - paddingBottom;
@@ -1014,6 +1024,8 @@ function renderLineGraph(container, { logs, questions }) {
         const ratio = (score - 1) / 4;
         return paddingTop + chartHeight * (1 - ratio);
     }
+
+    const skipBaselineY = height - paddingBottom + 18;
 
     const logCount = logs.length;
     function getX(index) {
@@ -1030,6 +1042,7 @@ function renderLineGraph(container, { logs, questions }) {
         }
     }
 
+    // Grid lines for scores 1-5
     let gridLinesHTML = '';
     for (let score = 1; score <= 5; score++) {
         const y = getY(score);
@@ -1039,6 +1052,13 @@ function renderLineGraph(container, { logs, questions }) {
         `;
     }
 
+    // Dedicated Skip Baseline Row on Y-Axis
+    gridLinesHTML += `
+        <line x1="${paddingLeft}" y1="${skipBaselineY}" x2="${width - paddingRight}" y2="${skipBaselineY}" stroke="var(--border-color)" stroke-width="0.8" stroke-dasharray="1,3" opacity="0.6" />
+        <text x="${paddingLeft - 8}" y="${skipBaselineY + 3.5}" fill="var(--text-muted)" font-size="9.5" text-anchor="end" font-style="italic">Skip</text>
+    `;
+
+    // X-Axis Date Labels
     let xAxisHTML = '';
     const maxLabels = 6;
     const labelStep = Math.max(1, Math.floor(logCount / maxLabels));
@@ -1053,51 +1073,112 @@ function renderLineGraph(container, { logs, questions }) {
     });
 
     let linesHTML = '';
+    let skipsHTML = '';
+    let pointsHTML = '';
     let legendHTML = '<div class="graph-legend" style="display: flex; flex-wrap: wrap; gap: 8px 12px; margin-top: 12px; justify-content: center;">';
 
     questions.forEach((q, qIndex) => {
         const color = getCurveColor(q.curve, qIndex);
+        const qTitle = escapeHTML(q.shortLabel || q.text);
+
         legendHTML += `
             <div style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--text-bright);">
                 <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${color};"></span>
-                <span>${q.shortLabel || q.text}</span>
+                <span>${qTitle}</span>
             </div>
         `;
 
-        let pathD = '';
-        let pointsHTML = '';
+        // Separate contiguous segments of answered points
+        const segments = [];
+        let currentSegment = [];
 
         logs.forEach((log, logIndex) => {
             const answer = (log.answers || []).find(a => a.questionId === q.id);
-            const score = (answer && answer.status === 'answered') ? answer.score : null;
+            const isAnswered = answer && answer.status === 'answered' && answer.score !== null && answer.score >= 1 && answer.score <= 5;
+            const isSkipped = answer && (answer.status === 'skipped' || answer.score === null);
 
-            if (score !== null && score >= 1 && score <= 5) {
+            if (isAnswered) {
                 const x = getX(logIndex);
-                const y = getY(score);
-
-                if (pathD === '') {
-                    pathD = `M ${x} ${y}`;
-                } else {
-                    pathD += ` L ${x} ${y}`;
+                const y = getY(answer.score);
+                currentSegment.push({ x, y, score: answer.score, logIndex, timestamp: log.timestamp });
+            } else {
+                if (currentSegment.length > 0) {
+                    segments.push(currentSegment);
+                    currentSegment = [];
                 }
 
-                pointsHTML += `<circle cx="${x}" cy="${y}" r="4" fill="${color}" stroke="var(--box-bg)" stroke-width="1.5" />`;
+                if (isSkipped) {
+                    const rawX = getX(logIndex);
+                    const fannedX = (logCount === 1 || questions.length === 1)
+                        ? rawX
+                        : rawX + (qIndex - (questions.length - 1) / 2) * 6;
+                    const dateStr = formatDateLabel(log.timestamp);
+                    skipsHTML += `
+                        <g class="skip-marker" aria-label="${qTitle}: Skipped (${dateStr})">
+                            <title>${qTitle}: Skipped (${dateStr})</title>
+                            <circle cx="${fannedX}" cy="${skipBaselineY}" r="4.5" fill="var(--box-bg)" stroke="${color}" stroke-width="1.5" stroke-dasharray="2,2" />
+                            <line x1="${fannedX - 2.5}" y1="${skipBaselineY - 2.5}" x2="${fannedX + 2.5}" y2="${skipBaselineY + 2.5}" stroke="${color}" stroke-width="1.5" stroke-linecap="round" />
+                            <line x1="${fannedX + 2.5}" y1="${skipBaselineY - 2.5}" x2="${fannedX - 2.5}" y2="${skipBaselineY + 2.5}" stroke="${color}" stroke-width="1.5" stroke-linecap="round" />
+                        </g>
+                    `;
+                }
+                // If question is absent (not in answers): line breaks, and NO skip marker is drawn (clean gap)
             }
         });
 
-        if (pathD) {
-            linesHTML += `<path d="${pathD}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />`;
+        if (currentSegment.length > 0) {
+            segments.push(currentSegment);
         }
-        linesHTML += pointsHTML;
+
+        // Draw line paths for each contiguous segment (never across skips or absent gaps)
+        segments.forEach(segment => {
+            if (segment.length >= 2) {
+                let d = `M ${segment[0].x} ${segment[0].y}`;
+                for (let i = 1; i < segment.length; i++) {
+                    d += ` L ${segment[i].x} ${segment[i].y}`;
+                }
+                linesHTML += `<path d="${d}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />`;
+            }
+
+            // Draw data point circles with accessible tooltips
+            segment.forEach(pt => {
+                const dateStr = formatDateLabel(pt.timestamp);
+                pointsHTML += `
+                    <circle cx="${pt.x}" cy="${pt.y}" r="4" fill="${color}" stroke="var(--box-bg)" stroke-width="1.5" aria-label="${qTitle}: Score ${pt.score} (${dateStr})">
+                        <title>${qTitle}: Score ${pt.score}/5 (${dateStr})</title>
+                    </circle>
+                `;
+            });
+        });
     });
 
     legendHTML += '</div>';
 
+    // Reading Key for clear visual differentiation between Answered, Skipped, and Not Asked
+    const guideKeyHTML = `
+        <div class="graph-guide-key" style="display: flex; gap: 14px; justify-content: center; margin-top: 10px; font-size: 0.8rem; color: var(--text-muted); flex-wrap: wrap;">
+            <span style="display: inline-flex; align-items: center; gap: 5px;">
+                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: currentColor;"></span>
+                <span>Answered (1–5)</span>
+            </span>
+            <span style="display: inline-flex; align-items: center; gap: 5px;">
+                <span style="display: inline-flex; align-items: center; justify-content: center; width: 10px; height: 10px; border-radius: 50%; border: 1px dashed currentColor; font-size: 7px; font-weight: bold; line-height: 1;">✕</span>
+                <span>Skipped (Chose not to answer)</span>
+            </span>
+            <span style="display: inline-flex; align-items: center; gap: 5px;">
+                <span style="display: inline-block; width: 12px; height: 0; border-top: 1px dashed currentColor;"></span>
+                <span>(Gap) Not Asked</span>
+            </span>
+        </div>
+    `;
+
     const svgHTML = `
-        <svg viewBox="0 0 ${width} ${height}" style="width: 100%; height: auto; max-height: 260px; overflow: visible;">
+        <svg viewBox="0 0 ${width} ${height}" style="width: 100%; height: auto; max-height: 280px; overflow: visible;">
             <g class="grid">${gridLinesHTML}</g>
             <g class="x-axis">${xAxisHTML}</g>
             <g class="lines">${linesHTML}</g>
+            <g class="skips">${skipsHTML}</g>
+            <g class="points">${pointsHTML}</g>
         </svg>
     `;
 
@@ -1107,6 +1188,7 @@ function renderLineGraph(container, { logs, questions }) {
             ${svgHTML}
         </div>
         ${legendHTML}
+        ${guideKeyHTML}
     `;
 }
 

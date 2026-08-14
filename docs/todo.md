@@ -89,7 +89,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
   - Render one line per active question across its answered scores over time on a single shared 1–5 y-axis, using the `logs` + `questions` data loaded in Task 3.2.
   - Reuse the existing curve-to-color mapping conventions already established for `more-is-better` / `less-is-better` / `middle-is-best` where sensible.
 
-- [ ] **Task 3.4: Skipped-vs-absent gap handling in the graph**
+- [x] **Task 3.4: Skipped-vs-absent gap handling in the graph**
   - A `status:"skipped"` record (`score:null`) must render as a visible break in that question's line for that day.
   - A day with no record at all (question wasn't in the active set / didn't exist yet) must also render as a gap, but must be visually distinguishable from a skip if feasible
     - A psychiatrist needs to be able to tell "chose not to answer" from "wasn't asked."
