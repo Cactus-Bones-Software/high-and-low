@@ -297,6 +297,32 @@ function handleScoreSubmission(questionId, score) {
     }, 220);
 }
 
+function startNewCheckIn() {
+    STATE.currentQuestionIndex = 0;
+    STATE.sessionAnswers = [];
+    STATE.sessionNote = null;
+    updateNotesButtonLabel();
+
+    const completionView = document.getElementById('completion-view');
+    if (completionView) {
+        completionView.hidden = true;
+    }
+
+    const buttonStack = document.getElementById('button-stack');
+    if (buttonStack) {
+        buttonStack.hidden = false;
+    }
+
+    const footerBox = document.getElementById('footer-box');
+    if (footerBox) {
+        footerBox.style.display = '';
+    }
+
+    return loadActiveQuestions().then(() => {
+        renderCurrentQuestion();
+    });
+}
+
 function finalizeSession() {
     const answeredIds = new Set(STATE.sessionAnswers.map(a => a.questionId));
     STATE.activeQuestions.forEach(q => {
@@ -317,9 +343,26 @@ function finalizeSession() {
     transaction.objectStore('logs').add(logEntry);
 
     transaction.oncomplete = () => {
-        document.getElementById('progress-text').textContent = "Complete";
-        document.getElementById('question-text').textContent = "Log recorded. Rest easy.";
-        document.getElementById('button-stack').innerHTML = `<p style="text-align:center; margin-top:2rem; color: var(--text-primary)">Saved securely to device storage.</p>`;
+        const progressEl = document.getElementById('progress-text');
+        const questionEl = document.getElementById('question-text');
+        if (progressEl) progressEl.textContent = "Check-In Complete";
+        if (questionEl) questionEl.textContent = "Log recorded. Rest easy.";
+
+        const buttonStack = document.getElementById('button-stack');
+        if (buttonStack) {
+            buttonStack.hidden = true;
+        }
+
+        const completionView = document.getElementById('completion-view');
+        if (completionView) {
+            completionView.hidden = false;
+        }
+
+        const newCheckinBtn = document.getElementById('button-new-checkin');
+        if (newCheckinBtn) {
+            setTimeout(() => newCheckinBtn.focus({ preventScroll: true }), 60);
+        }
+
         const footerBox = document.getElementById('footer-box');
         if (footerBox) {
             footerBox.style.display = 'none';
@@ -996,6 +1039,45 @@ function escapeHTML(str) {
         .replace(/'/g, '&#039;');
 }
 
+function formatLogDateTime(isoStr) {
+    if (!isoStr) return '';
+    try {
+        const d = new Date(isoStr);
+        if (isNaN(d.getTime())) return isoStr;
+        const month = d.getMonth() + 1;
+        const day = d.getDate();
+        const year = d.getFullYear();
+        const hours = d.getHours();
+        const mins = d.getMinutes();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const h = hours % 12 || 12;
+        const m = mins < 10 ? `0${mins}` : mins;
+        return `${month}/${day}/${year}, ${h}:${m} ${ampm}`;
+    } catch (e) {
+        return isoStr;
+    }
+}
+
+function formatTickDate(timeMs, isShortRange) {
+    try {
+        const d = new Date(timeMs);
+        if (isNaN(d.getTime())) return '';
+        const month = d.getMonth() + 1;
+        const day = d.getDate();
+        if (isShortRange) {
+            const hours = d.getHours();
+            const mins = d.getMinutes();
+            const ampm = hours >= 12 ? 'p' : 'a';
+            const h = hours % 12 || 12;
+            const m = mins === 0 ? '' : `:${mins < 10 ? '0' + mins : mins}`;
+            return `${month}/${day} ${h}${m}${ampm}`;
+        }
+        return `${month}/${day}`;
+    } catch (e) {
+        return '';
+    }
+}
+
 function renderLineGraph(container, { logs, questions }) {
     if (!container) return;
 
@@ -1028,18 +1110,20 @@ function renderLineGraph(container, { logs, questions }) {
     const skipBaselineY = height - paddingBottom + 18;
 
     const logCount = logs.length;
+    const logTimes = logs.map(l => {
+        const t = new Date(l.timestamp).getTime();
+        return isNaN(t) ? 0 : t;
+    });
+
+    const minTime = logTimes[0];
+    const maxTime = logTimes[logCount - 1];
+    const timeDuration = maxTime - minTime;
+
     function getX(index) {
         if (logCount === 1) return paddingLeft + chartWidth / 2;
-        return paddingLeft + (index / (logCount - 1)) * chartWidth;
-    }
-
-    function formatDateLabel(isoStr) {
-        try {
-            const d = new Date(isoStr);
-            return (d.getMonth() + 1) + '/' + d.getDate();
-        } catch (e) {
-            return isoStr;
-        }
+        if (timeDuration <= 0) return paddingLeft + (index / (logCount - 1)) * chartWidth;
+        const ratio = (logTimes[index] - minTime) / timeDuration;
+        return paddingLeft + ratio * chartWidth;
     }
 
     // Grid lines for scores 1-5
@@ -1058,19 +1142,37 @@ function renderLineGraph(container, { logs, questions }) {
         <text x="${paddingLeft - 8}" y="${skipBaselineY + 3.5}" fill="var(--text-muted)" font-size="9.5" text-anchor="end" font-style="italic">Skip</text>
     `;
 
-    // X-Axis Date Labels
+    // Time-Scaled X-Axis Gridlines & Tick Labels
     let xAxisHTML = '';
-    const maxLabels = 6;
-    const labelStep = Math.max(1, Math.floor(logCount / maxLabels));
-    logs.forEach((log, i) => {
-        if (i % labelStep === 0 || i === logCount - 1) {
+    if (logCount === 1) {
+        const x = paddingLeft + chartWidth / 2;
+        const dateStr = formatTickDate(minTime, true);
+        xAxisHTML += `
+            <line x1="${x}" y1="${paddingTop}" x2="${x}" y2="${height - paddingBottom}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2,2" opacity="0.4" />
+            <text x="${x}" y="${height - 12}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${dateStr}</text>
+        `;
+    } else if (timeDuration <= 0) {
+        logs.forEach((log, i) => {
             const x = getX(i);
-            const dateStr = formatDateLabel(log.timestamp);
+            const dateStr = formatTickDate(logTimes[i], true);
             xAxisHTML += `
+                <line x1="${x}" y1="${paddingTop}" x2="${x}" y2="${height - paddingBottom}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2,2" opacity="0.4" />
+                <text x="${x}" y="${height - 12}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${dateStr}</text>
+            `;
+        });
+    } else {
+        const isShortRange = timeDuration <= 36 * 3600 * 1000;
+        const numTicks = Math.min(6, Math.max(3, logCount));
+        for (let i = 0; i < numTicks; i++) {
+            const t = minTime + (i / (numTicks - 1)) * timeDuration;
+            const x = paddingLeft + (i / (numTicks - 1)) * chartWidth;
+            const dateStr = formatTickDate(t, isShortRange);
+            xAxisHTML += `
+                <line x1="${x}" y1="${paddingTop}" x2="${x}" y2="${height - paddingBottom}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2,2" opacity="0.35" />
                 <text x="${x}" y="${height - 12}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${dateStr}</text>
             `;
         }
-    });
+    }
 
     let linesHTML = '';
     let skipsHTML = '';
@@ -1112,7 +1214,7 @@ function renderLineGraph(container, { logs, questions }) {
                     const fannedX = (logCount === 1 || questions.length === 1)
                         ? rawX
                         : rawX + (qIndex - (questions.length - 1) / 2) * 6;
-                    const dateStr = formatDateLabel(log.timestamp);
+                    const dateStr = formatLogDateTime(log.timestamp);
                     skipsHTML += `
                         <g class="skip-marker" aria-label="${qTitle}: Skipped (${dateStr})">
                             <title>${qTitle}: Skipped (${dateStr})</title>
@@ -1142,7 +1244,7 @@ function renderLineGraph(container, { logs, questions }) {
 
             // Draw data point circles with accessible tooltips
             segment.forEach(pt => {
-                const dateStr = formatDateLabel(pt.timestamp);
+                const dateStr = formatLogDateTime(pt.timestamp);
                 pointsHTML += `
                     <circle cx="${pt.x}" cy="${pt.y}" r="4" fill="${color}" stroke="var(--box-bg)" stroke-width="1.5" aria-label="${qTitle}: Score ${pt.score} (${dateStr})">
                         <title>${qTitle}: Score ${pt.score}/5 (${dateStr})</title>
@@ -1209,6 +1311,12 @@ function navigateTo(targetViewId, opts = {}) {
     setInert(targetCanvas, false);
 
     currentViewId = targetViewId;
+
+    if (targetViewId === 'tracker-canvas') {
+        if (STATE.currentQuestionIndex >= STATE.activeQuestions.length) {
+            void startNewCheckIn();
+        }
+    }
 
     if (targetViewId === 'history-canvas') {
         void loadHistoryView().catch(err => {
@@ -1526,6 +1634,13 @@ function initApp() {
     setupKeyboardNavigation();
     setupCanvasBackButtons();
 
+    const newCheckinBtn = document.getElementById('button-new-checkin');
+    if (newCheckinBtn) {
+        newCheckinBtn.addEventListener('click', () => {
+            void startNewCheckIn();
+        });
+    }
+
     if (window.history && window.history.replaceState) {
         history.replaceState({ view: 'tracker-canvas' }, '');
     }
@@ -1548,12 +1663,25 @@ function initApp() {
         .then(() => Promise.all([applyStoredDisplay(), loadActiveQuestions()]))
         .then(() => {
             renderCurrentQuestion();
+            if (typeof window !== 'undefined') {
+                window.startNewCheckIn = startNewCheckIn;
+                window.renderLineGraph = renderLineGraph;
+                window.navigateTo = navigateTo;
+                window.finalizeSession = finalizeSession;
+            }
         })
         .catch(err => {
             console.error('Initialization failed:', err);
             const qText = document.getElementById('question-text');
             if (qText) qText.textContent = "Could not open local storage.";
         });
+}
+
+if (typeof window !== 'undefined') {
+    window.startNewCheckIn = startNewCheckIn;
+    window.renderLineGraph = renderLineGraph;
+    window.navigateTo = navigateTo;
+    window.finalizeSession = finalizeSession;
 }
 
 if (document.readyState === "loading") {

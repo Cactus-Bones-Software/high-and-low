@@ -523,6 +523,57 @@ h3 {
     justify-content: space-between;
 }
 
+.completion-view {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+    text-align: center;
+    height: 100%;
+}
+
+.completion-view[hidden] {
+    display: none !important;
+}
+
+.completion-message {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+.button-new-checkin {
+    width: 100%;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background-color: var(--button-default);
+    color: var(--text-bright);
+    cursor: pointer;
+    transition: transform 150ms var(--transition-curve), filter 150ms var(--transition-curve), background-color 150ms var(--transition-curve);
+}
+
+.button-new-checkin:active {
+    transform: scale(0.98);
+}
+
+@media (hover: hover) {
+    .button-new-checkin:hover {
+        background-color: var(--border-color);
+        filter: brightness(1.06);
+    }
+}
+
 .score-button {
     flex: 1;
     display: flex;
