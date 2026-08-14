@@ -1000,6 +1000,20 @@ function getCurveColor(curve, index) {
     return fallbackPalette[index % fallbackPalette.length];
 }
 
+const QUESTION_DASH_PATTERNS = [
+    'none',          // 0: Solid line
+    '6,4',           // 1: Medium dashes
+    '2,3',           // 2: Dotted
+    '8,3,2,3',       // 3: Dash-dot
+    '12,4',          // 4: Long dashes
+    '6,3,2,3,2,3',   // 5: Dash-dot-dot
+    '10,3,4,3'       // 6: Long-dash short-dash
+];
+
+function getQuestionDashArray(index) {
+    return QUESTION_DASH_PATTERNS[index % QUESTION_DASH_PATTERNS.length];
+}
+
 async function loadHistoryView() {
     const container = document.getElementById('history-graph-container') || document.getElementById('panel-history');
     if (!container) return;
@@ -1078,7 +1092,7 @@ function formatTickDate(timeMs, isShortRange) {
     }
 }
 
-function renderLineGraph(container, { logs, questions }) {
+function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}) {
     if (!container) return;
 
     if (!logs || logs.length === 0) {
@@ -1090,6 +1104,35 @@ function renderLineGraph(container, { logs, questions }) {
         `;
         return;
     }
+
+    if (!questions || questions.length === 0) {
+        container.innerHTML = `
+            <h3>Mood Timeline</h3>
+            <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 12px; line-height: 1.5; text-align: center;">
+                No active questions found for timeline rendering.
+            </p>
+        `;
+        return;
+    }
+
+    // Determine current visible question IDs Set
+    let currentVisibleSet;
+    if (visibleQuestionIds instanceof Set) {
+        currentVisibleSet = new Set(visibleQuestionIds);
+    } else if (Array.isArray(visibleQuestionIds)) {
+        currentVisibleSet = new Set(visibleQuestionIds);
+    } else if (STATE.historyVisibleQuestionIds instanceof Set && STATE.historyVisibleQuestionIds.size > 0) {
+        currentVisibleSet = new Set(STATE.historyVisibleQuestionIds);
+    } else {
+        currentVisibleSet = new Set(questions.map(q => q.id));
+    }
+
+    // Ensure at least one active question remains in the visible set
+    const validQuestionsInSet = questions.filter(q => currentVisibleSet.has(q.id));
+    if (validQuestionsInSet.length === 0 && questions.length > 0) {
+        currentVisibleSet.add(questions[0].id);
+    }
+    STATE.historyVisibleQuestionIds = currentVisibleSet;
 
     const width = 600;
     const height = 320;
@@ -1177,18 +1220,30 @@ function renderLineGraph(container, { logs, questions }) {
     let linesHTML = '';
     let skipsHTML = '';
     let pointsHTML = '';
-    let legendHTML = '<div class="graph-legend" style="display: flex; flex-wrap: wrap; gap: 8px 12px; margin-top: 12px; justify-content: center;">';
+    let legendItemsHTML = '';
 
     questions.forEach((q, qIndex) => {
         const color = getCurveColor(q.curve, qIndex);
+        const dashArray = getQuestionDashArray(qIndex);
         const qTitle = escapeHTML(q.shortLabel || q.text);
+        const dashAttr = dashArray !== 'none' ? ` stroke-dasharray="${dashArray}"` : '';
+        const swatchLineDash = dashArray !== 'none' ? ` stroke-dasharray="${dashArray}"` : '';
+        const isVisible = currentVisibleSet.has(q.id);
 
-        legendHTML += `
-            <div style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--text-bright);">
-                <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background-color: ${color};"></span>
-                <span>${qTitle}</span>
-            </div>
+        legendItemsHTML += `
+            <button type="button" class="legend-checklist-item" role="checkbox" aria-checked="${isVisible ? 'true' : 'false'}" data-question-id="${escapeHTML(q.id)}" aria-label="Toggle ${qTitle}">
+                <span class="legend-checkbox-box" aria-hidden="true">${isVisible ? '✓' : ''}</span>
+                <svg class="legend-swatch" width="22" height="10" viewBox="0 0 22 10" aria-hidden="true">
+                    <line x1="0" y1="5" x2="22" y2="5" stroke="${color}" stroke-width="2.5"${swatchLineDash} stroke-linecap="round" />
+                    <circle cx="11" cy="5" r="3" fill="${color}" stroke="var(--box-bg)" stroke-width="1" />
+                </svg>
+                <span class="legend-label">${qTitle}</span>
+            </button>
         `;
+
+        if (!isVisible) {
+            return;
+        }
 
         // Separate contiguous segments of answered points
         const segments = [];
@@ -1239,7 +1294,7 @@ function renderLineGraph(container, { logs, questions }) {
                 for (let i = 1; i < segment.length; i++) {
                     d += ` L ${segment[i].x} ${segment[i].y}`;
                 }
-                linesHTML += `<path d="${d}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />`;
+                linesHTML += `<path d="${d}" fill="none" stroke="${color}" stroke-width="2.5"${dashAttr} stroke-linejoin="round" stroke-linecap="round" />`;
             }
 
             // Draw data point circles with accessible tooltips
@@ -1254,7 +1309,11 @@ function renderLineGraph(container, { logs, questions }) {
         });
     });
 
-    legendHTML += '</div>';
+    const legendHTML = `
+        <div class="graph-legend graph-legend-checklist" role="group" aria-label="Timeline Questions Filter">
+            ${legendItemsHTML}
+        </div>
+    `;
 
     // Reading Key for clear visual differentiation between Answered, Skipped, and Not Asked
     const guideKeyHTML = `
@@ -1292,6 +1351,31 @@ function renderLineGraph(container, { logs, questions }) {
         ${legendHTML}
         ${guideKeyHTML}
     `;
+
+    const legendEl = container.querySelector('.graph-legend');
+    if (legendEl) {
+        legendEl.addEventListener('click', (e) => {
+            const btn = e.target.closest('.legend-checklist-item');
+            if (!btn) return;
+            const qId = btn.dataset.questionId;
+            if (!qId) return;
+
+            if (currentVisibleSet.has(qId)) {
+                // Keep at least one line always visible (never allow toggling to zero)
+                if (currentVisibleSet.size <= 1) {
+                    btn.classList.add('shake-feedback');
+                    setTimeout(() => btn.classList.remove('shake-feedback'), 300);
+                    return;
+                }
+                currentVisibleSet.delete(qId);
+            } else {
+                currentVisibleSet.add(qId);
+            }
+
+            STATE.historyVisibleQuestionIds = currentVisibleSet;
+            renderLineGraph(container, { logs, questions, visibleQuestionIds: currentVisibleSet });
+        });
+    }
 }
 
 function navigateTo(targetViewId, opts = {}) {

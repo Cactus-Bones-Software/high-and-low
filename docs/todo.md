@@ -94,10 +94,15 @@ Patients and psychiatrists need a way to actually read the collected data back, 
   - A day with no record at all (question wasn't in the active set / didn't exist yet) must also render as a gap, but must be visually distinguishable from a skip if feasible
     - A psychiatrist needs to be able to tell "chose not to answer" from "wasn't asked."
 
-- [ ] **Task 3.5: Colorblind-safe line differentiation**
+- [x] **Task 3.4b: Intra-day & multi-log timeline scaling + continuous zero-reload check-in flow**
+  - Continuous chronological X-axis timeline scaling proportional to elapsed time between check-ins (`(t - t_min) / (t_max - t_min)`), properly rendering multiple check-ins recorded on the same day and irregular multi-day intervals.
+  - Adaptive X-axis tick labels and tooltips surfacing hour/minute timestamps for intraday records and clean date labels for multi-day spans.
+  - Seamless in-app check-in reset workflow ("Record Another Check-In" on completion screen and automatic reset on returning to Mood Tracker) without requiring page reloads or full PWA restarts.
+
+- [x] **Task 3.5: Colorblind-safe line differentiation**
   - Give each question's line a distinct stroke-dasharray pattern in addition to its color, so no two active lines rely on color alone to be told apart.
 
-- [ ] **Task 3.6: Legend checklist — tap to toggle**
+- [x] **Task 3.6: Legend checklist — tap to toggle**
   - Build the one/two-column checklist of active questions using their `shortLabel` (Task 3.1), each with a color swatch matching its line.
   - Tapping a row toggles that question's line visibility on the graph. Keep at least one line always visible (never allow toggling to zero).
 
@@ -133,7 +138,8 @@ Patients and psychiatrists need a way to actually read the collected data back, 
   - Split the view into two clear visual card sections: **Active in Tracker** (top) and **Question Library Catalog** (bottom).
 
 - [ ] **Task 4.5: Active Tracker Cards & Reordering Handles**
-  - Render active tracker question cards with prominent question text at top, tags below, reordering handles/controls (move up / move down or drag handle) to adjust tracker sequence, and an "In Tracker" toggle switch to remove a question into the catalog.
+  - Render active tracker question cards with prominent question text at top, tags below, reordering handles/controls (move up / move down or drag handle) to adjust tracker sequence
+  - Add an "In Tracker" toggle switch to remove a question into the catalog.
 
 - [ ] **Task 4.6: Library Catalog Cards & Non-Dominant Edit Actions**
   - Render inactive built-in and custom question cards in the library catalog.

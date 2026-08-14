@@ -954,6 +954,117 @@ select, .utility-button, .form-input {
 }
 
 /* ==========================================================================
+7b. GRAPH & TIMELINE LEGEND CHECKLIST (TASK 3.6)
+========================================================================== */
+.graph-legend-checklist {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-top: 14px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+@media (min-width: 420px) {
+    .graph-legend-checklist {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.legend-checklist-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    min-height: 44px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background-color: var(--button-default);
+    color: var(--text-bright);
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    user-select: none;
+    transition: opacity 160ms var(--transition-curve), background-color 160ms var(--transition-curve), border-color 160ms var(--transition-curve), transform 120ms var(--transition-curve);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.legend-checklist-item:active {
+    transform: scale(0.98);
+}
+
+@media (hover: hover) {
+    .legend-checklist-item:hover {
+        background-color: var(--border-color);
+        filter: brightness(1.05);
+    }
+}
+
+.legend-checklist-item[aria-checked="false"] {
+    opacity: 0.42;
+    background-color: transparent;
+    border-style: dashed;
+}
+
+.legend-checkbox-box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1px solid var(--text-muted);
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--text-bright);
+    background-color: var(--box-bg);
+}
+
+.legend-checklist-item[aria-checked="true"] .legend-checkbox-box {
+    border-color: var(--text-bright);
+    background-color: var(--button-default);
+    color: var(--text-bright);
+}
+
+body[data-contrast="high"] .legend-checklist-item {
+    border: 2px solid var(--text-bright);
+}
+
+body[data-contrast="high"] .legend-checklist-item[aria-checked="false"] {
+    border: 2px dashed var(--text-muted);
+    opacity: 0.5;
+}
+
+body[data-contrast="high"] .legend-checkbox-box {
+    border: 2px solid var(--text-bright);
+}
+
+.legend-swatch {
+    flex-shrink: 0;
+}
+
+.legend-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.legend-checklist-item.shake-feedback {
+    animation: legend-shake 250ms ease-in-out;
+}
+
+@keyframes legend-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}
+
+/* ==========================================================================
 8. DESKTOP & TABLET LAYOUT ORIENTATION (MEDIA QUERY)
 ========================================================================== */
 @media (min-width: 768px) {
