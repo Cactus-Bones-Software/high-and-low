@@ -556,7 +556,52 @@ function executeHoldAction(id) {
         confirmImport('merge');
     } else if (id === 'button-import-replace') {
         confirmImport('replace');
+    } else if (id === 'button-question-feedback-ok') {
+        closeQuestionFeedbackDialog();
     }
+}
+
+function showQuestionFeedbackDialog(title, subtitle) {
+    const overlay = document.getElementById('question-feedback-dialog-overlay');
+    const titleEl = document.getElementById('question-feedback-title');
+    const subtitleEl = document.getElementById('question-feedback-subtitle');
+    if (!overlay) return;
+
+    if (titleEl) titleEl.textContent = title;
+    if (subtitleEl) subtitleEl.textContent = subtitle;
+
+    overlay.removeAttribute('inert');
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.classList.add('is-open');
+
+    const okBtn = document.getElementById('button-question-feedback-ok');
+    if (okBtn) setTimeout(() => okBtn.focus(), 60);
+}
+
+function closeQuestionFeedbackDialog() {
+    const overlay = document.getElementById('question-feedback-dialog-overlay');
+    if (!overlay) return;
+
+    overlay.classList.remove('is-open');
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.setAttribute('inert', '');
+
+    document.querySelectorAll('#question-feedback-dialog .hold-action').forEach(b => resetHold(b));
+
+    const toggleButton = document.getElementById('button-toggle-add-question');
+    if (toggleButton) toggleButton.focus({ preventScroll: true });
+}
+
+function setupQuestionFeedbackDialog() {
+    const overlay = document.getElementById('question-feedback-dialog-overlay');
+    if (!overlay) return;
+
+    overlay.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' || e.key === 'Enter') {
+            e.preventDefault();
+            closeQuestionFeedbackDialog();
+        }
+    });
 }
 
 let pendingImportFile = null;
@@ -1181,11 +1226,11 @@ function setupQuestionAuthoring() {
             });
 
             if (outcome.status === 'added') {
-                alert('Question saved. It will appear in your tracker on next load.');
+                showQuestionFeedbackDialog('Question Saved', 'Your custom question has been saved and will appear in your check-in tracker.');
             } else if (outcome.status === 'restored') {
-                alert('That question already existed but was archived — it has been restored.');
+                showQuestionFeedbackDialog('Question Restored', 'That question already existed in your archived items and has been restored.');
             } else {
-                alert('You already have that question, so nothing was added.');
+                showQuestionFeedbackDialog('Question Exists', 'You already have an active question with this text in your library.');
             }
 
             resetForm();
@@ -1195,7 +1240,7 @@ function setupQuestionAuthoring() {
             toggleButton.focus({ preventScroll: true });
         } catch (err) {
             console.error('Failed to save question:', err);
-            alert('Could not save the question. Please try again.');
+            showQuestionFeedbackDialog('Could Not Save', 'Could not save the question. Please check the fields and try again.');
             syncSaveEnabled();
         }
     });
@@ -1349,6 +1394,7 @@ function initApp() {
     setupHoldActions();
     setupNotesDialog();
     setupImportDialog();
+    setupQuestionFeedbackDialog();
     setupSettingsAndMenu();
     setupQuestionAuthoring();
     setupKeyboardNavigation();
