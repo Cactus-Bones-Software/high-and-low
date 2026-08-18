@@ -13,6 +13,7 @@
 ## Key Documentation & Reference Files
 When you need clarity on project specifications, architecture, locked decisions, or upcoming tasks, consult the following key documentation files:
 
+- **`public/`**: Directory for deployable app files, for organizational and scriptability reasons. All web app files will be found here.
 - **`docs/project-context.md`**: Project overview, core tech stack constraints (vanilla HTML/CSS/JS, IndexedDB, Service Worker), architectural rules, state and data schemas (`Active State`, `Question Object`, `Log Entry`), and explicit non-goals. Consult this for high-level rules, schema structure, or foundational stack constraints.
 - **`docs/design-decisions.md`**: Chronological record of locked product and architectural decisions (navigation patterns, questions store & FNV-1a custom ID hashing, scoring curve semantics, multi-log continuous timeline scaling, sessionStorage session persistence, explicit naming standards) and open design questions. Consult this whenever verifying why a feature is designed a specific way or resolving architectural ambiguities.
 - **`docs/todo.md`**: The official development backlog and roadmap. Contains active and completed tasks organized by phases. Consult this to find the next active task (`[ ]`) or track implementation status.
