@@ -798,6 +798,7 @@ body[data-theme="system"] .input-box[data-curve="middle-is-best"] button[data-sc
     width: 0;
     background-color: rgba(0, 0, 0, 0.18);
     pointer-events: none;
+    transition: width 240ms cubic-bezier(0.2, 0.8, 0.4, 1);
 }
 
 /* Light Mode (Explicit or System Default) */
@@ -835,7 +836,7 @@ body[data-theme="dark"][data-contrast="high"] .hold-indicator {
 
 .control-button.is-holding .hold-indicator {
     width: 100%;
-    transition: width 1500ms linear;
+    transition: width 1500ms cubic-bezier(0.08, 0.82, 0.17, 1);
 }
 
 body[data-hold-delay="disabled"] .hold-indicator {

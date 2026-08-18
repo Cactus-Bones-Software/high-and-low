@@ -898,6 +898,19 @@ function updateNotesButtonLabel() {
     if (labelSpan) {
         labelSpan.textContent = STATE.sessionNote ? 'Note Attached ✓' : 'Add Note';
     }
+    updateHoldActionAriaLabels();
+}
+
+function updateHoldActionAriaLabels() {
+    const skipButton = document.getElementById('button-skip');
+    if (skipButton) {
+        skipButton.setAttribute('aria-label', isHoldDelayEnabled ? 'Skip remaining questions (Hold to confirm)' : 'Skip remaining questions');
+    }
+    const notesButton = document.getElementById('button-notes');
+    if (notesButton) {
+        const noteStateText = STATE.sessionNote ? 'Note Attached' : 'Add custom note';
+        notesButton.setAttribute('aria-label', isHoldDelayEnabled ? `${noteStateText} (Hold to confirm)` : noteStateText);
+    }
 }
 
 // --- 6. SETTINGS & MENU NAVIGATION ---
@@ -933,6 +946,7 @@ function setupSettingsAndMenu() {
     const handleHoldDelayChange = async (holdDelayValue) => {
         isHoldDelayEnabled = (holdDelayValue !== 'disabled');
         document.body.setAttribute('data-hold-delay', isHoldDelayEnabled ? 'enabled' : 'disabled');
+        updateHoldActionAriaLabels();
         await setConfig('holdDelay', isHoldDelayEnabled ? 'enabled' : 'disabled');
         try {
             localStorage.setItem('holdDelay', isHoldDelayEnabled ? 'enabled' : 'disabled');
@@ -1919,6 +1933,7 @@ async function applyStoredDisplay() {
     const finalHoldDelay = holdDelay || localHoldDelay || 'enabled';
     isHoldDelayEnabled = (finalHoldDelay !== 'disabled');
     document.body.setAttribute('data-hold-delay', isHoldDelayEnabled ? 'enabled' : 'disabled');
+    updateHoldActionAriaLabels();
     const holdDelaySelect = document.getElementById('hold-delay-select');
     if (holdDelaySelect) holdDelaySelect.value = isHoldDelayEnabled ? 'enabled' : 'disabled';
 
