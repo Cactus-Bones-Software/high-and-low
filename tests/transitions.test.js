@@ -107,3 +107,108 @@ describe('Task 2.10: Seamless View & Question Transitions Tests', () => {
         expect(trackerCanvas.classList.contains('view-active')).toBe(true);
     });
 });
+
+describe('Task 2.11: Suppress Transitions on Initial Load & Page Refreshes', () => {
+    it('1. Suppresses transitions during initial load and removes suppress-transitions once initialized', async () => {
+        const environment = await setupTestDOM();
+        const document = environment.document;
+
+        // Allow microtasks and safeRAF to complete
+        await sleep(50);
+
+        // After initialization completes, suppress-transitions should be cleanly removed for interactive navigation
+        expect(document.body.classList.contains('suppress-transitions')).toBe(false);
+    });
+
+    it('2. Restoring active view on load applies active and inert classes instantly without animation classes', async () => {
+        const environment = await setupTestDOM({
+            'high_and_low_active_view': 'history-canvas'
+        });
+        const document = environment.document;
+
+        const historyCanvas = document.getElementById('history-canvas');
+        const trackerCanvas = document.getElementById('tracker-canvas');
+        const settingsCanvas = document.getElementById('settings-canvas');
+
+        expect(historyCanvas.classList.contains('view-active')).toBe(true);
+        expect(isElementInert(historyCanvas)).toBe(false);
+        expect(trackerCanvas.classList.contains('view-hidden-left')).toBe(true);
+        expect(isElementInert(trackerCanvas)).toBe(true);
+        expect(settingsCanvas.classList.contains('view-hidden-right')).toBe(true);
+        expect(isElementInert(settingsCanvas)).toBe(true);
+
+        // No lingering transition or entrance classes
+        expect(historyCanvas.classList.contains('question-transition-out')).toBe(false);
+        expect(historyCanvas.classList.contains('question-transition-enter')).toBe(false);
+        expect(historyCanvas.classList.contains('question-transition-in')).toBe(false);
+    });
+
+    it('3. Restoring active session on load renders in-progress question immediately without triggering question transition animations', async () => {
+        const savedSession = {
+            currentQuestionIndex: 2,
+            sessionAnswers: [
+                { questionId: 'q_energy', score: 4, status: 'answered' },
+                { questionId: 'q_sadness', score: 2, status: 'answered' }
+            ],
+            sessionNote: null,
+            updatedAt: Date.now()
+        };
+
+        const environment = await setupTestDOM({
+            'high_and_low_active_checkin': JSON.stringify(savedSession)
+        });
+        const document = environment.document;
+
+        const headerBox = document.getElementById('header-box');
+        const inputBox = document.getElementById('input-box');
+        const progressElement = document.getElementById('progress-text');
+
+        expect(progressElement.textContent).toContain('Question 3 of');
+
+        // Question transition classes MUST NOT be applied during session restore
+        expect(headerBox.classList.contains('question-transition-out')).toBe(false);
+        expect(headerBox.classList.contains('question-transition-enter')).toBe(false);
+        expect(headerBox.classList.contains('question-transition-in')).toBe(false);
+
+        expect(inputBox.classList.contains('question-transition-out')).toBe(false);
+        expect(inputBox.classList.contains('question-transition-enter')).toBe(false);
+        expect(inputBox.classList.contains('question-transition-in')).toBe(false);
+    });
+
+    it('4. Theme and contrast updates do not trigger view or question transition animations', async () => {
+        const environment = await setupTestDOM();
+        const document = environment.document;
+
+        const themeSelect = document.getElementById('theme-select');
+        const contrastSelect = document.getElementById('contrast-select');
+        const headerBox = document.getElementById('header-box');
+        const inputBox = document.getElementById('input-box');
+        const trackerCanvas = document.getElementById('tracker-canvas');
+
+        if (themeSelect) {
+            themeSelect.value = 'light';
+            themeSelect.dispatchEvent(new environment.window.Event('change', { bubbles: true }));
+        }
+
+        if (contrastSelect) {
+            contrastSelect.value = 'high';
+            contrastSelect.dispatchEvent(new environment.window.Event('change', { bubbles: true }));
+        }
+
+        await sleep(50);
+
+        expect(document.body.getAttribute('data-theme')).toBe('light');
+        expect(document.body.getAttribute('data-contrast')).toBe('high');
+
+        // Verify no transition classes were erroneously triggered on boxes or canvases
+        expect(headerBox.classList.contains('question-transition-out')).toBe(false);
+        expect(headerBox.classList.contains('question-transition-enter')).toBe(false);
+        expect(headerBox.classList.contains('question-transition-in')).toBe(false);
+
+        expect(inputBox.classList.contains('question-transition-out')).toBe(false);
+        expect(inputBox.classList.contains('question-transition-enter')).toBe(false);
+        expect(inputBox.classList.contains('question-transition-in')).toBe(false);
+
+        expect(trackerCanvas.classList.contains('view-active')).toBe(true);
+    });
+});

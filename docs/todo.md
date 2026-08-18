@@ -75,7 +75,7 @@ You are an autonomous software developer working on "High & Low", a local-first,
   - Ensure the incoming view is positioned and rendered before the transition begins, avoiding intermediate empty/unrendered frames.
   - Add automated regression tests to verify view class orchestration and smooth visual continuity.
 
-- [ ] **Task 2.11: Suppress Transitions on Initial Load & Page Refreshes**
+- [x] **Task 2.11: Suppress Transitions on Initial Load & Page Refreshes**
   - Prevent view and question transition animations from firing during cold loads, theme reloads, or quick browser refreshes.
   - Ensure transitions only trigger on explicit user-initiated navigation events (e.g. drawer link clicks, question submissions, back buttons).
   - Write automated tests to verify that restoring active view or session state on load immediately applies classes without triggering unwanted entry animations.

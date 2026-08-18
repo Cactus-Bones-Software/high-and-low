@@ -966,6 +966,7 @@ function setupSettingsAndMenu() {
     };
 
     const handleMenuSideChange = async (menuSideValue) => {
+        document.body.classList.add('suppress-transitions');
         document.body.setAttribute('data-menu-side', menuSideValue);
         await setConfig('menuSide', menuSideValue);
         try {
@@ -973,6 +974,13 @@ function setupSettingsAndMenu() {
         } catch (error) {
         }
         if (menuSideSelect) menuSideSelect.value = menuSideValue;
+        safeRAF(() => {
+            safeRAF(() => {
+                if (typeof document !== 'undefined' && document.body) {
+                    document.body.classList.remove('suppress-transitions');
+                }
+            });
+        });
     };
 
     if (menuSideSelect) {
@@ -1998,7 +2006,7 @@ function initApp() {
             const targetInitialView = storedView || historyView || 'tracker-canvas';
 
             if (targetInitialView && targetInitialView !== 'tracker-canvas') {
-                navigateTo(targetInitialView, { fromPopState: true, instant: true });
+                navigateTo(targetInitialView, { fromPopState: true, instant: true, fromInit: true });
             } else {
                 if (window.history && window.history.replaceState) {
                     history.replaceState({ view: 'tracker-canvas' }, '');
@@ -2012,11 +2020,26 @@ function initApp() {
                 window.finalizeSession = finalizeSession;
                 window.STATE = STATE;
             }
+
+            safeRAF(() => {
+                safeRAF(() => {
+                    if (typeof document !== 'undefined' && document.body) {
+                        document.body.classList.remove('suppress-transitions');
+                    }
+                });
+            });
         })
         .catch(error => {
             console.error('Initialization failed:', error);
             const questionText = document.getElementById('question-text');
             if (questionText) questionText.textContent = "Could not open local storage.";
+            safeRAF(() => {
+                safeRAF(() => {
+                    if (typeof document !== 'undefined' && document.body) {
+                        document.body.classList.remove('suppress-transitions');
+                    }
+                });
+            });
         });
 }
 

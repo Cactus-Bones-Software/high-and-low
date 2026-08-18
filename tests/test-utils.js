@@ -95,13 +95,17 @@ export async function setupTestDOM(customSessionStorage = {}) {
     // Dispatch DOMContentLoaded on JSDOM window document
     windowInstance.document.dispatchEvent(new windowInstance.Event('DOMContentLoaded', { bubbles: true, cancelable: true }));
 
-    // Wait deterministically for async initDatabase promise chain to complete
-    await waitFor(() => Boolean(windowInstance.STATE && windowInstance.STATE.activeQuestions && windowInstance.STATE.activeQuestions.length > 0));
+    // Wait deterministically for async initDatabase promise chain and initial render to complete
+    await waitFor(() => Boolean(
+        windowInstance.STATE &&
+        windowInstance.STATE.activeQuestions &&
+        windowInstance.STATE.activeQuestions.length > 0 &&
+        documentInstance.getElementById('progress-text') &&
+        documentInstance.getElementById('progress-text').textContent !== 'Loading tracker...'
+    ));
 
     return {
         dom: domInstance,
-        win: windowInstance,
-        doc: documentInstance,
         window: windowInstance,
         document: documentInstance
     };
