@@ -65,6 +65,11 @@
   - Ensure transitions only trigger on explicit user-initiated navigation events (e.g. drawer link clicks, question submissions, back buttons).
   - Write automated tests to verify that restoring active view or session state on load immediately applies classes without triggering unwanted entry animations.
 
+- [ ] **Task 2.12: Unified Terminology & UI Copy Alignment**
+  - Audit and harmonize all user-facing messages, completion screens, dialog prompts, button labels, and screen-reader announcements across `index.html` and `app.js`.
+  - Enforce the project taxonomy: standardize on **"Check-In"** for the user action/interaction and **"Entry"** for the stored historical record, removing confusing or conflicting aliases ("Session", "Quiz", "Test", and ambiguous "Log").
+  - Ensure completion feedback (e.g. "Check-In recorded. Rest easy.") and navigation cues cleanly reflect this standard without ambiguity.
+
 ---
 
 ### Phase 3: Analytics & Data Visualization
