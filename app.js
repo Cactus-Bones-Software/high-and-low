@@ -1362,15 +1362,27 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
         const swatchLineDash = dashArray !== 'none' ? ` stroke-dasharray="${dashArray}"` : '';
         const isVisible = currentVisibleSet.has(question.id);
 
+        const isIsolated = currentVisibleSet.size === 1 && currentVisibleSet.has(question.id);
+        const isolateButtonLabel = isIsolated ? `Restore all questions from ${questionTitle}` : `Isolate ${questionTitle} only`;
+
         legendItemsHTML += `
-            <button type="button" class="legend-checklist-item" role="checkbox" aria-checked="${isVisible ? 'true' : 'false'}" data-question-id="${escapeHTML(question.id)}" aria-label="Toggle ${questionTitle}">
-                <span class="legend-checkbox-box" aria-hidden="true">${isVisible ? '✓' : ''}</span>
-                <svg class="legend-swatch" width="22" height="10" viewBox="0 0 22 10" aria-hidden="true">
-                    <line x1="0" y1="5" x2="22" y2="5" stroke="${color}" stroke-width="2.5"${swatchLineDash} stroke-linecap="round" />
-                    <circle cx="11" cy="5" r="3" fill="${color}" stroke="var(--box-bg)" stroke-width="1" />
-                </svg>
-                <span class="legend-label">${questionTitle}</span>
-            </button>
+            <div class="legend-checklist-row" role="group">
+                <button type="button" class="legend-checklist-item" role="checkbox" aria-checked="${isVisible ? 'true' : 'false'}" data-question-id="${escapeHTML(question.id)}" aria-label="Toggle ${questionTitle}">
+                    <span class="legend-checkbox-box" aria-hidden="true">${isVisible ? '\u2713' : ''}</span>
+                    <svg class="legend-swatch" width="22" height="10" viewBox="0 0 22 10" aria-hidden="true">
+                        <line x1="0" y1="5" x2="22" y2="5" stroke="${color}" stroke-width="2.5"${swatchLineDash} stroke-linecap="round" />
+                        <circle cx="11" cy="5" r="3" fill="${color}" stroke="var(--box-bg)" stroke-width="1" />
+                    </svg>
+                    <span class="legend-label">${questionTitle}</span>
+                </button>
+                <button type="button" class="legend-isolate-btn" data-question-id="${escapeHTML(question.id)}" aria-label="${isolateButtonLabel}" title="${isolateButtonLabel}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M18 20V10"/>
+                        <path d="M12 20V4"/>
+                        <path d="M6 20v-6"/>
+                    </svg>
+                </button>
+            </div>
         `;
 
         if (!isVisible) {
@@ -1441,8 +1453,20 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
         });
     });
 
+    const allQuestionIds = questions.map(q => q.id);
+    const hasHidden = questions.some(q => !currentVisibleSet.has(q.id));
+    const hasVisible = currentVisibleSet.size > 0;
+
     const legendHTML = `
         <div class="graph-legend graph-legend-checklist" role="group" aria-label="Timeline Questions Filter">
+            <div class="legend-quick-actions" role="group" aria-label="Quick filter actions">
+                <button type="button" class="legend-quick-btn legend-show-all" data-action="show-all" ${!hasHidden ? 'disabled' : ''} aria-label="Show all questions">
+                    <span>Show all</span>
+                </button>
+                <button type="button" class="legend-quick-btn legend-clear-all" data-action="clear-all" ${!hasVisible ? 'disabled' : ''} aria-label="Hide all but one">
+                    <span>Clear all</span>
+                </button>
+            </div>
             ${legendItemsHTML}
         </div>
     `;
@@ -1486,6 +1510,62 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
 
     const legendElement = container.querySelector('.graph-legend');
     if (legendElement) {
+        // Handle quick action buttons, isolate buttons, and checklist toggles
+        legendElement.addEventListener('click', (event) => {
+            const quickActionBtn = event.target.closest('.legend-quick-btn');
+            if (quickActionBtn) {
+                const action = quickActionBtn.dataset.action;
+                if (action === 'show-all') {
+                    currentVisibleSet = new Set(questions.map(q => q.id));
+                } else if (action === 'clear-all') {
+                    // Keep at least one visible - clear all but the first one
+                    if (questions.length > 0) {
+                        currentVisibleSet = new Set([questions[0].id]);
+                    }
+                }
+                STATE.historyVisibleQuestionIds = currentVisibleSet;
+                renderLineGraph(container, { logs, questions, visibleQuestionIds: currentVisibleSet });
+                return;
+            }
+
+            const isolateBtn = event.target.closest('.legend-isolate-btn');
+            if (isolateBtn) {
+                const questionId = isolateBtn.dataset.questionId;
+                if (questionId) {
+                    handleIsolateOrRestore(questionId);
+                }
+                return;
+            }
+
+            const button = event.target.closest('.legend-checklist-item');
+            if (button) {
+                if (isLongPressTriggered) {
+                    isLongPressTriggered = false;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    return;
+                }
+
+                const questionId = button.dataset.questionId;
+                if (!questionId) return;
+
+                if (currentVisibleSet.has(questionId)) {
+                    // Keep at least one line always visible (never allow toggling to zero)
+                    if (currentVisibleSet.size <= 1) {
+                        button.classList.add('shake-feedback');
+                        setTimeout(() => button.classList.remove('shake-feedback'), 300);
+                        return;
+                    }
+                    currentVisibleSet.delete(questionId);
+                } else {
+                    currentVisibleSet.add(questionId);
+                }
+
+                STATE.historyVisibleQuestionIds = currentVisibleSet;
+                renderLineGraph(container, { logs, questions, visibleQuestionIds: currentVisibleSet });
+            }
+        });
+
         let longPressTimer = null;
         let isLongPressTriggered = false;
         let activePointerId = null;
@@ -1552,41 +1632,45 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
             clearLongPress();
         });
 
+        // Keyboard accessibility for isolate buttons and quick actions
+        legendElement.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                const isolateBtn = event.target.closest('.legend-isolate-btn');
+                if (isolateBtn) {
+                    const questionId = isolateBtn.dataset.questionId;
+                    if (questionId) {
+                        event.preventDefault();
+                        handleIsolateOrRestore(questionId);
+                    }
+                    return;
+                }
+
+                const quickActionBtn = event.target.closest('.legend-quick-btn');
+                if (quickActionBtn && !quickActionBtn.disabled) {
+                    const action = quickActionBtn.dataset.action;
+                    if (action === 'show-all') {
+                        event.preventDefault();
+                        currentVisibleSet = new Set(questions.map(q => q.id));
+                    } else if (action === 'clear-all') {
+                        event.preventDefault();
+                        if (questions.length > 0) {
+                            currentVisibleSet = new Set([questions[0].id]);
+                        }
+                    }
+                    STATE.historyVisibleQuestionIds = currentVisibleSet;
+                    renderLineGraph(container, { logs, questions, visibleQuestionIds: currentVisibleSet });
+                    return;
+                }
+            }
+        });
+
         legendElement.addEventListener('contextmenu', (event) => {
             if (event.target.closest('.legend-checklist-item')) {
                 event.preventDefault();
             }
         });
 
-        legendElement.addEventListener('click', (event) => {
-            const button = event.target.closest('.legend-checklist-item');
-            if (!button) return;
 
-            if (isLongPressTriggered) {
-                isLongPressTriggered = false;
-                event.preventDefault();
-                event.stopPropagation();
-                return;
-            }
-
-            const questionId = button.dataset.questionId;
-            if (!questionId) return;
-
-            if (currentVisibleSet.has(questionId)) {
-                // Keep at least one line always visible (never allow toggling to zero)
-                if (currentVisibleSet.size <= 1) {
-                    button.classList.add('shake-feedback');
-                    setTimeout(() => button.classList.remove('shake-feedback'), 300);
-                    return;
-                }
-                currentVisibleSet.delete(questionId);
-            } else {
-                currentVisibleSet.add(questionId);
-            }
-
-            STATE.historyVisibleQuestionIds = currentVisibleSet;
-            renderLineGraph(container, { logs, questions, visibleQuestionIds: currentVisibleSet });
-        });
     }
 }
 

@@ -110,7 +110,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
   - Holding a legend row (~400-500ms, shorter than the existing 1500ms hold-actions since this isn't a destructive action) isolates the graph to that question alone, hiding all others.
   - Holding the same row again while it's the sole active line restores all questions.
 
-- [ ] **Task 3.8: Legend — accessible isolate alternative + quick actions**
+- [x] **Task 3.8: Legend — accessible isolate alternative + quick actions**
   - Add a small per-row icon button that performs the same isolate/restore toggle as Task 3.7's long-press, reachable by click and by keyboard (Enter/Space on focus), since long-press alone is invisible to keyboard and screen-reader users.
   - Add "Show all" / "Clear all" utility buttons above the legend for a fast reset.
 

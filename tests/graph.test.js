@@ -222,7 +222,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         expect(uniquePatterns.size).toBe(4);
 
         // Legend swatches must contain preview dash SVG indicators
-        const legendSwatches = container.querySelectorAll('.graph-legend svg');
+        const legendSwatches = container.querySelectorAll('.graph-legend .legend-swatch');
         expect(legendSwatches.length).toBe(4);
     });
 
@@ -374,5 +374,109 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         expect(items[2].getAttribute('aria-checked')).toBe('true');
         expect(container.querySelectorAll('svg g.lines path').length).toBe(3);
         expect(container.querySelectorAll('svg g.points circle').length).toBe(6);
+    });
+
+
+    it('renders isolate buttons for each legend row (Task 3.8)', () => {
+        const container = documentInstance.createElement('div');
+        const questions = [
+            { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' },
+            { id: 'q2', text: 'Sadness Depth', shortLabel: 'Sadness', curve: 'less-is-better' },
+            { id: 'q3', text: 'Self-Worth', shortLabel: 'Worth', curve: 'more-is-better' }
+        ];
+
+        const logs = [
+            {
+                timestamp: '2026-08-14T08:00:00.000Z',
+                answers: [
+                    { questionId: 'q1', score: 3, status: 'answered' },
+                    { questionId: 'q2', score: 2, status: 'answered' },
+                    { questionId: 'q3', score: 4, status: 'answered' }
+                ]
+            }
+        ];
+
+        windowInstance.renderLineGraph(container, { logs, questions });
+
+        // Verify isolate buttons exist
+        const isolateButtons = container.querySelectorAll('.legend-isolate-btn');
+        expect(isolateButtons.length).toBe(3);
+
+        // Verify each isolate button has correct data-question-id
+        expect(isolateButtons[0].dataset.questionId).toBe('q1');
+        expect(isolateButtons[1].dataset.questionId).toBe('q2');
+        expect(isolateButtons[2].dataset.questionId).toBe('q3');
+
+        // Verify isolate buttons have proper accessibility attributes
+        expect(isolateButtons[0].getAttribute('aria-label')).toContain('Isolate');
+        expect(isolateButtons[0].getAttribute('role')).toBeNull(); // Buttons have implicit role
+    });
+
+    it('renders Show all and Clear all quick action buttons (Task 3.8)', () => {
+        const container = documentInstance.createElement('div');
+        const questions = [
+            { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' },
+            { id: 'q2', text: 'Sadness Depth', shortLabel: 'Sadness', curve: 'less-is-better' }
+        ];
+
+        const logs = [
+            {
+                timestamp: '2026-08-14T08:00:00.000Z',
+                answers: [
+                    { questionId: 'q1', score: 3, status: 'answered' },
+                    { questionId: 'q2', score: 2, status: 'answered' }
+                ]
+            }
+        ];
+
+        windowInstance.renderLineGraph(container, { logs, questions });
+
+        // Verify quick action buttons exist
+        const showAllBtn = container.querySelector('.legend-show-all');
+        const clearAllBtn = container.querySelector('.legend-clear-all');
+        expect(showAllBtn).toBeTruthy();
+        expect(clearAllBtn).toBeTruthy();
+
+        // Verify they have correct attributes
+        expect(showAllBtn.getAttribute('data-action')).toBe('show-all');
+        expect(clearAllBtn.getAttribute('data-action')).toBe('clear-all');
+        expect(showAllBtn.getAttribute('aria-label')).toBe('Show all questions');
+        expect(clearAllBtn.getAttribute('aria-label')).toBe('Hide all but one');
+
+        // Initially Show all should be disabled (all visible), Clear all should be enabled
+        expect(showAllBtn.disabled).toBe(true);
+        expect(clearAllBtn.disabled).toBe(false);
+    });
+
+    it('legend checklist rows are wrapped in row containers (Task 3.8)', () => {
+        const container = documentInstance.createElement('div');
+        const questions = [
+            { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' },
+            { id: 'q2', text: 'Sadness Depth', shortLabel: 'Sadness', curve: 'less-is-better' }
+        ];
+
+        const logs = [
+            {
+                timestamp: '2026-08-14T08:00:00.000Z',
+                answers: [
+                    { questionId: 'q1', score: 3, status: 'answered' },
+                    { questionId: 'q2', score: 2, status: 'answered' }
+                ]
+            }
+        ];
+
+        windowInstance.renderLineGraph(container, { logs, questions });
+
+        // Verify legend rows are wrapped
+        const legendRows = container.querySelectorAll('.legend-checklist-row');
+        expect(legendRows.length).toBe(2);
+
+        // Verify each row contains a checklist item and an isolate button
+        legendRows.forEach(row => {
+            const checklistItem = row.querySelector('.legend-checklist-item');
+            const isolateBtn = row.querySelector('.legend-isolate-btn');
+            expect(checklistItem).toBeTruthy();
+            expect(isolateBtn).toBeTruthy();
+        });
     });
 });
