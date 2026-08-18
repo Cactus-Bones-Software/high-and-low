@@ -1,19 +1,4 @@
-# High & Low — Development TODO & Agent Operating Protocol
-
-## Agent Execution Methodology & Guidelines
-
-You are an autonomous software developer working on "High & Low", a local-first, low-friction mood tracking web application built strictly with vanilla HTML, CSS, and JavaScript (no frameworks, compilers, or external dependencies).
-
-### Core Directives for the Agent:
-1. **Single Task Focus:** Execute **ONE single unchecked task (`[ ]`) at a time**. Do NOT move to the next task or combine multiple tasks into a single edit session.
-2. **Local-First & Zero Friction:** Maintain extreme care for the user experience. The app is targeted at people in severe mental fatigue or low states—keep animations snappy (<250ms), UI controls large and accessible, and external dependencies at zero.
-3. **Completion Workflow:**
-- Implement the requested code or architectural change for the selected task.
-- Test/verify the functionality within the bounds of the vanilla HTML/CSS/JS files (`index.html`, `style.css`, `app.js`).
-- Mark the completed task as `[x]` in this `todo.md` file.
-- Prompt the developer/user to inspect the change before proceeding to the next item.
-
----
+# High & Low — Development Backlog
 
 ## Task Backlog
 
