@@ -449,7 +449,7 @@ function finalizeSession() {
         const progressElement = document.getElementById('progress-text');
         const questionElement = document.getElementById('question-text');
         if (progressElement) progressElement.textContent = "Check-In Complete";
-        if (questionElement) questionElement.textContent = "Log recorded. Rest easy.";
+        if (questionElement) questionElement.textContent = "Mood recorded. Rest easy.";
 
         const buttonStack = document.getElementById('button-stack');
         if (buttonStack) {
@@ -2011,7 +2011,7 @@ function initApp() {
                 const progressElement = document.getElementById('progress-text');
                 const questionElement = document.getElementById('question-text');
                 if (progressElement) progressElement.textContent = "Check-In Complete";
-                if (questionElement) questionElement.textContent = "Log recorded. Rest easy.";
+                if (questionElement) questionElement.textContent = "Mood recorded. Rest easy.";
             } else {
                 renderCurrentQuestion();
             }

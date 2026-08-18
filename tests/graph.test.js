@@ -154,7 +154,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         const footerBox = documentInstance.getElementById('footer-box');
 
         expect(progressElement.textContent).toBe('Check-In Complete');
-        expect(questionElement.textContent).toBe('Log recorded. Rest easy.');
+        expect(questionElement.textContent).toBe('Mood recorded. Rest easy.');
         expect(newCheckinButton).toBeTruthy();
         expect(footerBox.style.display).toBe('none');
 

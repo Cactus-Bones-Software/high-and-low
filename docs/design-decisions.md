@@ -48,10 +48,11 @@ Locked design decisions and open questions for High & Low (menu, questions store
   - Use clear, unabbreviated, descriptive variable and parameter names across the codebase.
   - Avoid truncated abbreviations such as `btn` for `button`, `el` for `element`, `cb` for `callback`, `opts` for `options`, `idx` for `index`, `msg` for `message`, `curr`/`prev` for `current`/`previous`, `evt`/`e` for `event`, `doc`/`win` for `document`/`window`, etc.
   - Always write full words (e.g. `menuButton`, `targetElement`, `progressElement`, `callback`, `options`, `event`) for maximum clarity, readability, and intent preservation.
+- **Unified Terminology: Check-In vs Entry**
+  - **Primary user-facing noun:** "Check-In" for the interaction/moment, and "Entry" (plural: "Entries") for the stored historical record.
+  - **UI Copy Consistency:** Standardize completion and prompt messages around Check-In (e.g. "Check-In recorded", "New Check-In"). Retire ambiguous aliases like "Session", "Quiz", "Test", and "Log" in user-facing text.
 
 ## Open Questions
-
-- Is "check-in" the right name for a collection of data from the user about their mood at a certain point in time?
 
 
 
