@@ -9,8 +9,75 @@ const STATE = {
     currentQuestionIndex: 0,
     sessionAnswers: [],
     sessionNote: null,
-    deviceMode: 'mouse'
+    deviceMode: 'mouse',
+    historyVisibleQuestionIds: null
 };
+
+const SESSION_STORAGE_KEY = 'high_and_low_active_checkin';
+const VIEW_STORAGE_KEY = 'high_and_low_active_view';
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30-minute timeout for stale sessions
+
+function saveActiveSession() {
+    try {
+        const payload = {
+            currentQuestionIndex: STATE.currentQuestionIndex,
+            sessionAnswers: STATE.sessionAnswers,
+            sessionNote: STATE.sessionNote,
+            updatedAt: Date.now()
+        };
+        sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(payload));
+    } catch (_) {}
+}
+
+function clearActiveSession() {
+    try {
+        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    } catch (_) {}
+}
+
+function restoreActiveSession() {
+    try {
+        const raw = sessionStorage.getItem(SESSION_STORAGE_KEY);
+        if (!raw) return false;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed.currentQuestionIndex === 'number' && Array.isArray(parsed.sessionAnswers)) {
+            // Expire if inactive for > 30 minutes
+            if (typeof parsed.updatedAt === 'number') {
+                const elapsed = Date.now() - parsed.updatedAt;
+                if (elapsed > SESSION_TIMEOUT_MS) {
+                    clearActiveSession();
+                    return false;
+                }
+            }
+            STATE.currentQuestionIndex = parsed.currentQuestionIndex;
+            STATE.sessionAnswers = parsed.sessionAnswers;
+            STATE.sessionNote = parsed.sessionNote || null;
+            return true;
+        }
+    } catch (_) {}
+    return false;
+}
+
+function saveActiveView(viewId) {
+    try {
+        sessionStorage.setItem(VIEW_STORAGE_KEY, viewId);
+    } catch (_) {}
+}
+
+function getStoredActiveView() {
+    try {
+        return sessionStorage.getItem(VIEW_STORAGE_KEY);
+    } catch (_) {
+        return null;
+    }
+}
+
+function syncMetaThemeColor(themeVal) {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) return;
+    const isDark = themeVal === 'dark' || (themeVal === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    meta.setAttribute('content', isDark ? '#121212' : '#f2f2f7');
+}
 
 // Bump this whenever new entries are added to DEFAULT_QUESTIONS so that existing
 // installations pick up the new built-ins on next load (see seedDefaults) without
@@ -284,6 +351,7 @@ function renderCurrentQuestion() {
 function handleScoreSubmission(questionId, score) {
     STATE.sessionAnswers.push({ questionId, score, status: 'answered' });
     STATE.currentQuestionIndex++;
+    saveActiveSession();
 
     const trackerCanvas = document.getElementById('tracker-canvas');
     trackerCanvas.className = 'app-canvas view-hidden-left';
@@ -298,6 +366,7 @@ function handleScoreSubmission(questionId, score) {
 }
 
 function startNewCheckIn() {
+    clearActiveSession();
     STATE.currentQuestionIndex = 0;
     STATE.sessionAnswers = [];
     STATE.sessionNote = null;
@@ -324,6 +393,7 @@ function startNewCheckIn() {
 }
 
 function finalizeSession() {
+    clearActiveSession();
     const answeredIds = new Set(STATE.sessionAnswers.map(a => a.questionId));
     STATE.activeQuestions.forEach(q => {
         if (!answeredIds.has(q.id)) {
@@ -762,6 +832,7 @@ function saveNotesFromDialog() {
         const note = input.value.trim();
         STATE.sessionNote = note.length > 0 ? note : null;
         updateNotesButtonLabel();
+        saveActiveSession();
     }
     closeNotesDialog();
 }
@@ -799,6 +870,7 @@ function updateNotesButtonLabel() {
 // --- 6. SETTINGS & MENU NAVIGATION ---
 function setupSettingsAndMenu() {
     const themeSel = document.getElementById('theme-select');
+    const drawerThemeSel = document.getElementById('drawer-theme-select');
     const contrastSel = document.getElementById('contrast-select');
     const holdDelaySel = document.getElementById('hold-delay-select');
     const menuSideSel = document.getElementById('menu-side-select');
@@ -806,11 +878,16 @@ function setupSettingsAndMenu() {
     const handleThemeChange = async (val) => {
         document.body.setAttribute('data-theme', val);
         await setConfig('theme', val);
+        syncMetaThemeColor(val);
         if (themeSel) themeSel.value = val;
+        if (drawerThemeSel) drawerThemeSel.value = val;
     };
 
     if (themeSel) {
         themeSel.addEventListener('change', (e) => handleThemeChange(e.target.value));
+    }
+    if (drawerThemeSel) {
+        drawerThemeSel.addEventListener('change', (e) => handleThemeChange(e.target.value));
     }
 
     if (contrastSel) {
@@ -873,6 +950,7 @@ function setupSettingsAndMenu() {
     if (window.matchMedia) {
         const systemThemeMedia = window.matchMedia('(prefers-color-scheme: dark)');
         const handleSystemThemeChange = () => {
+            syncMetaThemeColor('system');
             if (document.body.getAttribute('data-theme') === 'system') {
                 const inputBox = document.getElementById('input-box');
                 if (inputBox) {
@@ -1367,7 +1445,7 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
             activePointerId = null;
         }
 
-        function handleIsolateOrRestore(targetQId, btnEl) {
+        function handleIsolateOrRestore(targetQId) {
             const allQuestionIds = questions.map(q => q.id);
             const isCurrentlyIsolated = currentVisibleSet.size === 1 && currentVisibleSet.has(targetQId);
 
@@ -1400,7 +1478,7 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
             clearLongPress();
             longPressTimer = setTimeout(() => {
                 isLongPressTriggered = true;
-                handleIsolateOrRestore(qId, btn);
+                handleIsolateOrRestore(qId);
             }, 450);
         });
 
@@ -1475,6 +1553,7 @@ function navigateTo(targetViewId, opts = {}) {
     setInert(targetCanvas, false);
 
     currentViewId = targetViewId;
+    saveActiveView(targetViewId);
 
     if (targetViewId === 'tracker-canvas') {
         if (STATE.currentQuestionIndex >= STATE.activeQuestions.length) {
@@ -1742,6 +1821,7 @@ async function applyStoredDisplay() {
     ]);
     const themeVal = theme || 'system';
     document.body.setAttribute('data-theme', themeVal);
+    syncMetaThemeColor(themeVal);
     const themeSel = document.getElementById('theme-select');
     const drawerThemeSel = document.getElementById('drawer-theme-select');
     if (themeSel) themeSel.value = themeVal;
@@ -1805,10 +1885,6 @@ function initApp() {
         });
     }
 
-    if (window.history && window.history.replaceState) {
-        history.replaceState({ view: 'tracker-canvas' }, '');
-    }
-
     const exportButton = document.getElementById('button-export-all');
     if (exportButton) exportButton.addEventListener('click', exportAllDataAndConfig);
 
@@ -1826,12 +1902,42 @@ function initApp() {
         .then(seedDefaults)
         .then(() => Promise.all([applyStoredDisplay(), loadActiveQuestions()]))
         .then(() => {
-            renderCurrentQuestion();
+            restoreActiveSession();
+            updateNotesButtonLabel();
+
+            if (STATE.currentQuestionIndex >= STATE.activeQuestions.length && STATE.activeQuestions.length > 0) {
+                const buttonStack = document.getElementById('button-stack');
+                if (buttonStack) buttonStack.hidden = true;
+                const completionView = document.getElementById('completion-view');
+                if (completionView) completionView.hidden = false;
+                const footerBox = document.getElementById('footer-box');
+                if (footerBox) footerBox.style.display = 'none';
+                const progressEl = document.getElementById('progress-text');
+                const questionEl = document.getElementById('question-text');
+                if (progressEl) progressEl.textContent = "Check-In Complete";
+                if (questionEl) questionEl.textContent = "Log recorded. Rest easy.";
+            } else {
+                renderCurrentQuestion();
+            }
+
+            const storedView = getStoredActiveView();
+            const historyView = (window.history && window.history.state && window.history.state.view) ? window.history.state.view : null;
+            const targetInitialView = storedView || historyView || 'tracker-canvas';
+
+            if (targetInitialView && targetInitialView !== 'tracker-canvas') {
+                navigateTo(targetInitialView, { fromPopState: true });
+            } else {
+                if (window.history && window.history.replaceState) {
+                    history.replaceState({ view: 'tracker-canvas' }, '');
+                }
+            }
+
             if (typeof window !== 'undefined') {
                 window.startNewCheckIn = startNewCheckIn;
                 window.renderLineGraph = renderLineGraph;
                 window.navigateTo = navigateTo;
                 window.finalizeSession = finalizeSession;
+                window.STATE = STATE;
             }
         })
         .catch(err => {
@@ -1846,6 +1952,7 @@ if (typeof window !== 'undefined') {
     window.renderLineGraph = renderLineGraph;
     window.navigateTo = navigateTo;
     window.finalizeSession = finalizeSession;
+    window.STATE = STATE;
 }
 
 if (document.readyState === "loading") {
