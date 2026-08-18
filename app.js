@@ -37,21 +37,21 @@ function clearActiveSession() {
 
 function restoreActiveSession() {
     try {
-        const raw = sessionStorage.getItem(SESSION_STORAGE_KEY);
-        if (!raw) return false;
-        const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed.currentQuestionIndex === 'number' && Array.isArray(parsed.sessionAnswers)) {
+        const rawSession = sessionStorage.getItem(SESSION_STORAGE_KEY);
+        if (!rawSession) return false;
+        const parsedSession = JSON.parse(rawSession);
+        if (parsedSession && typeof parsedSession.currentQuestionIndex === 'number' && Array.isArray(parsedSession.sessionAnswers)) {
             // Expire if inactive for > 30 minutes
-            if (typeof parsed.updatedAt === 'number') {
-                const elapsed = Date.now() - parsed.updatedAt;
-                if (elapsed > SESSION_TIMEOUT_MS) {
+            if (typeof parsedSession.updatedAt === 'number') {
+                const elapsedMilliseconds = Date.now() - parsedSession.updatedAt;
+                if (elapsedMilliseconds > SESSION_TIMEOUT_MS) {
                     clearActiveSession();
                     return false;
                 }
             }
-            STATE.currentQuestionIndex = parsed.currentQuestionIndex;
-            STATE.sessionAnswers = parsed.sessionAnswers;
-            STATE.sessionNote = parsed.sessionNote || null;
+            STATE.currentQuestionIndex = parsedSession.currentQuestionIndex;
+            STATE.sessionAnswers = parsedSession.sessionAnswers;
+            STATE.sessionNote = parsedSession.sessionNote || null;
             return true;
         }
     } catch (_) {}
@@ -72,11 +72,11 @@ function getStoredActiveView() {
     }
 }
 
-function syncMetaThemeColor(themeVal) {
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (!meta) return;
-    const isDark = themeVal === 'dark' || (themeVal === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    meta.setAttribute('content', isDark ? '#121212' : '#f2f2f7');
+function syncMetaThemeColor(themeValue) {
+    const metaTag = document.querySelector('meta[name="theme-color"]');
+    if (!metaTag) return;
+    const isDark = themeValue === 'dark' || (themeValue === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    metaTag.setAttribute('content', isDark ? '#121212' : '#f2f2f7');
 }
 
 // Bump this whenever new entries are added to DEFAULT_QUESTIONS so that existing
@@ -117,8 +117,8 @@ function initDatabase() {
             db = request.result;
             resolve(db);
         };
-        request.onupgradeneeded = (e) => {
-            const upgradeDb = e.target.result;
+        request.onupgradeneeded = (event) => {
+            const upgradeDb = event.target.result;
             if (!upgradeDb.objectStoreNames.contains('config')) {
                 upgradeDb.createObjectStore('config', { keyPath: 'key' });
             }
@@ -136,26 +136,26 @@ function initDatabase() {
 function getAll(storeName) {
     return new Promise((resolve, reject) => {
         if (!db) return resolve([]);
-        const req = db.transaction([storeName], 'readonly').objectStore(storeName).getAll();
-        req.onsuccess = () => resolve(req.result || []);
-        req.onerror = () => reject(req.error);
+        const request = db.transaction([storeName], 'readonly').objectStore(storeName).getAll();
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => reject(request.error);
     });
 }
 function getConfig(key) {
     return new Promise((resolve, reject) => {
         if (!db) return resolve(undefined);
-        const req = db.transaction(['config'], 'readonly').objectStore('config').get(key);
-        req.onsuccess = () => resolve(req.result ? req.result.value : undefined);
-        req.onerror = () => reject(req.error);
+        const request = db.transaction(['config'], 'readonly').objectStore('config').get(key);
+        request.onsuccess = () => resolve(request.result ? request.result.value : undefined);
+        request.onerror = () => reject(request.error);
     });
 }
 function setConfig(key, value) {
     return new Promise((resolve, reject) => {
         if (!db) return resolve();
-        const tx = db.transaction(['config'], 'readwrite');
-        tx.objectStore('config').put({ key, value });
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
+        const transaction = db.transaction(['config'], 'readwrite');
+        transaction.objectStore('config').put({ key, value });
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
     });
 }
 
@@ -170,10 +170,10 @@ function normalizeQuestionText(text) {
 // FNV-1a 32-bit -> 8 hex chars. NOT cryptographic: used only for stable,
 // content-addressed question identity. Identical (normalized) text yields an
 // identical id, which lets identical questions self-dedupe when backups merge.
-function fnv1a32(str) {
+function fnv1a32(inputString) {
     let hash = 0x811c9dc5;
-    for (let i = 0; i < str.length; i++) {
-        hash ^= str.charCodeAt(i);
+    for (let index = 0; index < inputString.length; index++) {
+        hash ^= inputString.charCodeAt(index);
         hash = Math.imul(hash, 0x01000193);
     }
     return (hash >>> 0).toString(16).padStart(8, '0');
@@ -193,36 +193,36 @@ function makeCustomId(text) {
 // a later SEED_VERSION get picked up automatically.
 async function seedDefaults() {
     const existing = await getAll('questions');
-    const existingIds = new Set(existing.map(q => q.id));
+    const existingIds = new Set(existing.map(question => question.id));
     const storedSeed = await getConfig('seedVersion');
     const now = new Date().toISOString();
 
     await new Promise((resolve, reject) => {
-        const tx = db.transaction(['questions'], 'readwrite');
-        const store = tx.objectStore('questions');
-        DEFAULT_QUESTIONS.forEach(q => {
-            if (!existingIds.has(q.id)) {
+        const transaction = db.transaction(['questions'], 'readwrite');
+        const store = transaction.objectStore('questions');
+        DEFAULT_QUESTIONS.forEach(question => {
+            if (!existingIds.has(question.id)) {
                 store.add({
-                    ...q,
-                    originalText: q.text,
+                    ...question,
+                    originalText: question.text,
                     builtIn: true,
                     archived: false,
                     createdAt: now,
                     updatedAt: now
                 });
             } else {
-                const existingQuestion = existing.find(item => item.id === q.id);
-                if (existingQuestion && (!existingQuestion.shortLabel || existingQuestion.shortLabel !== q.shortLabel)) {
+                const existingQuestion = existing.find(item => item.id === question.id);
+                if (existingQuestion && (!existingQuestion.shortLabel || existingQuestion.shortLabel !== question.shortLabel)) {
                     store.put({
                         ...existingQuestion,
-                        shortLabel: q.shortLabel,
+                        shortLabel: question.shortLabel,
                         updatedAt: now
                     });
                 }
             }
         });
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
     });
 
     // First run only: establish the default active set.
@@ -235,10 +235,10 @@ async function seedDefaults() {
 // Resolve the ordered active-set ids into full question definitions, dropping
 // any that are missing or archived.
 async function loadActiveQuestions() {
-    const [all, activeSet] = await Promise.all([getAll('questions'), getConfig('activeQuestionSet')]);
-    const byId = new Map(all.map(q => [q.id, q]));
+    const [allQuestions, activeSet] = await Promise.all([getAll('questions'), getConfig('activeQuestionSet')]);
+    const questionsById = new Map(allQuestions.map(question => [question.id, question]));
     const set = Array.isArray(activeSet) ? activeSet : DEFAULT_ACTIVE_SET;
-    STATE.activeQuestions = set.map(id => byId.get(id)).filter(q => q && !q.archived);
+    STATE.activeQuestions = set.map(id => questionsById.get(id)).filter(question => question && !question.archived);
 }
 
 // Persist a user-authored question.
@@ -252,13 +252,13 @@ async function createCustomQuestion({ text, shortLabel, curve, minLabel, maxLabe
     const now = new Date().toISOString();
 
     const outcome = await new Promise((resolve, reject) => {
-        const tx = db.transaction(['questions'], 'readwrite');
-        const store = tx.objectStore('questions');
+        const transaction = db.transaction(['questions'], 'readwrite');
+        const store = transaction.objectStore('questions');
         let result = null;
 
-        const getReq = store.get(id);
-        getReq.onsuccess = () => {
-            const existing = getReq.result;
+        const getRequest = store.get(id);
+        getRequest.onsuccess = () => {
+            const existing = getRequest.result;
             if (existing) {
                 if (existing.archived) {
                     const restored = { ...existing, shortLabel: normalizedShort, archived: false, updatedAt: now };
@@ -287,8 +287,8 @@ async function createCustomQuestion({ text, shortLabel, curve, minLabel, maxLabe
             }
         };
 
-        tx.oncomplete = () => resolve(result);
-        tx.onerror = () => reject(tx.error);
+        transaction.oncomplete = () => resolve(result);
+        transaction.onerror = () => reject(transaction.error);
     });
 
     if (addToSet) {
@@ -341,11 +341,21 @@ function renderCurrentQuestion() {
     document.getElementById('button-stack').innerHTML = buildScoreButtonsHTML(currentQuestion);
 
     document.querySelectorAll('.score-button').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const targetScore = parseInt(e.currentTarget.getAttribute('data-score'), 10);
+        button.addEventListener('click', (event) => {
+            const targetScore = parseInt(event.currentTarget.getAttribute('data-score'), 10);
             handleScoreSubmission(currentQuestion.id, targetScore);
         });
     });
+}
+
+function safeRAF(callback) {
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+        return window.requestAnimationFrame(callback);
+    }
+    if (typeof requestAnimationFrame === 'function') {
+        return requestAnimationFrame(callback);
+    }
+    return setTimeout(callback, 16);
 }
 
 function handleScoreSubmission(questionId, score) {
@@ -353,16 +363,39 @@ function handleScoreSubmission(questionId, score) {
     STATE.currentQuestionIndex++;
     saveActiveSession();
 
-    const trackerCanvas = document.getElementById('tracker-canvas');
-    trackerCanvas.className = 'app-canvas view-hidden-left';
+    const headerBox = document.getElementById('header-box');
+    const inputBox = document.getElementById('input-box');
+
+    // Smooth question transition without screen blanking
+    if (headerBox) headerBox.classList.add('question-transition-out');
+    if (inputBox) inputBox.classList.add('question-transition-out');
 
     setTimeout(() => {
         renderCurrentQuestion();
-        trackerCanvas.className = 'app-canvas view-hidden-right';
-        requestAnimationFrame(() => {
-            trackerCanvas.className = 'app-canvas view-active';
+        if (headerBox) {
+            headerBox.classList.remove('question-transition-out');
+            headerBox.classList.add('question-transition-enter');
+        }
+        if (inputBox) {
+            inputBox.classList.remove('question-transition-out');
+            inputBox.classList.add('question-transition-enter');
+        }
+
+        safeRAF(() => {
+            safeRAF(() => {
+                if (headerBox) {
+                    headerBox.classList.remove('question-transition-enter');
+                    headerBox.classList.add('question-transition-in');
+                    setTimeout(() => headerBox && headerBox.classList.remove('question-transition-in'), 180);
+                }
+                if (inputBox) {
+                    inputBox.classList.remove('question-transition-enter');
+                    inputBox.classList.add('question-transition-in');
+                    setTimeout(() => inputBox && inputBox.classList.remove('question-transition-in'), 180);
+                }
+            });
         });
-    }, 220);
+    }, 120);
 }
 
 function startNewCheckIn() {
@@ -394,10 +427,10 @@ function startNewCheckIn() {
 
 function finalizeSession() {
     clearActiveSession();
-    const answeredIds = new Set(STATE.sessionAnswers.map(a => a.questionId));
-    STATE.activeQuestions.forEach(q => {
-        if (!answeredIds.has(q.id)) {
-            STATE.sessionAnswers.push({ questionId: q.id, score: null, status: 'skipped' });
+    const answeredIds = new Set(STATE.sessionAnswers.map(answer => answer.questionId));
+    STATE.activeQuestions.forEach(question => {
+        if (!answeredIds.has(question.id)) {
+            STATE.sessionAnswers.push({ questionId: question.id, score: null, status: 'skipped' });
         }
     });
 
@@ -413,10 +446,10 @@ function finalizeSession() {
     transaction.objectStore('logs').add(logEntry);
 
     transaction.oncomplete = () => {
-        const progressEl = document.getElementById('progress-text');
-        const questionEl = document.getElementById('question-text');
-        if (progressEl) progressEl.textContent = "Check-In Complete";
-        if (questionEl) questionEl.textContent = "Log recorded. Rest easy.";
+        const progressElement = document.getElementById('progress-text');
+        const questionElement = document.getElementById('question-text');
+        if (progressElement) progressElement.textContent = "Check-In Complete";
+        if (questionElement) questionElement.textContent = "Log recorded. Rest easy.";
 
         const buttonStack = document.getElementById('button-stack');
         if (buttonStack) {
@@ -428,9 +461,9 @@ function finalizeSession() {
             completionView.hidden = false;
         }
 
-        const newCheckinBtn = document.getElementById('button-new-checkin');
-        if (newCheckinBtn) {
-            setTimeout(() => newCheckinBtn.focus({ preventScroll: true }), 60);
+        const newCheckinButton = document.getElementById('button-new-checkin');
+        if (newCheckinButton) {
+            setTimeout(() => newCheckinButton.focus({ preventScroll: true }), 60);
         }
 
         const footerBox = document.getElementById('footer-box');
@@ -445,27 +478,27 @@ function exportAllDataAndConfig() {
     const backupData = { exportVersion: "2.0", exportTimestamp: new Date().toISOString(), config: [], questions: [], logs: [] };
     const transaction = db.transaction(['config', 'questions', 'logs'], 'readonly');
 
-    transaction.objectStore('config').openCursor().onsuccess = (e) => {
-        const cursor = e.target.result;
+    transaction.objectStore('config').openCursor().onsuccess = (event) => {
+        const cursor = event.target.result;
         if (cursor) { backupData.config.push(cursor.value); cursor.continue(); }
     };
-    transaction.objectStore('questions').openCursor().onsuccess = (e) => {
-        const cursor = e.target.result;
+    transaction.objectStore('questions').openCursor().onsuccess = (event) => {
+        const cursor = event.target.result;
         if (cursor) { backupData.questions.push(cursor.value); cursor.continue(); }
     };
-    transaction.objectStore('logs').openCursor().onsuccess = (e) => {
-        const cursor = e.target.result;
+    transaction.objectStore('logs').openCursor().onsuccess = (event) => {
+        const cursor = event.target.result;
         if (cursor) { backupData.logs.push(cursor.value); cursor.continue(); }
     };
     transaction.oncomplete = () => {
         const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `high-and-low-backup-${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        const anchorLink = document.createElement('a');
+        anchorLink.href = url;
+        anchorLink.download = `high-and-low-backup-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(anchorLink);
+        anchorLink.click();
+        document.body.removeChild(anchorLink);
         URL.revokeObjectURL(url);
     };
 }
@@ -473,8 +506,8 @@ function exportAllDataAndConfig() {
 function handleFileImport(file, mode) {
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = function(e) {
-        const result = e.target.result;
+    reader.onload = function(event) {
+        const result = event.target.result;
         if (typeof result !== 'string') {
             console.error("Invalid file format read. Expected text.");
             return;
@@ -487,26 +520,26 @@ function handleFileImport(file, mode) {
             }
             const importedQuestions = Array.isArray(importedData.questions) ? importedData.questions : [];
 
-            const tx = db.transaction(['config', 'questions', 'logs'], 'readwrite');
-            const configStore = tx.objectStore('config');
-            const questionStore = tx.objectStore('questions');
-            const logStore = tx.objectStore('logs');
+            const transaction = db.transaction(['config', 'questions', 'logs'], 'readwrite');
+            const configStore = transaction.objectStore('config');
+            const questionStore = transaction.objectStore('questions');
+            const logStore = transaction.objectStore('logs');
 
             if (mode === 'replace') {
                 configStore.clear();
                 questionStore.clear();
                 logStore.clear();
-                importedData.config.forEach(i => configStore.add(i));
-                importedQuestions.forEach(i => questionStore.add(i));
-                importedData.logs.forEach(i => logStore.add(i));
+                importedData.config.forEach(configItem => configStore.add(configItem));
+                importedQuestions.forEach(questionItem => questionStore.add(questionItem));
+                importedData.logs.forEach(logItem => logStore.add(logItem));
             } else {
-                importedData.config.forEach(i => configStore.put(i));
-                importedQuestions.forEach(i => mergeQuestionWithConflictCheck(questionStore, i));
-                importedData.logs.forEach(i => safelyAddLogWithCollisionCheck(logStore, i));
+                importedData.config.forEach(configItem => configStore.put(configItem));
+                importedQuestions.forEach(questionItem => mergeQuestionWithConflictCheck(questionStore, questionItem));
+                importedData.logs.forEach(logItem => safelyAddLogWithCollisionCheck(logStore, logItem));
             }
-            tx.oncomplete = () => window.location.reload();
-        } catch (err) {
-            console.error('File import failed:', err);
+            transaction.oncomplete = () => window.location.reload();
+        } catch (error) {
+            console.error('File import failed:', error);
             showNoticeDialog('Corrupted File', 'The selected file could not be parsed or contains corrupted data.', 'file-import');
         }
     };
@@ -515,8 +548,8 @@ function handleFileImport(file, mode) {
 
 function mergeQuestionWithConflictCheck(store, incoming) {
     const getRequest = store.get(incoming.id);
-    getRequest.onsuccess = (e) => {
-        const existing = e.target.result;
+    getRequest.onsuccess = (event) => {
+        const existing = event.target.result;
         if (!existing) {
             store.add(incoming);
             return;
@@ -530,8 +563,8 @@ function mergeQuestionWithConflictCheck(store, incoming) {
 function safelyAddLogWithCollisionCheck(store, incomingLog, attempt = 0) {
     const MAX_COLLISION_ATTEMPTS = 1000;
     const getRequest = store.get(incomingLog.timestamp);
-    getRequest.onsuccess = (e) => {
-        const existingRecord = e.target.result;
+    getRequest.onsuccess = (event) => {
+        const existingRecord = event.target.result;
         if (existingRecord) {
             if (areLogAnswersIdentical(existingRecord.answers, incomingLog.answers)) return;
 
@@ -540,9 +573,9 @@ function safelyAddLogWithCollisionCheck(store, incomingLog, attempt = 0) {
                 return;
             }
 
-            const dateObj = new Date(incomingLog.timestamp);
-            dateObj.setUTCMilliseconds(dateObj.getUTCMilliseconds() + 1);
-            incomingLog.timestamp = dateObj.toISOString();
+            const dateObject = new Date(incomingLog.timestamp);
+            dateObject.setUTCMilliseconds(dateObject.getUTCMilliseconds() + 1);
+            incomingLog.timestamp = dateObject.toISOString();
             safelyAddLogWithCollisionCheck(store, incomingLog, attempt + 1);
         } else {
             store.add(incomingLog);
@@ -550,12 +583,12 @@ function safelyAddLogWithCollisionCheck(store, incomingLog, attempt = 0) {
     };
 }
 
-function areLogAnswersIdentical(a, b) {
-    if (a.length !== b.length) return false;
-    const sortFn = (x, y) => x.questionId > y.questionId ? 1 : -1;
-    const sA = [...a].sort(sortFn);
-    const sB = [...b].sort(sortFn);
-    return sA.every((v, i) => v.questionId === sB[i].questionId && v.score === sB[i].score && v.status === sB[i].status);
+function areLogAnswersIdentical(answersA, answersB) {
+    if (answersA.length !== answersB.length) return false;
+    const sortFunction = (firstAnswer, secondAnswer) => firstAnswer.questionId > secondAnswer.questionId ? 1 : -1;
+    const sortedAnswersA = [...answersA].sort(sortFunction);
+    const sortedAnswersB = [...answersB].sort(sortFunction);
+    return sortedAnswersA.every((answerItem, index) => answerItem.questionId === sortedAnswersB[index].questionId && answerItem.score === sortedAnswersB[index].score && answerItem.status === sortedAnswersB[index].status);
 }
 
 // --- 5. HOLD-TO-CONFIRM SAFETY DELAY CONFIG & SETTING ---
@@ -622,8 +655,8 @@ function setupHoldActions() {
         // Standard click handler:
         // - When hold delay is enabled: short clicks/taps are ignored because a 1.5s hold is required.
         // - When hold delay is disabled: executes immediately on regular click/tap.
-        button.addEventListener('click', (e) => {
-            e.preventDefault();
+        button.addEventListener('click', (event) => {
+            event.preventDefault();
             if (isHoldDelayEnabled) {
                 return;
             }
@@ -631,9 +664,9 @@ function setupHoldActions() {
         });
 
         // Support Enter / Space keypress on hold action buttons for keyboard accessibility
-        button.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
+        button.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
                 executeHoldAction(button.id);
             }
         });
@@ -642,18 +675,18 @@ function setupHoldActions() {
     // Support Enter / Space keypress on the custom file import label
     const importLabel = document.querySelector('label[for="file-import"]');
     if (importLabel) {
-        importLabel.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
+        importLabel.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
                 document.getElementById('file-import').click();
             }
         });
     }
 }
 
-function resetHold(e) {
+function resetHold(element) {
     clearTimeout(holdTimer);
-    if (e && e.classList) e.classList.remove('is-holding');
+    if (element && element.classList) element.classList.remove('is-holding');
 }
 
 function executeHoldAction(id) {
@@ -685,19 +718,19 @@ let noticeReturnFocusElement = null;
 function showNoticeDialog(title, subtitle, returnFocusTarget) {
     noticeReturnFocusElement = returnFocusTarget || null;
     const overlay = document.getElementById('notice-dialog-overlay') || document.getElementById('question-feedback-dialog-overlay');
-    const titleEl = document.getElementById('notice-dialog-title') || document.getElementById('question-feedback-title');
-    const subtitleEl = document.getElementById('notice-dialog-subtitle') || document.getElementById('question-feedback-subtitle');
+    const titleElement = document.getElementById('notice-dialog-title') || document.getElementById('question-feedback-title');
+    const subtitleElement = document.getElementById('notice-dialog-subtitle') || document.getElementById('question-feedback-subtitle');
     if (!overlay) return;
 
-    if (titleEl) titleEl.textContent = title;
-    if (subtitleEl) subtitleEl.textContent = subtitle;
+    if (titleElement) titleElement.textContent = title;
+    if (subtitleElement) subtitleElement.textContent = subtitle;
 
     overlay.removeAttribute('inert');
     overlay.setAttribute('aria-hidden', 'false');
     overlay.classList.add('is-open');
 
-    const okBtn = document.getElementById('button-notice-ok') || document.getElementById('button-question-feedback-ok');
-    if (okBtn) setTimeout(() => okBtn.focus(), 60);
+    const okButton = document.getElementById('button-notice-ok') || document.getElementById('button-question-feedback-ok');
+    if (okButton) setTimeout(() => okButton.focus(), 60);
 }
 
 function closeNoticeDialog() {
@@ -710,15 +743,15 @@ function closeNoticeDialog() {
 
     const dialog = document.getElementById('notice-dialog') || document.getElementById('question-feedback-dialog');
     if (dialog) {
-        dialog.querySelectorAll('.hold-action').forEach(b => resetHold(b));
+        dialog.querySelectorAll('.hold-action').forEach(button => resetHold(button));
     }
 
     if (noticeReturnFocusElement) {
-        const el = typeof noticeReturnFocusElement === 'string'
+        const element = typeof noticeReturnFocusElement === 'string'
             ? document.getElementById(noticeReturnFocusElement)
             : noticeReturnFocusElement;
-        if (el && typeof el.focus === 'function') {
-            el.focus({ preventScroll: true });
+        if (element && typeof element.focus === 'function') {
+            element.focus({ preventScroll: true });
         }
         noticeReturnFocusElement = null;
     }
@@ -728,9 +761,9 @@ function setupNoticeDialog() {
     const overlay = document.getElementById('notice-dialog-overlay') || document.getElementById('question-feedback-dialog-overlay');
     if (!overlay) return;
 
-    overlay.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' || e.key === 'Enter') {
-            e.preventDefault();
+    overlay.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' || event.key === 'Enter') {
+            event.preventDefault();
             closeNoticeDialog();
         }
     });
@@ -743,19 +776,19 @@ function openImportDialog(file) {
     pendingImportFile = file;
 
     const overlay = document.getElementById('import-dialog-overlay');
-    const nameEl = document.getElementById('import-file-name');
+    const nameElement = document.getElementById('import-file-name');
     if (!overlay) return;
 
-    if (nameEl) {
-        nameEl.textContent = file.name || 'backup.json';
+    if (nameElement) {
+        nameElement.textContent = file.name || 'backup.json';
     }
 
     overlay.removeAttribute('inert');
     overlay.setAttribute('aria-hidden', 'false');
     overlay.classList.add('is-open');
 
-    const mergeBtn = document.getElementById('button-import-merge');
-    if (mergeBtn) setTimeout(() => mergeBtn.focus(), 60);
+    const mergeButton = document.getElementById('button-import-merge');
+    if (mergeButton) setTimeout(() => mergeButton.focus(), 60);
 }
 
 function closeImportDialog() {
@@ -769,7 +802,7 @@ function closeImportDialog() {
     overlay.setAttribute('aria-hidden', 'true');
     overlay.setAttribute('inert', '');
 
-    document.querySelectorAll('#import-dialog .hold-action').forEach(b => resetHold(b));
+    document.querySelectorAll('#import-dialog .hold-action').forEach(button => resetHold(button));
 }
 
 function confirmImport(mode) {
@@ -784,9 +817,9 @@ function setupImportDialog() {
     const overlay = document.getElementById('import-dialog-overlay');
     if (!overlay) return;
 
-    overlay.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            e.preventDefault();
+    overlay.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
             closeImportDialog();
         }
     });
@@ -805,8 +838,8 @@ function openNotesDialog() {
     // Smooth focus and cursor positioning
     setTimeout(() => {
         input.focus();
-        const len = input.value.length;
-        input.setSelectionRange(len, len);
+        const length = input.value.length;
+        input.setSelectionRange(length, length);
     }, 60);
 }
 
@@ -819,11 +852,11 @@ function closeNotesDialog() {
     overlay.setAttribute('inert', '');
 
     // Reset hold visual indicator state on dialog buttons
-    document.querySelectorAll('#notes-dialog .hold-action').forEach(b => resetHold(b));
+    document.querySelectorAll('#notes-dialog .hold-action').forEach(button => resetHold(button));
 
     // Return focus to notes button on the tracker canvas
-    const notesBtn = document.getElementById('button-notes');
-    if (notesBtn) notesBtn.focus({ preventScroll: true });
+    const notesButton = document.getElementById('button-notes');
+    if (notesButton) notesButton.focus({ preventScroll: true });
 }
 
 function saveNotesFromDialog() {
@@ -843,16 +876,16 @@ function setupNotesDialog() {
     if (!overlay || !input) return;
 
     // Handle Escape and Ctrl/Cmd+Enter inside the modal
-    overlay.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            e.preventDefault();
+    overlay.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
             closeNotesDialog();
         }
     });
 
-    input.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-            e.preventDefault();
+    input.addEventListener('keydown', (event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+            event.preventDefault();
             saveNotesFromDialog();
         }
     });
@@ -869,46 +902,46 @@ function updateNotesButtonLabel() {
 
 // --- 6. SETTINGS & MENU NAVIGATION ---
 function setupSettingsAndMenu() {
-    const themeSel = document.getElementById('theme-select');
-    const drawerThemeSel = document.getElementById('drawer-theme-select');
-    const contrastSel = document.getElementById('contrast-select');
-    const holdDelaySel = document.getElementById('hold-delay-select');
-    const menuSideSel = document.getElementById('menu-side-select');
+    const themeSelect = document.getElementById('theme-select');
+    const drawerThemeSelect = document.getElementById('drawer-theme-select');
+    const contrastSelect = document.getElementById('contrast-select');
+    const holdDelaySelect = document.getElementById('hold-delay-select');
+    const menuSideSelect = document.getElementById('menu-side-select');
 
-    const handleThemeChange = async (val) => {
-        document.body.setAttribute('data-theme', val);
-        await setConfig('theme', val);
-        syncMetaThemeColor(val);
-        if (themeSel) themeSel.value = val;
-        if (drawerThemeSel) drawerThemeSel.value = val;
+    const handleThemeChange = async (themeValue) => {
+        document.body.setAttribute('data-theme', themeValue);
+        await setConfig('theme', themeValue);
+        syncMetaThemeColor(themeValue);
+        if (themeSelect) themeSelect.value = themeValue;
+        if (drawerThemeSelect) drawerThemeSelect.value = themeValue;
     };
 
-    if (themeSel) {
-        themeSel.addEventListener('change', (e) => handleThemeChange(e.target.value));
+    if (themeSelect) {
+        themeSelect.addEventListener('change', (event) => handleThemeChange(event.target.value));
     }
-    if (drawerThemeSel) {
-        drawerThemeSel.addEventListener('change', (e) => handleThemeChange(e.target.value));
+    if (drawerThemeSelect) {
+        drawerThemeSelect.addEventListener('change', (event) => handleThemeChange(event.target.value));
     }
 
-    if (contrastSel) {
-        contrastSel.addEventListener('change', async (e) => {
-            document.body.setAttribute('data-contrast', e.target.value);
-            await setConfig('contrast', e.target.value);
+    if (contrastSelect) {
+        contrastSelect.addEventListener('change', async (event) => {
+            document.body.setAttribute('data-contrast', event.target.value);
+            await setConfig('contrast', event.target.value);
         });
     }
 
-    const handleHoldDelayChange = async (val) => {
-        isHoldDelayEnabled = (val !== 'disabled');
+    const handleHoldDelayChange = async (holdDelayValue) => {
+        isHoldDelayEnabled = (holdDelayValue !== 'disabled');
         document.body.setAttribute('data-hold-delay', isHoldDelayEnabled ? 'enabled' : 'disabled');
         await setConfig('holdDelay', isHoldDelayEnabled ? 'enabled' : 'disabled');
         try {
             localStorage.setItem('holdDelay', isHoldDelayEnabled ? 'enabled' : 'disabled');
-        } catch (e) {}
-        if (holdDelaySel) holdDelaySel.value = isHoldDelayEnabled ? 'enabled' : 'disabled';
+        } catch (error) {}
+        if (holdDelaySelect) holdDelaySelect.value = isHoldDelayEnabled ? 'enabled' : 'disabled';
     };
 
-    if (holdDelaySel) {
-        holdDelaySel.addEventListener('change', (e) => handleHoldDelayChange(e.target.value));
+    if (holdDelaySelect) {
+        holdDelaySelect.addEventListener('change', (event) => handleHoldDelayChange(event.target.value));
     }
 
     // Debug bounds functionality (Console controllable: window.toggleDebugBounds() or window.setDebugBounds(true/false))
@@ -918,7 +951,7 @@ function setupSettingsAndMenu() {
         await setConfig('debug-bounds', isEnabled ? 'on' : 'off');
         try {
             localStorage.setItem('debug-bounds', isEnabled ? 'on' : 'off');
-        } catch (e) {
+        } catch (error) {
         }
         console.log(`[Layout Rig Outlines] ${isEnabled ? 'Enabled' : 'Disabled'}`);
         return isEnabled;
@@ -932,18 +965,18 @@ function setupSettingsAndMenu() {
         return window.setDebugBounds(!currentState);
     };
 
-    const handleMenuSideChange = async (val) => {
-        document.body.setAttribute('data-menu-side', val);
-        await setConfig('menuSide', val);
+    const handleMenuSideChange = async (menuSideValue) => {
+        document.body.setAttribute('data-menu-side', menuSideValue);
+        await setConfig('menuSide', menuSideValue);
         try {
-            localStorage.setItem('menuSide', val);
-        } catch (e) {
+            localStorage.setItem('menuSide', menuSideValue);
+        } catch (error) {
         }
-        if (menuSideSel) menuSideSel.value = val;
+        if (menuSideSelect) menuSideSelect.value = menuSideValue;
     };
 
-    if (menuSideSel) {
-        menuSideSel.addEventListener('change', (e) => handleMenuSideChange(e.target.value));
+    if (menuSideSelect) {
+        menuSideSelect.addEventListener('change', (event) => handleMenuSideChange(event.target.value));
     }
 
     // Dynamic listener for OS system theme changes
@@ -992,8 +1025,8 @@ function setupSettingsAndMenu() {
         overlay.addEventListener('click', closeDrawer);
     }
 
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && document.body.classList.contains('drawer-open')) {
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && document.body.classList.contains('drawer-open')) {
             closeDrawer();
         }
     });
@@ -1016,19 +1049,18 @@ function setupCanvasBackButtons() {
     });
 }
 
-window.addEventListener('popstate', (e) => {
-    const targetView = (e.state && e.state.view) ? e.state.view : 'tracker-canvas';
+window.addEventListener('popstate', (event) => {
+    const targetView = (event.state && event.state.view) ? event.state.view : 'tracker-canvas';
     navigateTo(targetView, { fromPopState: true });
 });
 
-
-function setInert(el, isInert) {
-    if (!el) return;
-    el.inert = isInert;
+function setInert(element, isInert) {
+    if (!element) return;
+    element.inert = isInert;
     if (isInert) {
-        el.setAttribute('inert', '');
+        element.setAttribute('inert', '');
     } else {
-        el.removeAttribute('inert');
+        element.removeAttribute('inert');
     }
 }
 
@@ -1103,11 +1135,11 @@ async function loadHistoryView() {
             getConfig('activeQuestionSet')
         ]);
 
-        const questionsById = new Map(questions.map(q => [q.id, q]));
+        const questionsById = new Map(questions.map(question => [question.id, question]));
         const activeIds = Array.isArray(activeSet) ? activeSet : DEFAULT_ACTIVE_SET;
-        const activeQuestions = activeIds.map(id => questionsById.get(id)).filter(q => q && !q.archived);
+        const activeQuestions = activeIds.map(id => questionsById.get(id)).filter(question => question && !question.archived);
 
-        const sortedLogs = (logs || []).slice().sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        const sortedLogs = (logs || []).slice().sort((firstLog, secondLog) => new Date(firstLog.timestamp) - new Date(secondLog.timestamp));
 
         STATE.historyData = {
             logs: sortedLogs,
@@ -1116,14 +1148,14 @@ async function loadHistoryView() {
         };
 
         renderLineGraph(container, STATE.historyData);
-    } catch (err) {
-        console.error('Failed to load history data:', err);
+    } catch (error) {
+        console.error('Failed to load history data:', error);
     }
 }
 
-function escapeHTML(str) {
-    if (!str) return '';
-    return String(str)
+function escapeHTML(stringToEscape) {
+    if (!stringToEscape) return '';
+    return String(stringToEscape)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
@@ -1131,41 +1163,41 @@ function escapeHTML(str) {
         .replace(/'/g, '&#039;');
 }
 
-function formatLogDateTime(isoStr) {
-    if (!isoStr) return '';
+function formatLogDateTime(isoString) {
+    if (!isoString) return '';
     try {
-        const d = new Date(isoStr);
-        if (isNaN(d.getTime())) return isoStr;
-        const month = d.getMonth() + 1;
-        const day = d.getDate();
-        const year = d.getFullYear();
-        const hours = d.getHours();
-        const mins = d.getMinutes();
+        const date = new Date(isoString);
+        if (isNaN(date.getTime())) return isoString;
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        const year = date.getFullYear();
+        const hours = date.getHours();
+        const minutes = date.getMinutes();
         const ampm = hours >= 12 ? 'PM' : 'AM';
-        const h = hours % 12 || 12;
-        const m = mins < 10 ? `0${mins}` : mins;
-        return `${month}/${day}/${year}, ${h}:${m} ${ampm}`;
-    } catch (e) {
-        return isoStr;
+        const formattedHour = hours % 12 || 12;
+        const formattedMinute = minutes < 10 ? `0${minutes}` : minutes;
+        return `${month}/${day}/${year}, ${formattedHour}:${formattedMinute} ${ampm}`;
+    } catch (error) {
+        return isoString;
     }
 }
 
-function formatTickDate(timeMs, isShortRange) {
+function formatTickDate(timeMilliseconds, isShortRange) {
     try {
-        const d = new Date(timeMs);
-        if (isNaN(d.getTime())) return '';
-        const month = d.getMonth() + 1;
-        const day = d.getDate();
+        const date = new Date(timeMilliseconds);
+        if (isNaN(date.getTime())) return '';
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
         if (isShortRange) {
-            const hours = d.getHours();
-            const mins = d.getMinutes();
+            const hours = date.getHours();
+            const minutes = date.getMinutes();
             const ampm = hours >= 12 ? 'p' : 'a';
-            const h = hours % 12 || 12;
-            const m = mins === 0 ? '' : `:${mins < 10 ? '0' + mins : mins}`;
-            return `${month}/${day} ${h}${m}${ampm}`;
+            const formattedHour = hours % 12 || 12;
+            const formattedMinute = minutes === 0 ? '' : `:${minutes < 10 ? '0' + minutes : minutes}`;
+            return `${month}/${day} ${formattedHour}${formattedMinute}${ampm}`;
         }
         return `${month}/${day}`;
-    } catch (e) {
+    } catch (error) {
         return '';
     }
 }
@@ -1202,11 +1234,11 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
     } else if (STATE.historyVisibleQuestionIds instanceof Set && STATE.historyVisibleQuestionIds.size > 0) {
         currentVisibleSet = new Set(STATE.historyVisibleQuestionIds);
     } else {
-        currentVisibleSet = new Set(questions.map(q => q.id));
+        currentVisibleSet = new Set(questions.map(question => question.id));
     }
 
     // Ensure at least one active question remains in the visible set
-    const validQuestionsInSet = questions.filter(q => currentVisibleSet.has(q.id));
+    const validQuestionsInSet = questions.filter(question => currentVisibleSet.has(question.id));
     if (validQuestionsInSet.length === 0 && questions.length > 0) {
         currentVisibleSet.add(questions[0].id);
     }
@@ -1231,9 +1263,9 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
     const skipBaselineY = height - paddingBottom + 18;
 
     const logCount = logs.length;
-    const logTimes = logs.map(l => {
-        const t = new Date(l.timestamp).getTime();
-        return isNaN(t) ? 0 : t;
+    const logTimes = logs.map(log => {
+        const time = new Date(log.timestamp).getTime();
+        return isNaN(time) ? 0 : time;
     });
 
     const minTime = logTimes[0];
@@ -1266,31 +1298,31 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
     // Time-Scaled X-Axis Gridlines & Tick Labels
     let xAxisHTML = '';
     if (logCount === 1) {
-        const x = paddingLeft + chartWidth / 2;
-        const dateStr = formatTickDate(minTime, true);
+        const xPosition = paddingLeft + chartWidth / 2;
+        const dateString = formatTickDate(minTime, true);
         xAxisHTML += `
-            <line x1="${x}" y1="${paddingTop}" x2="${x}" y2="${height - paddingBottom}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2,2" opacity="0.4" />
-            <text x="${x}" y="${height - 12}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${dateStr}</text>
+            <line x1="${xPosition}" y1="${paddingTop}" x2="${xPosition}" y2="${height - paddingBottom}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2,2" opacity="0.4" />
+            <text x="${xPosition}" y="${height - 12}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${dateString}</text>
         `;
     } else if (timeDuration <= 0) {
-        logs.forEach((log, i) => {
-            const x = getX(i);
-            const dateStr = formatTickDate(logTimes[i], true);
+        logs.forEach((log, logIndex) => {
+            const xPosition = getX(logIndex);
+            const dateString = formatTickDate(logTimes[logIndex], true);
             xAxisHTML += `
-                <line x1="${x}" y1="${paddingTop}" x2="${x}" y2="${height - paddingBottom}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2,2" opacity="0.4" />
-                <text x="${x}" y="${height - 12}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${dateStr}</text>
+                <line x1="${xPosition}" y1="${paddingTop}" x2="${xPosition}" y2="${height - paddingBottom}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2,2" opacity="0.4" />
+                <text x="${xPosition}" y="${height - 12}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${dateString}</text>
             `;
         });
     } else {
         const isShortRange = timeDuration <= 36 * 3600 * 1000;
         const numTicks = Math.min(6, Math.max(3, logCount));
-        for (let i = 0; i < numTicks; i++) {
-            const t = minTime + (i / (numTicks - 1)) * timeDuration;
-            const x = paddingLeft + (i / (numTicks - 1)) * chartWidth;
-            const dateStr = formatTickDate(t, isShortRange);
+        for (let tickIndex = 0; tickIndex < numTicks; tickIndex++) {
+            const tickTime = minTime + (tickIndex / (numTicks - 1)) * timeDuration;
+            const xPosition = paddingLeft + (tickIndex / (numTicks - 1)) * chartWidth;
+            const dateString = formatTickDate(tickTime, isShortRange);
             xAxisHTML += `
-                <line x1="${x}" y1="${paddingTop}" x2="${x}" y2="${height - paddingBottom}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2,2" opacity="0.35" />
-                <text x="${x}" y="${height - 12}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${dateStr}</text>
+                <line x1="${xPosition}" y1="${paddingTop}" x2="${xPosition}" y2="${height - paddingBottom}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2,2" opacity="0.35" />
+                <text x="${xPosition}" y="${height - 12}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${dateString}</text>
             `;
         }
     }
@@ -1300,22 +1332,22 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
     let pointsHTML = '';
     let legendItemsHTML = '';
 
-    questions.forEach((q, qIndex) => {
-        const color = getCurveColor(q.curve, qIndex);
-        const dashArray = getQuestionDashArray(qIndex);
-        const qTitle = escapeHTML(q.shortLabel || q.text);
+    questions.forEach((question, questionIndex) => {
+        const color = getCurveColor(question.curve, questionIndex);
+        const dashArray = getQuestionDashArray(questionIndex);
+        const questionTitle = escapeHTML(question.shortLabel || question.text);
         const dashAttr = dashArray !== 'none' ? ` stroke-dasharray="${dashArray}"` : '';
         const swatchLineDash = dashArray !== 'none' ? ` stroke-dasharray="${dashArray}"` : '';
-        const isVisible = currentVisibleSet.has(q.id);
+        const isVisible = currentVisibleSet.has(question.id);
 
         legendItemsHTML += `
-            <button type="button" class="legend-checklist-item" role="checkbox" aria-checked="${isVisible ? 'true' : 'false'}" data-question-id="${escapeHTML(q.id)}" aria-label="Toggle ${qTitle}">
+            <button type="button" class="legend-checklist-item" role="checkbox" aria-checked="${isVisible ? 'true' : 'false'}" data-question-id="${escapeHTML(question.id)}" aria-label="Toggle ${questionTitle}">
                 <span class="legend-checkbox-box" aria-hidden="true">${isVisible ? '✓' : ''}</span>
                 <svg class="legend-swatch" width="22" height="10" viewBox="0 0 22 10" aria-hidden="true">
                     <line x1="0" y1="5" x2="22" y2="5" stroke="${color}" stroke-width="2.5"${swatchLineDash} stroke-linecap="round" />
                     <circle cx="11" cy="5" r="3" fill="${color}" stroke="var(--box-bg)" stroke-width="1" />
                 </svg>
-                <span class="legend-label">${qTitle}</span>
+                <span class="legend-label">${questionTitle}</span>
             </button>
         `;
 
@@ -1328,7 +1360,7 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
         let currentSegment = [];
 
         logs.forEach((log, logIndex) => {
-            const answer = (log.answers || []).find(a => a.questionId === q.id);
+            const answer = (log.answers || []).find(answerItem => answerItem.questionId === question.id);
             const isAnswered = answer && answer.status === 'answered' && answer.score !== null && answer.score >= 1 && answer.score <= 5;
             const isSkipped = answer && (answer.status === 'skipped' || answer.score === null);
 
@@ -1343,17 +1375,17 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
                 }
 
                 if (isSkipped) {
-                    const rawX = getX(logIndex);
-                    const fannedX = (logCount === 1 || questions.length === 1)
-                        ? rawX
-                        : rawX + (qIndex - (questions.length - 1) / 2) * 6;
-                    const dateStr = formatLogDateTime(log.timestamp);
+                    const rawXPosition = getX(logIndex);
+                    const fannedXPosition = (logCount === 1 || questions.length === 1)
+                        ? rawXPosition
+                        : rawXPosition + (questionIndex - (questions.length - 1) / 2) * 6;
+                    const dateString = formatLogDateTime(log.timestamp);
                     skipsHTML += `
-                        <g class="skip-marker" aria-label="${qTitle}: Skipped (${dateStr})">
-                            <title>${qTitle}: Skipped (${dateStr})</title>
-                            <circle cx="${fannedX}" cy="${skipBaselineY}" r="4.5" fill="var(--box-bg)" stroke="${color}" stroke-width="1.5" stroke-dasharray="2,2" />
-                            <line x1="${fannedX - 2.5}" y1="${skipBaselineY - 2.5}" x2="${fannedX + 2.5}" y2="${skipBaselineY + 2.5}" stroke="${color}" stroke-width="1.5" stroke-linecap="round" />
-                            <line x1="${fannedX + 2.5}" y1="${skipBaselineY - 2.5}" x2="${fannedX - 2.5}" y2="${skipBaselineY + 2.5}" stroke="${color}" stroke-width="1.5" stroke-linecap="round" />
+                        <g class="skip-marker" aria-label="${questionTitle}: Skipped (${dateString})">
+                            <title>${questionTitle}: Skipped (${dateString})</title>
+                            <circle cx="${fannedXPosition}" cy="${skipBaselineY}" r="4.5" fill="var(--box-bg)" stroke="${color}" stroke-width="1.5" stroke-dasharray="2,2" />
+                            <line x1="${fannedXPosition - 2.5}" y1="${skipBaselineY - 2.5}" x2="${fannedXPosition + 2.5}" y2="${skipBaselineY + 2.5}" stroke="${color}" stroke-width="1.5" stroke-linecap="round" />
+                            <line x1="${fannedXPosition + 2.5}" y1="${skipBaselineY - 2.5}" x2="${fannedXPosition - 2.5}" y2="${skipBaselineY + 2.5}" stroke="${color}" stroke-width="1.5" stroke-linecap="round" />
                         </g>
                     `;
                 }
@@ -1368,19 +1400,19 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
         // Draw line paths for each contiguous segment (never across skips or absent gaps)
         segments.forEach(segment => {
             if (segment.length >= 2) {
-                let d = `M ${segment[0].x} ${segment[0].y}`;
-                for (let i = 1; i < segment.length; i++) {
-                    d += ` L ${segment[i].x} ${segment[i].y}`;
+                let pathData = `M ${segment[0].x} ${segment[0].y}`;
+                for (let segmentIndex = 1; segmentIndex < segment.length; segmentIndex++) {
+                    pathData += ` L ${segment[segmentIndex].x} ${segment[segmentIndex].y}`;
                 }
-                linesHTML += `<path d="${d}" fill="none" stroke="${color}" stroke-width="2.5"${dashAttr} stroke-linejoin="round" stroke-linecap="round" />`;
+                linesHTML += `<path d="${pathData}" fill="none" stroke="${color}" stroke-width="2.5"${dashAttr} stroke-linejoin="round" stroke-linecap="round" />`;
             }
 
             // Draw data point circles with accessible tooltips
-            segment.forEach(pt => {
-                const dateStr = formatLogDateTime(pt.timestamp);
+            segment.forEach(point => {
+                const dateString = formatLogDateTime(point.timestamp);
                 pointsHTML += `
-                    <circle cx="${pt.x}" cy="${pt.y}" r="4" fill="${color}" stroke="var(--box-bg)" stroke-width="1.5" aria-label="${qTitle}: Score ${pt.score} (${dateStr})">
-                        <title>${qTitle}: Score ${pt.score}/5 (${dateStr})</title>
+                    <circle cx="${point.x}" cy="${point.y}" r="4" fill="${color}" stroke="var(--box-bg)" stroke-width="1.5" aria-label="${questionTitle}: Score ${point.score} (${dateString})">
+                        <title>${questionTitle}: Score ${point.score}/5 (${dateString})</title>
                     </circle>
                 `;
             });
@@ -1430,12 +1462,12 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
         ${guideKeyHTML}
     `;
 
-    const legendEl = container.querySelector('.graph-legend');
-    if (legendEl) {
+    const legendElement = container.querySelector('.graph-legend');
+    if (legendElement) {
         let longPressTimer = null;
         let isLongPressTriggered = false;
         let activePointerId = null;
-        let startPos = { x: 0, y: 0 };
+        let startPosition = { x: 0, y: 0 };
 
         function clearLongPress() {
             if (longPressTimer) {
@@ -1445,16 +1477,16 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
             activePointerId = null;
         }
 
-        function handleIsolateOrRestore(targetQId) {
-            const allQuestionIds = questions.map(q => q.id);
-            const isCurrentlyIsolated = currentVisibleSet.size === 1 && currentVisibleSet.has(targetQId);
+        function handleIsolateOrRestore(targetQuestionId) {
+            const allQuestionIds = questions.map(question => question.id);
+            const isCurrentlyIsolated = currentVisibleSet.size === 1 && currentVisibleSet.has(targetQuestionId);
 
             if (isCurrentlyIsolated) {
                 // Restore all questions
                 currentVisibleSet = new Set(allQuestionIds);
             } else {
                 // Isolate to target question alone
-                currentVisibleSet = new Set([targetQId]);
+                currentVisibleSet = new Set([targetQuestionId]);
             }
 
             STATE.historyVisibleQuestionIds = currentVisibleSet;
@@ -1464,70 +1496,70 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
             renderLineGraph(container, { logs, questions, visibleQuestionIds: currentVisibleSet });
         }
 
-        legendEl.addEventListener('pointerdown', (e) => {
-            const btn = e.target.closest('.legend-checklist-item');
-            if (!btn || (e.button !== undefined && e.button !== 0)) return;
+        legendElement.addEventListener('pointerdown', (event) => {
+            const button = event.target.closest('.legend-checklist-item');
+            if (!button || (event.button !== undefined && event.button !== 0)) return;
 
-            const qId = btn.dataset.questionId;
-            if (!qId) return;
+            const questionId = button.dataset.questionId;
+            if (!questionId) return;
 
             isLongPressTriggered = false;
-            activePointerId = e.pointerId;
-            startPos = { x: e.clientX, y: e.clientY };
+            activePointerId = event.pointerId;
+            startPosition = { x: event.clientX, y: event.clientY };
 
             clearLongPress();
             longPressTimer = setTimeout(() => {
                 isLongPressTriggered = true;
-                handleIsolateOrRestore(qId);
+                handleIsolateOrRestore(questionId);
             }, 450);
         });
 
-        legendEl.addEventListener('pointermove', (e) => {
+        legendElement.addEventListener('pointermove', (event) => {
             if (!longPressTimer) return;
-            const dist = Math.hypot(e.clientX - startPos.x, e.clientY - startPos.y);
-            if (dist > 10) {
+            const distance = Math.hypot(event.clientX - startPosition.x, event.clientY - startPosition.y);
+            if (distance > 10) {
                 clearLongPress();
             }
         });
 
-        legendEl.addEventListener('pointerup', () => {
+        legendElement.addEventListener('pointerup', () => {
             clearLongPress();
         });
 
-        legendEl.addEventListener('pointercancel', () => {
+        legendElement.addEventListener('pointercancel', () => {
             clearLongPress();
         });
 
-        legendEl.addEventListener('contextmenu', (e) => {
-            if (e.target.closest('.legend-checklist-item')) {
-                e.preventDefault();
+        legendElement.addEventListener('contextmenu', (event) => {
+            if (event.target.closest('.legend-checklist-item')) {
+                event.preventDefault();
             }
         });
 
-        legendEl.addEventListener('click', (e) => {
-            const btn = e.target.closest('.legend-checklist-item');
-            if (!btn) return;
+        legendElement.addEventListener('click', (event) => {
+            const button = event.target.closest('.legend-checklist-item');
+            if (!button) return;
 
             if (isLongPressTriggered) {
                 isLongPressTriggered = false;
-                e.preventDefault();
-                e.stopPropagation();
+                event.preventDefault();
+                event.stopPropagation();
                 return;
             }
 
-            const qId = btn.dataset.questionId;
-            if (!qId) return;
+            const questionId = button.dataset.questionId;
+            if (!questionId) return;
 
-            if (currentVisibleSet.has(qId)) {
+            if (currentVisibleSet.has(questionId)) {
                 // Keep at least one line always visible (never allow toggling to zero)
                 if (currentVisibleSet.size <= 1) {
-                    btn.classList.add('shake-feedback');
-                    setTimeout(() => btn.classList.remove('shake-feedback'), 300);
+                    button.classList.add('shake-feedback');
+                    setTimeout(() => button.classList.remove('shake-feedback'), 300);
                     return;
                 }
-                currentVisibleSet.delete(qId);
+                currentVisibleSet.delete(questionId);
             } else {
-                currentVisibleSet.add(qId);
+                currentVisibleSet.add(questionId);
             }
 
             STATE.historyVisibleQuestionIds = currentVisibleSet;
@@ -1536,41 +1568,82 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
     }
 }
 
-function navigateTo(targetViewId, opts = {}) {
-    if (targetViewId === currentViewId) return;
+function navigateTo(targetViewId, options = {}) {
+    if (targetViewId === currentViewId && !options.force) return;
 
     const currentCanvas = document.getElementById(currentViewId);
     const targetCanvas = document.getElementById(targetViewId);
 
     if (!targetCanvas) return;
 
-    if (currentCanvas) {
-        currentCanvas.className = 'app-canvas view-hidden-left';
-        setInert(currentCanvas, true);
+    if (targetViewId === 'history-canvas') {
+        void loadHistoryView().catch(error => {
+            console.error('Failed to load history view:', error);
+        });
     }
 
-    targetCanvas.className = 'app-canvas view-active';
-    setInert(targetCanvas, false);
-
-    currentViewId = targetViewId;
-    saveActiveView(targetViewId);
-
     if (targetViewId === 'tracker-canvas') {
-        if (STATE.currentQuestionIndex >= STATE.activeQuestions.length) {
+        if (STATE.currentQuestionIndex >= STATE.activeQuestions.length && STATE.activeQuestions.length > 0) {
             void startNewCheckIn();
         }
     }
 
-    if (targetViewId === 'history-canvas') {
-        void loadHistoryView().catch(err => {
-            console.error('Failed to load history view:', err);
+    const isInstant = Boolean(options.instant || options.fromInit);
+
+    if (isInstant) {
+        document.querySelectorAll('.app-canvas').forEach(canvas => {
+            if (canvas === targetCanvas) {
+                canvas.className = 'app-canvas view-active no-transition';
+                setInert(canvas, false);
+            } else if (canvas.id === 'tracker-canvas' && targetViewId !== 'tracker-canvas') {
+                canvas.className = 'app-canvas view-hidden-left no-transition';
+                setInert(canvas, true);
+            } else {
+                canvas.className = 'app-canvas view-hidden-right no-transition';
+                setInert(canvas, true);
+            }
         });
+        safeRAF(() => {
+            safeRAF(() => {
+                document.querySelectorAll('.app-canvas.no-transition').forEach(canvasElement => {
+                    canvasElement.classList.remove('no-transition');
+                });
+            });
+        });
+    } else {
+        const isGoingHome = (targetViewId === 'tracker-canvas');
+
+        if (currentCanvas && currentCanvas !== targetCanvas) {
+            setInert(currentCanvas, true);
+            if (isGoingHome) {
+                currentCanvas.className = 'app-canvas view-hidden-right';
+            } else {
+                currentCanvas.className = 'app-canvas view-hidden-left';
+            }
+        }
+
+        if (isGoingHome) {
+            targetCanvas.className = 'app-canvas view-hidden-left no-transition';
+        } else {
+            targetCanvas.className = 'app-canvas view-hidden-right no-transition';
+        }
+
+        // Force reflow and transition to active
+        if (typeof targetCanvas.offsetWidth === 'number') {
+            void targetCanvas.offsetWidth;
+        }
+        targetCanvas.classList.remove('no-transition');
+        targetCanvas.className = 'app-canvas view-active';
+        setInert(targetCanvas, false);
     }
+
+    currentViewId = targetViewId;
+    saveActiveView(targetViewId);
 
     // Push a history entry so hardware/gesture 'back' steps back one view
     // instead of exiting the app. Skip when we're already responding to
-    // a popstate event, or we'd push right back onto the stack we just popped.
-    if (!opts.fromPopState && window.history && window.history.pushState) {
+    // a popstate event or during instant loads.
+    if (!options.fromPopState && !isInstant && window.history && window.history.pushState) {
         history.pushState({ view: targetViewId }, '');
     }
 
@@ -1616,10 +1689,10 @@ function setupQuestionAuthoring() {
     function refreshPreview() {
         const curve = curveInput.value;
         preview.setAttribute('data-curve', curve);
-        const shortVal = normalizeQuestionText(shortLabelInput ? shortLabelInput.value : '');
-        const fullVal = normalizeQuestionText(textInput ? textInput.value : '');
+        const shortValue = normalizeQuestionText(shortLabelInput ? shortLabelInput.value : '');
+        const fullValue = normalizeQuestionText(textInput ? textInput.value : '');
         if (previewTitleBox) {
-            previewTitleBox.textContent = shortVal ? shortVal : (fullVal || 'Short Label Preview');
+            previewTitleBox.textContent = shortValue ? shortValue : (fullValue || 'Short Label Preview');
         }
         previewStack.innerHTML = buildScoreButtonsHTML({
             curve,
@@ -1634,9 +1707,9 @@ function setupQuestionAuthoring() {
     }
 
     function syncSaveEnabled() {
-        const textOk = normalizeQuestionText(textInput.value) !== '';
-        const shortOk = shortLabelInput ? normalizeQuestionText(shortLabelInput.value) !== '' : true;
-        saveButton.disabled = !(textOk && shortOk);
+        const isTextValid = normalizeQuestionText(textInput.value) !== '';
+        const isShortLabelValid = shortLabelInput ? normalizeQuestionText(shortLabelInput.value) !== '' : true;
+        saveButton.disabled = !(isTextValid && isShortLabelValid);
     }
 
     function resetForm() {
@@ -1662,9 +1735,9 @@ function setupQuestionAuthoring() {
         refreshPreview();
     });
 
-    [textInput, shortLabelInput, maxInput, midInput, minInput].forEach(el => {
-        if (!el) return;
-        el.addEventListener('input', () => {
+    [textInput, shortLabelInput, maxInput, midInput, minInput].forEach(inputElement => {
+        if (!inputElement) return;
+        inputElement.addEventListener('input', () => {
             syncSaveEnabled();
             refreshPreview();
         });
@@ -1678,8 +1751,8 @@ function setupQuestionAuthoring() {
         toggleButton.focus({ preventScroll: true });
     });
 
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
         saveButton.disabled = true;
         try {
             const outcome = await createCustomQuestion({
@@ -1705,8 +1778,8 @@ function setupQuestionAuthoring() {
             toggleButton.textContent = 'Add a Question';
             toggleButton.setAttribute('aria-expanded', 'false');
             toggleButton.focus({ preventScroll: true });
-        } catch (err) {
-            console.error('Failed to save question:', err);
+        } catch (error) {
+            console.error('Failed to save question:', error);
             showNoticeDialog('Could Not Save', 'Could not save the question. Please check the fields and try again.', toggleButton);
             syncSaveEnabled();
         }
@@ -1724,15 +1797,15 @@ function setupKeyboardNavigation() {
         }
     });
 
-    document.addEventListener('keydown', (e) => {
-        const activeEl = document.activeElement;
-        const isInputActive = activeEl && (
-            ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeEl.tagName) ||
-            activeEl.isContentEditable
+    document.addEventListener('keydown', (event) => {
+        const activeElement = document.activeElement;
+        const isInputActive = activeElement && (
+            ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeElement.tagName) ||
+            activeElement.isContentEditable
         );
 
         // Escape key closes settings drawer from anywhere
-        if (e.key === 'Escape') {
+        if (event.key === 'Escape') {
             if (document.body.classList.contains('settings-open')) {
                 closeSettings();
                 return;
@@ -1744,8 +1817,8 @@ function setupKeyboardNavigation() {
         // Keyboard interaction for active mood tracker canvas
         if (!document.body.classList.contains('settings-open')) {
             // Direct score submission via Number keys 1-5
-            if (['1', '2', '3', '4', '5'].includes(e.key)) {
-                const score = parseInt(e.key, 10);
+            if (['1', '2', '3', '4', '5'].includes(event.key)) {
+                const score = parseInt(event.key, 10);
                 const scoreButton = document.querySelector(`.score-button[data-score="${score}"]`);
                 if (scoreButton) {
                     scoreButton.focus({ preventScroll: true });
@@ -1755,7 +1828,7 @@ function setupKeyboardNavigation() {
             }
 
             // Arrow key navigation through ALL interactive controls on the tracker canvas
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
                 const menuButton = document.getElementById('button-menu');
                 const scoreButtons = Array.from(document.querySelectorAll('#button-stack .score-button'));
                 const notesButton = document.getElementById('button-notes');
@@ -1769,17 +1842,17 @@ function setupKeyboardNavigation() {
 
                 if (focusables.length === 0) return;
 
-                let currentIndex = focusables.indexOf(activeEl);
-                e.preventDefault();
+                let currentIndex = focusables.indexOf(activeElement);
+                event.preventDefault();
 
                 if (currentIndex === -1) {
                     const score5 = document.querySelector(`.score-button[data-score="5"]`);
                     if (score5) score5.focus({ preventScroll: true });
                     else focusables[0].focus({ preventScroll: true });
                 } else {
-                    if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                    if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
                         currentIndex = (currentIndex - 1 + focusables.length) % focusables.length;
-                    } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                    } else if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
                         currentIndex = (currentIndex + 1) % focusables.length;
                     }
                     focusables[currentIndex].focus({ preventScroll: true });
@@ -1788,18 +1861,18 @@ function setupKeyboardNavigation() {
             }
 
             // Quick key shortcuts
-            if (e.key === 'n' || e.key === 'N') {
-                e.preventDefault();
+            if (event.key === 'n' || event.key === 'N') {
+                event.preventDefault();
                 executeHoldAction('button-notes');
                 return;
             }
-            if (e.key === 's' || e.key === 'S') {
-                e.preventDefault();
+            if (event.key === 's' || event.key === 'S') {
+                event.preventDefault();
                 executeHoldAction('button-skip');
                 return;
             }
-            if (e.key === 'm' || e.key === 'M') {
-                e.preventDefault();
+            if (event.key === 'm' || event.key === 'M') {
+                event.preventDefault();
                 openSettings();
             }
         }
@@ -1819,46 +1892,46 @@ async function applyStoredDisplay() {
         getConfig('holdDelay'),
         getConfig('debug-bounds')
     ]);
-    const themeVal = theme || 'system';
-    document.body.setAttribute('data-theme', themeVal);
-    syncMetaThemeColor(themeVal);
-    const themeSel = document.getElementById('theme-select');
-    const drawerThemeSel = document.getElementById('drawer-theme-select');
-    if (themeSel) themeSel.value = themeVal;
-    if (drawerThemeSel) drawerThemeSel.value = themeVal;
+    const themeValue = theme || 'system';
+    document.body.setAttribute('data-theme', themeValue);
+    syncMetaThemeColor(themeValue);
+    const themeSelect = document.getElementById('theme-select');
+    const drawerThemeSelect = document.getElementById('drawer-theme-select');
+    if (themeSelect) themeSelect.value = themeValue;
+    if (drawerThemeSelect) drawerThemeSelect.value = themeValue;
 
     if (contrast) {
         document.body.setAttribute('data-contrast', contrast);
-        const contrastSel = document.getElementById('contrast-select');
-        if (contrastSel) contrastSel.value = contrast;
+        const contrastSelect = document.getElementById('contrast-select');
+        if (contrastSelect) contrastSelect.value = contrast;
     }
 
     let localHoldDelay = null;
-    try { localHoldDelay = localStorage.getItem('holdDelay'); } catch (e) {}
+    try { localHoldDelay = localStorage.getItem('holdDelay'); } catch (error) {}
     const finalHoldDelay = holdDelay || localHoldDelay || 'enabled';
     isHoldDelayEnabled = (finalHoldDelay !== 'disabled');
     document.body.setAttribute('data-hold-delay', isHoldDelayEnabled ? 'enabled' : 'disabled');
-    const holdDelaySel = document.getElementById('hold-delay-select');
-    if (holdDelaySel) holdDelaySel.value = isHoldDelayEnabled ? 'enabled' : 'disabled';
+    const holdDelaySelect = document.getElementById('hold-delay-select');
+    if (holdDelaySelect) holdDelaySelect.value = isHoldDelayEnabled ? 'enabled' : 'disabled';
 
     let localMenuSide = null;
-    try { localMenuSide = localStorage.getItem('menuSide'); } catch (e) {}
+    try { localMenuSide = localStorage.getItem('menuSide'); } catch (error) { }
     const finalMenuSide = menuSide || localMenuSide || 'right';
     document.body.setAttribute('data-menu-side', finalMenuSide);
-    const menuSideSel = document.getElementById('menu-side-select');
-    if (menuSideSel) menuSideSel.value = finalMenuSide;
+    const menuSideSelect = document.getElementById('menu-side-select');
+    if (menuSideSelect) menuSideSelect.value = finalMenuSide;
 
     // Ensure debug options/outlines are off on page load
     document.body.setAttribute('data-debug-bounds', 'false');
     await setConfig('debug-bounds', 'off');
-    try { localStorage.setItem('debug-bounds', 'off'); } catch (e) {}
+    try { localStorage.setItem('debug-bounds', 'off'); } catch (error) { }
 }
 
 // Register service worker if available
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(err => {
-            console.log('SW registration failed:', err);
+        navigator.serviceWorker.register('/sw.js').catch(error => {
+            console.log('SW registration failed:', error);
         });
     });
 }
@@ -1878,9 +1951,9 @@ function initApp() {
     setupKeyboardNavigation();
     setupCanvasBackButtons();
 
-    const newCheckinBtn = document.getElementById('button-new-checkin');
-    if (newCheckinBtn) {
-        newCheckinBtn.addEventListener('click', () => {
+    const newCheckinButton = document.getElementById('button-new-checkin');
+    if (newCheckinButton) {
+        newCheckinButton.addEventListener('click', () => {
             void startNewCheckIn();
         });
     }
@@ -1890,8 +1963,8 @@ function initApp() {
 
     const importFileInput = document.getElementById('file-import');
     if (importFileInput) {
-        importFileInput.addEventListener('change', (e) => {
-            const file = e.target.files && e.target.files[0];
+        importFileInput.addEventListener('change', (event) => {
+            const file = event.target.files && event.target.files[0];
             if (file) {
                 openImportDialog(file);
             }
@@ -1912,10 +1985,10 @@ function initApp() {
                 if (completionView) completionView.hidden = false;
                 const footerBox = document.getElementById('footer-box');
                 if (footerBox) footerBox.style.display = 'none';
-                const progressEl = document.getElementById('progress-text');
-                const questionEl = document.getElementById('question-text');
-                if (progressEl) progressEl.textContent = "Check-In Complete";
-                if (questionEl) questionEl.textContent = "Log recorded. Rest easy.";
+                const progressElement = document.getElementById('progress-text');
+                const questionElement = document.getElementById('question-text');
+                if (progressElement) progressElement.textContent = "Check-In Complete";
+                if (questionElement) questionElement.textContent = "Log recorded. Rest easy.";
             } else {
                 renderCurrentQuestion();
             }
@@ -1925,7 +1998,7 @@ function initApp() {
             const targetInitialView = storedView || historyView || 'tracker-canvas';
 
             if (targetInitialView && targetInitialView !== 'tracker-canvas') {
-                navigateTo(targetInitialView, { fromPopState: true });
+                navigateTo(targetInitialView, { fromPopState: true, instant: true });
             } else {
                 if (window.history && window.history.replaceState) {
                     history.replaceState({ view: 'tracker-canvas' }, '');
@@ -1940,10 +2013,10 @@ function initApp() {
                 window.STATE = STATE;
             }
         })
-        .catch(err => {
-            console.error('Initialization failed:', err);
-            const qText = document.getElementById('question-text');
-            if (qText) qText.textContent = "Could not open local storage.";
+        .catch(error => {
+            console.error('Initialization failed:', error);
+            const questionText = document.getElementById('question-text');
+            if (questionText) questionText.textContent = "Could not open local storage.";
         });
 }
 

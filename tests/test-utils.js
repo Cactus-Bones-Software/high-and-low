@@ -8,61 +8,61 @@ const appJsContent = readFileSync(resolve(__dirname, '../app.js'), 'utf8');
 
 /**
  * Checks whether an element is marked as inert either via attribute or property.
- * @param {HTMLElement} el
+ * @param {HTMLElement} element
  * @returns {boolean}
  */
-export function isElementInert(el) {
-    return el.hasAttribute('inert') || el.inert === true;
+export function isElementInert(element) {
+    return element.hasAttribute('inert') || element.inert === true;
 }
 
 /**
  * Async sleep utility for test waiting.
- * @param {number} ms
+ * @param {number} milliseconds
  * @returns {Promise<void>}
  */
-export function sleep(ms) {
-    return new Promise(res => setTimeout(res, ms));
+export function sleep(milliseconds) {
+    return new Promise(resolve => setTimeout(resolve, milliseconds));
 }
 
 /**
  * Polls until a predicate returns true or timeout expires.
  * @param {() => boolean | Promise<boolean>} predicate
- * @param {number} timeoutMs
- * @param {number} intervalMs
+ * @param {number} timeoutMilliseconds
+ * @param {number} intervalMilliseconds
  * @returns {Promise<void>}
  */
-export async function waitFor(predicate, timeoutMs = 1500, intervalMs = 20) {
+export async function waitFor(predicate, timeoutMilliseconds = 1500, intervalMilliseconds = 20) {
     const startTime = Date.now();
-    while (Date.now() - startTime < timeoutMs) {
+    while (Date.now() - startTime < timeoutMilliseconds) {
         if (await predicate()) return;
-        await sleep(intervalMs);
+        await sleep(intervalMilliseconds);
     }
 }
 
 /**
  * Initializes a clean JSDOM instance with IndexedDB, Storage, and Polyfills.
  * @param {Record<string, string>} [customSessionStorage={}]
- * @returns {Promise<{ dom: JSDOM, win: Window, doc: Document }>}
+ * @returns {Promise<{ dom: JSDOM, window: Window, document: Document }>}
  */
 export async function setupTestDOM(customSessionStorage = {}) {
-    const dom = new JSDOM(htmlContent, {
+    const domInstance = new JSDOM(htmlContent, {
         url: 'http://localhost:3000',
         runScripts: 'dangerously'
     });
-    const win = dom.window;
-    const doc = win.document;
+    const windowInstance = domInstance.window;
+    const documentInstance = windowInstance.document;
 
     // Fresh isolated fake indexedDB per test instance
-    win.indexedDB = new IDBFactory();
-    win.IDBKeyRange = IDBKeyRange;
+    windowInstance.indexedDB = new IDBFactory();
+    windowInstance.IDBKeyRange = IDBKeyRange;
 
     // Seed custom sessionStorage if specified
-    for (const [k, v] of Object.entries(customSessionStorage)) {
-        win.sessionStorage.setItem(k, v);
+    for (const [storageKey, storageValue] of Object.entries(customSessionStorage)) {
+        windowInstance.sessionStorage.setItem(storageKey, storageValue);
     }
 
     // Polyfill matchMedia on window in JSDOM
-    win.matchMedia = win.matchMedia || function() {
+    windowInstance.matchMedia = windowInstance.matchMedia || function() {
         return {
             matches: false,
             addListener: () => {},
@@ -73,16 +73,16 @@ export async function setupTestDOM(customSessionStorage = {}) {
     };
 
     // Polyfill requestAnimationFrame
-    win.requestAnimationFrame = win.requestAnimationFrame || function(cb) {
-        return setTimeout(cb, 0);
+    windowInstance.requestAnimationFrame = windowInstance.requestAnimationFrame || function(callback) {
+        return setTimeout(callback, 0);
     };
-    win.cancelAnimationFrame = win.cancelAnimationFrame || function(id) {
-        clearTimeout(id);
+    windowInstance.cancelAnimationFrame = windowInstance.cancelAnimationFrame || function(identifier) {
+        clearTimeout(identifier);
     };
 
     // Polyfill navigator.serviceWorker
-    if (!win.navigator.serviceWorker) {
-        Object.defineProperty(win.navigator, 'serviceWorker', {
+    if (!windowInstance.navigator.serviceWorker) {
+        Object.defineProperty(windowInstance.navigator, 'serviceWorker', {
             value: { register: async () => {} },
             writable: true,
             configurable: true
@@ -90,13 +90,19 @@ export async function setupTestDOM(customSessionStorage = {}) {
     }
 
     // Evaluate app.js directly in JSDOM window context
-    win.eval(appJsContent);
+    windowInstance.eval(appJsContent);
 
     // Dispatch DOMContentLoaded on JSDOM window document
-    win.document.dispatchEvent(new win.Event('DOMContentLoaded', { bubbles: true, cancelable: true }));
+    windowInstance.document.dispatchEvent(new windowInstance.Event('DOMContentLoaded', { bubbles: true, cancelable: true }));
 
     // Wait deterministically for async initDatabase promise chain to complete
-    await waitFor(() => Boolean(win.STATE && win.STATE.activeQuestions && win.STATE.activeQuestions.length > 0));
+    await waitFor(() => Boolean(windowInstance.STATE && windowInstance.STATE.activeQuestions && windowInstance.STATE.activeQuestions.length > 0));
 
-    return { dom, win, doc };
+    return {
+        dom: domInstance,
+        win: windowInstance,
+        doc: documentInstance,
+        window: windowInstance,
+        document: documentInstance
+    };
 }

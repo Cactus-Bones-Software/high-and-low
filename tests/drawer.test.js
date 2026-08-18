@@ -2,29 +2,29 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setupTestDOM, isElementInert } from './test-utils.js';
 
-let dom;
-let win;
-let doc;
+let domInstance;
+let windowInstance;
+let documentInstance;
 
 describe('Navigation Drawer State & Container Placement Tests', () => {
     beforeEach(async () => {
-        const env = await setupTestDOM();
-        dom = env.dom;
-        win = env.win;
-        doc = env.doc;
+        const environment = await setupTestDOM();
+        domInstance = environment.dom;
+        windowInstance = environment.window;
+        documentInstance = environment.document;
     });
 
     it('1. Initial State Sanity Check: Drawer closed, tracker canvas active, containers properly positioned', () => {
-        const body = doc.body;
-        const drawer = doc.getElementById('side-drawer');
-        const menuBtn = doc.getElementById('button-menu');
-        const trackerCanvas = doc.getElementById('tracker-canvas');
-        const historyCanvas = doc.getElementById('history-canvas');
+        const body = documentInstance.body;
+        const drawer = documentInstance.getElementById('side-drawer');
+        const menuButton = documentInstance.getElementById('button-menu');
+        const trackerCanvas = documentInstance.getElementById('tracker-canvas');
+        const historyCanvas = documentInstance.getElementById('history-canvas');
 
         // Drawer closed state
         expect(body.classList.contains('drawer-open')).toBe(false);
         expect(isElementInert(drawer)).toBe(true);
-        expect(menuBtn.getAttribute('aria-expanded')).toBe('false');
+        expect(menuButton.getAttribute('aria-expanded')).toBe('false');
 
         // Active Canvas
         expect(trackerCanvas.classList.contains('view-active')).toBe(true);
@@ -36,18 +36,18 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
     });
 
     it('2. Action: Opening Drawer via Menu Toggle Button (#button-menu)', () => {
-        const body = doc.body;
-        const drawer = doc.getElementById('side-drawer');
-        const menuBtn = doc.getElementById('button-menu');
-        const trackerCanvas = doc.getElementById('tracker-canvas');
+        const body = documentInstance.body;
+        const drawer = documentInstance.getElementById('side-drawer');
+        const menuButton = documentInstance.getElementById('button-menu');
+        const trackerCanvas = documentInstance.getElementById('tracker-canvas');
 
         // Trigger open
-        menuBtn.click();
+        menuButton.click();
 
         // State changes
         expect(body.classList.contains('drawer-open')).toBe(true);
         expect(isElementInert(drawer)).toBe(false);
-        expect(menuBtn.getAttribute('aria-expanded')).toBe('true');
+        expect(menuButton.getAttribute('aria-expanded')).toBe('true');
 
         // Canvases should become inert while drawer is open
         expect(isElementInert(trackerCanvas)).toBe(true);
@@ -57,21 +57,21 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
     });
 
     it('3. Action: Closing Drawer via Menu Toggle Button (#button-menu) when open', () => {
-        const body = doc.body;
-        const drawer = doc.getElementById('side-drawer');
-        const menuBtn = doc.getElementById('button-menu');
-        const trackerCanvas = doc.getElementById('tracker-canvas');
+        const body = documentInstance.body;
+        const drawer = documentInstance.getElementById('side-drawer');
+        const menuButton = documentInstance.getElementById('button-menu');
+        const trackerCanvas = documentInstance.getElementById('tracker-canvas');
 
         // Open then close
-        menuBtn.click();
+        menuButton.click();
         expect(body.classList.contains('drawer-open')).toBe(true);
 
-        menuBtn.click();
+        menuButton.click();
 
         // State changes
         expect(body.classList.contains('drawer-open')).toBe(false);
         expect(isElementInert(drawer)).toBe(true);
-        expect(menuBtn.getAttribute('aria-expanded')).toBe('false');
+        expect(menuButton.getAttribute('aria-expanded')).toBe('false');
 
         // Active canvas interactive state restored
         expect(isElementInert(trackerCanvas)).toBe(false);
@@ -79,14 +79,14 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
     });
 
     it('4. Action: Closing Drawer via Backdrop Overlay (#drawer-overlay)', () => {
-        const body = doc.body;
-        const drawer = doc.getElementById('side-drawer');
-        const menuBtn = doc.getElementById('button-menu');
-        const overlay = doc.getElementById('drawer-overlay');
-        const trackerCanvas = doc.getElementById('tracker-canvas');
+        const body = documentInstance.body;
+        const drawer = documentInstance.getElementById('side-drawer');
+        const menuButton = documentInstance.getElementById('button-menu');
+        const overlay = documentInstance.getElementById('drawer-overlay');
+        const trackerCanvas = documentInstance.getElementById('tracker-canvas');
 
         // Open
-        menuBtn.click();
+        menuButton.click();
         expect(body.classList.contains('drawer-open')).toBe(true);
 
         // Click backdrop
@@ -95,40 +95,40 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
         // State changes
         expect(body.classList.contains('drawer-open')).toBe(false);
         expect(isElementInert(drawer)).toBe(true);
-        expect(menuBtn.getAttribute('aria-expanded')).toBe('false');
+        expect(menuButton.getAttribute('aria-expanded')).toBe('false');
         expect(isElementInert(trackerCanvas)).toBe(false);
     });
 
     it('5. Action: Closing Drawer via Escape Key', () => {
-        const body = doc.body;
-        const drawer = doc.getElementById('side-drawer');
-        const menuBtn = doc.getElementById('button-menu');
-        const trackerCanvas = doc.getElementById('tracker-canvas');
+        const body = documentInstance.body;
+        const drawer = documentInstance.getElementById('side-drawer');
+        const menuButton = documentInstance.getElementById('button-menu');
+        const trackerCanvas = documentInstance.getElementById('tracker-canvas');
 
         // Open
-        menuBtn.click();
+        menuButton.click();
         expect(body.classList.contains('drawer-open')).toBe(true);
 
         // Press Escape
-        doc.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape' }));
+        documentInstance.dispatchEvent(new windowInstance.KeyboardEvent('keydown', { key: 'Escape' }));
 
         // State changes
         expect(body.classList.contains('drawer-open')).toBe(false);
         expect(isElementInert(drawer)).toBe(true);
-        expect(menuBtn.getAttribute('aria-expanded')).toBe('false');
+        expect(menuButton.getAttribute('aria-expanded')).toBe('false');
         expect(isElementInert(trackerCanvas)).toBe(false);
     });
 
     it('6. Action: Navigating to all options in frequency order (Mood Tracker, History, Questions, Data, Settings)', () => {
-        const menuBtn = doc.getElementById('button-menu');
-        const body = doc.body;
-        const drawer = doc.getElementById('side-drawer');
+        const menuButton = documentInstance.getElementById('button-menu');
+        const body = documentInstance.body;
+        const drawer = documentInstance.getElementById('side-drawer');
 
-        const navBtns = Array.from(doc.querySelectorAll('.drawer-nav-button'));
-        const navTargets = navBtns.map(btn => btn.getAttribute('data-target'));
+        const navigationButtons = Array.from(documentInstance.querySelectorAll('.drawer-nav-button'));
+        const navigationTargets = navigationButtons.map(button => button.getAttribute('data-target'));
 
         // Expected frequency order: Mood Tracker, History, Questions, Data, Settings
-        expect(navTargets).toEqual([
+        expect(navigationTargets).toEqual([
             'tracker-canvas',
             'history-canvas',
             'questions-canvas',
@@ -137,100 +137,100 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
         ]);
 
         // Step A: Navigate to History (history-canvas)
-        menuBtn.click(); // Open drawer
-        const historyNavBtn = doc.querySelector('.drawer-nav-button[data-target="history-canvas"]');
-        historyNavBtn.click();
+        menuButton.click(); // Open drawer
+        const historyNavigationButton = documentInstance.querySelector('.drawer-nav-button[data-target="history-canvas"]');
+        historyNavigationButton.click();
 
         // Sanity checks for container placement
         expect(body.classList.contains('drawer-open')).toBe(false);
         expect(isElementInert(drawer)).toBe(true);
 
-        const historyCanvas = doc.getElementById('history-canvas');
-        const trackerCanvas = doc.getElementById('tracker-canvas');
+        const historyCanvas = documentInstance.getElementById('history-canvas');
+        const trackerCanvas = documentInstance.getElementById('tracker-canvas');
 
         expect(historyCanvas.classList.contains('view-active')).toBe(true);
         expect(isElementInert(historyCanvas)).toBe(false);
         expect(trackerCanvas.classList.contains('view-hidden-left')).toBe(true);
         expect(isElementInert(trackerCanvas)).toBe(true);
-        expect(historyNavBtn.classList.contains('active')).toBe(true);
+        expect(historyNavigationButton.classList.contains('active')).toBe(true);
 
         // Step B: Navigate to Questions Library (questions-canvas)
-        menuBtn.click(); // Open drawer
-        const questionsNavBtn = doc.querySelector('.drawer-nav-button[data-target="questions-canvas"]');
-        questionsNavBtn.click();
+        menuButton.click(); // Open drawer
+        const questionsNavigationButton = documentInstance.querySelector('.drawer-nav-button[data-target="questions-canvas"]');
+        questionsNavigationButton.click();
 
-        const questionsCanvas = doc.getElementById('questions-canvas');
+        const questionsCanvas = documentInstance.getElementById('questions-canvas');
         expect(body.classList.contains('drawer-open')).toBe(false);
         expect(questionsCanvas.classList.contains('view-active')).toBe(true);
         expect(isElementInert(questionsCanvas)).toBe(false);
         expect(historyCanvas.classList.contains('view-hidden-left')).toBe(true);
-        expect(questionsNavBtn.classList.contains('active')).toBe(true);
+        expect(questionsNavigationButton.classList.contains('active')).toBe(true);
 
         // Step C: Navigate to Data & Backups (data-canvas)
-        menuBtn.click();
-        const dataNavBtn = doc.querySelector('.drawer-nav-button[data-target="data-canvas"]');
-        dataNavBtn.click();
+        menuButton.click();
+        const dataNavigationButton = documentInstance.querySelector('.drawer-nav-button[data-target="data-canvas"]');
+        dataNavigationButton.click();
 
-        const dataCanvas = doc.getElementById('data-canvas');
+        const dataCanvas = documentInstance.getElementById('data-canvas');
         expect(body.classList.contains('drawer-open')).toBe(false);
         expect(dataCanvas.classList.contains('view-active')).toBe(true);
         expect(isElementInert(dataCanvas)).toBe(false);
-        expect(dataNavBtn.classList.contains('active')).toBe(true);
+        expect(dataNavigationButton.classList.contains('active')).toBe(true);
 
         // Step D: Navigate to Settings (settings-canvas)
-        menuBtn.click();
-        const settingsNavBtn = doc.querySelector('.drawer-nav-button[data-target="settings-canvas"]');
-        settingsNavBtn.click();
+        menuButton.click();
+        const settingsNavigationButton = documentInstance.querySelector('.drawer-nav-button[data-target="settings-canvas"]');
+        settingsNavigationButton.click();
 
-        const settingsCanvas = doc.getElementById('settings-canvas');
+        const settingsCanvas = documentInstance.getElementById('settings-canvas');
         expect(body.classList.contains('drawer-open')).toBe(false);
         expect(settingsCanvas.classList.contains('view-active')).toBe(true);
         expect(isElementInert(settingsCanvas)).toBe(false);
-        expect(settingsNavBtn.classList.contains('active')).toBe(true);
+        expect(settingsNavigationButton.classList.contains('active')).toBe(true);
 
         // Step E: Navigate back to Mood Tracker (tracker-canvas)
-        menuBtn.click();
-        const trackerNavBtn = doc.querySelector('.drawer-nav-button[data-target="tracker-canvas"]');
-        trackerNavBtn.click();
+        menuButton.click();
+        const trackerNavigationButton = documentInstance.querySelector('.drawer-nav-button[data-target="tracker-canvas"]');
+        trackerNavigationButton.click();
 
         expect(body.classList.contains('drawer-open')).toBe(false);
         expect(trackerCanvas.classList.contains('view-active')).toBe(true);
         expect(isElementInert(trackerCanvas)).toBe(false);
-        expect(trackerNavBtn.classList.contains('active')).toBe(true);
+        expect(trackerNavigationButton.classList.contains('active')).toBe(true);
     });
 
     it('7. Action: Re-selecting currently active canvas inside drawer', () => {
-        const menuBtn = doc.getElementById('button-menu');
-        const trackerCanvas = doc.getElementById('tracker-canvas');
+        const menuButton = documentInstance.getElementById('button-menu');
+        const trackerCanvas = documentInstance.getElementById('tracker-canvas');
 
-        menuBtn.click(); // Open
-        const trackerNavBtn = doc.querySelector('.drawer-nav-button[data-target="tracker-canvas"]');
-        trackerNavBtn.click();
+        menuButton.click(); // Open
+        const trackerNavigationButton = documentInstance.querySelector('.drawer-nav-button[data-target="tracker-canvas"]');
+        trackerNavigationButton.click();
 
         // Drawer should close, canvas remains active
-        expect(doc.body.classList.contains('drawer-open')).toBe(false);
+        expect(documentInstance.body.classList.contains('drawer-open')).toBe(false);
         expect(trackerCanvas.classList.contains('view-active')).toBe(true);
         expect(isElementInert(trackerCanvas)).toBe(false);
     });
 
     it('8. Action: Quick options section removed from drawer', () => {
-        const quickPrefs = doc.querySelector('.drawer-quick-prefs');
-        const drawerHandednessSelect = doc.getElementById('drawer-handedness-select');
-        const drawerThemeSelect = doc.getElementById('drawer-theme-select');
+        const quickPreferences = documentInstance.querySelector('.drawer-quick-prefs');
+        const drawerHandednessSelect = documentInstance.getElementById('drawer-handedness-select');
+        const drawerThemeSelect = documentInstance.getElementById('drawer-theme-select');
 
-        expect(quickPrefs).toBeNull();
+        expect(quickPreferences).toBeNull();
         expect(drawerHandednessSelect).toBeNull();
         expect(drawerThemeSelect).toBeNull();
     });
 
     it('9. Console Debug Controls: setDebugBounds and toggleDebugBounds', () => {
-        expect(win.setDebugBounds).toBeDefined();
-        expect(win.toggleDebugBounds).toBeDefined();
+        expect(windowInstance.setDebugBounds).toBeDefined();
+        expect(windowInstance.toggleDebugBounds).toBeDefined();
 
-        win.setDebugBounds(true);
-        expect(doc.body.getAttribute('data-debug-bounds')).toBe('true');
+        windowInstance.setDebugBounds(true);
+        expect(documentInstance.body.getAttribute('data-debug-bounds')).toBe('true');
 
-        win.toggleDebugBounds();
-        expect(doc.body.getAttribute('data-debug-bounds')).toBe('false');
+        windowInstance.toggleDebugBounds();
+        expect(documentInstance.body.getAttribute('data-debug-bounds')).toBe('false');
     });
 });

@@ -29,3 +29,29 @@ Locked design decisions and open questions for High & Low (menu, questions store
   - **Library Catalog Section (Bottom):** Cards for all inactive questions (built-in and custom), displaying full question text, tags, "Add to Tracker" toggle, and Edit action on the non-dominant side.
   - **Intuitive Card Ergonomics:** Clean card UI with question text prominently featured at top, tags/chips below, and actions strategically positioned for thumb reachability.
 - **Yes/No Question Support:** Questions support binary Yes/No responses in addition to the standard 1–5 scale. Yes/No questions render as a streamlined 2-button choice deck in the tracker and plot cleanly on the analytics timeline.
+
+## Locked decisions (as of 2026-08-14)
+
+- **Intra-Day & Multi-Log Check-Ins:** Patients often need to record mood check-ins multiple times per day (e.g., morning/evening or during acute symptom spikes). The application fully supports multiple logs per day:
+  - **Time-Scaled History Graph:** The history timeline X-axis is chronologically continuous, scaling proportional to the real elapsed time between records (`(t - t_min) / (t_max - t_min)`). Spaced check-ins reflect real elapsed time rather than arbitrary discrete indices. Ticks and tooltips adaptively surface hours/minutes when logs share the same day or when viewing short-range histories.
+  - **Zero-Reload Continuous Check-In Workflow:** The completion screen surfaces a primary "Record Another Check-In" action, and navigating to the Mood Tracker from the drawer or secondary views automatically starts a fresh check-in if the previous session was completed. Users never need to reload the page or restart the PWA to log again.
+
+## Locked decisions (as of 2026-08-18)
+
+- **Session Persistence & Stale Expiry:**
+  - Active check-in progress (current question index, session answers, attached session note) and current view state are persisted in `sessionStorage` with a 30-minute inactivity TTL timeout.
+  - This protects in-progress logs from accidental page reloads, theme switches, and mobile memory reclamation while ensuring that quitting/closing the app or leaving a check-in idle for >30 minutes reliably starts clean on Question 1 of the Tracker canvas.
+- **Drawer "Start Over / Restart Check-In" Placement:**
+  - The "Start Over" action will be housed inside the navigation side drawer rather than on the main tracker canvas.
+  - This avoids visual clutter on the tracker screen and prevents accidental taps during low-energy states, while maintaining a clear, accessible route back to a known initial state.
+- **No Truncated Abbreviations in Code (Explicit Naming Standards):**
+  - Use clear, unabbreviated, descriptive variable and parameter names across the codebase.
+  - Avoid truncated abbreviations such as `btn` for `button`, `el` for `element`, `cb` for `callback`, `opts` for `options`, `idx` for `index`, `msg` for `message`, `curr`/`prev` for `current`/`previous`, `evt`/`e` for `event`, `doc`/`win` for `document`/`window`, etc.
+  - Always write full words (e.g. `menuButton`, `targetElement`, `progressElement`, `callback`, `options`, `event`) for maximum clarity, readability, and intent preservation.
+
+## Open Questions
+
+- Is "check-in" the right name for a collection of data from the user about their mood at a certain point in time?
+
+
+

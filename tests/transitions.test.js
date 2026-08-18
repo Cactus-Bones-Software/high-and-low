@@ -2,22 +2,22 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setupTestDOM, isElementInert, sleep } from './test-utils.js';
 
-let dom;
-let win;
-let doc;
+let domInstance;
+let windowInstance;
+let documentInstance;
 
 describe('Task 2.10: Seamless View & Question Transitions Tests', () => {
     beforeEach(async () => {
-        const env = await setupTestDOM();
-        dom = env.dom;
-        win = env.win;
-        doc = env.doc;
+        const environment = await setupTestDOM();
+        domInstance = environment.dom;
+        windowInstance = environment.window;
+        documentInstance = environment.document;
     });
 
     it('1. Initial State: Tracker Canvas is view-active, others are inactive and inert', () => {
-        const trackerCanvas = doc.getElementById('tracker-canvas');
-        const settingsCanvas = doc.getElementById('settings-canvas');
-        const historyCanvas = doc.getElementById('history-canvas');
+        const trackerCanvas = documentInstance.getElementById('tracker-canvas');
+        const settingsCanvas = documentInstance.getElementById('settings-canvas');
+        const historyCanvas = documentInstance.getElementById('history-canvas');
 
         expect(trackerCanvas.classList.contains('view-active')).toBe(true);
         expect(isElementInert(trackerCanvas)).toBe(false);
@@ -30,10 +30,10 @@ describe('Task 2.10: Seamless View & Question Transitions Tests', () => {
     });
 
     it('2. Forward Navigation (Tracker -> Settings): Tracker exits left, Settings enters and becomes active', () => {
-        const trackerCanvas = doc.getElementById('tracker-canvas');
-        const settingsCanvas = doc.getElementById('settings-canvas');
+        const trackerCanvas = documentInstance.getElementById('tracker-canvas');
+        const settingsCanvas = documentInstance.getElementById('settings-canvas');
 
-        win.navigateTo('settings-canvas');
+        windowInstance.navigateTo('settings-canvas');
 
         expect(settingsCanvas.classList.contains('view-active')).toBe(true);
         expect(isElementInert(settingsCanvas)).toBe(false);
@@ -43,15 +43,15 @@ describe('Task 2.10: Seamless View & Question Transitions Tests', () => {
     });
 
     it('3. Backward Navigation (Settings -> Tracker): Settings exits right, Tracker enters and becomes active', () => {
-        const trackerCanvas = doc.getElementById('tracker-canvas');
-        const settingsCanvas = doc.getElementById('settings-canvas');
+        const trackerCanvas = documentInstance.getElementById('tracker-canvas');
+        const settingsCanvas = documentInstance.getElementById('settings-canvas');
 
         // First forward
-        win.navigateTo('settings-canvas');
+        windowInstance.navigateTo('settings-canvas');
         expect(settingsCanvas.classList.contains('view-active')).toBe(true);
 
         // Now backward to Tracker
-        win.navigateTo('tracker-canvas');
+        windowInstance.navigateTo('tracker-canvas');
 
         expect(trackerCanvas.classList.contains('view-active')).toBe(true);
         expect(isElementInert(trackerCanvas)).toBe(false);
@@ -61,13 +61,13 @@ describe('Task 2.10: Seamless View & Question Transitions Tests', () => {
     });
 
     it('4. Lateral Navigation (History -> Questions): History exits left, Questions becomes active', () => {
-        const historyCanvas = doc.getElementById('history-canvas');
-        const questionsCanvas = doc.getElementById('questions-canvas');
+        const historyCanvas = documentInstance.getElementById('history-canvas');
+        const questionsCanvas = documentInstance.getElementById('questions-canvas');
 
-        win.navigateTo('history-canvas');
+        windowInstance.navigateTo('history-canvas');
         expect(historyCanvas.classList.contains('view-active')).toBe(true);
 
-        win.navigateTo('questions-canvas');
+        windowInstance.navigateTo('questions-canvas');
         expect(questionsCanvas.classList.contains('view-active')).toBe(true);
         expect(isElementInert(questionsCanvas)).toBe(false);
         expect(historyCanvas.classList.contains('view-hidden-left')).toBe(true);
@@ -75,10 +75,10 @@ describe('Task 2.10: Seamless View & Question Transitions Tests', () => {
     });
 
     it('5. Instant Navigation Mode: Applies instant classes without transition delays', () => {
-        const trackerCanvas = doc.getElementById('tracker-canvas');
-        const dataCanvas = doc.getElementById('data-canvas');
+        const trackerCanvas = documentInstance.getElementById('tracker-canvas');
+        const dataCanvas = documentInstance.getElementById('data-canvas');
 
-        win.navigateTo('data-canvas', { instant: true });
+        windowInstance.navigateTo('data-canvas', { instant: true });
 
         expect(dataCanvas.classList.contains('view-active')).toBe(true);
         expect(isElementInert(dataCanvas)).toBe(false);
@@ -87,15 +87,15 @@ describe('Task 2.10: Seamless View & Question Transitions Tests', () => {
     });
 
     it('6. Question Score Submission: Advances questions seamlessly without hiding or unrendering tracker canvas', async () => {
-        const trackerCanvas = doc.getElementById('tracker-canvas');
-        const progressEl = doc.getElementById('progress-text');
+        const trackerCanvas = documentInstance.getElementById('tracker-canvas');
+        const progressElement = documentInstance.getElementById('progress-text');
 
         expect(trackerCanvas.classList.contains('view-active')).toBe(true);
-        expect(progressEl.textContent).toContain('Question 1');
+        expect(progressElement.textContent).toContain('Question 1');
 
-        const firstScoreBtn = doc.querySelector('#button-stack .score-button[data-score="4"]');
-        expect(firstScoreBtn).not.toBeNull();
-        firstScoreBtn.click();
+        const firstScoreButton = documentInstance.querySelector('#button-stack .score-button[data-score="4"]');
+        expect(firstScoreButton).not.toBeNull();
+        firstScoreButton.click();
 
         // Tracker canvas itself remains view-active and rendered (no whole-canvas blanking)
         expect(trackerCanvas.classList.contains('view-active')).toBe(true);
@@ -103,7 +103,7 @@ describe('Task 2.10: Seamless View & Question Transitions Tests', () => {
         // Wait for question micro-transition
         await sleep(200);
 
-        expect(progressEl.textContent).toContain('Question 2');
+        expect(progressElement.textContent).toContain('Question 2');
         expect(trackerCanvas.classList.contains('view-active')).toBe(true);
     });
 });

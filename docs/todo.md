@@ -70,6 +70,16 @@ You are an autonomous software developer working on "High & Low", a local-first,
   - Refine non-tracker view layouts on desktop and landscape tablet orientations to use a clean vertical hierarchy with compact top header bars above scrollable content panels.
   - Decouple view header typography and layout styling from tracker question presentation.
 
+- [x] **Task 2.10: Seamless View Transitions (Eliminate Screen Blanking)**
+  - Fix transition orchestration between views so outgoing and incoming screens slide/crossfade smoothly without blanking or flashing an empty canvas in between.
+  - Ensure the incoming view is positioned and rendered before the transition begins, avoiding intermediate empty/unrendered frames.
+  - Add automated regression tests to verify view class orchestration and smooth visual continuity.
+
+- [ ] **Task 2.11: Suppress Transitions on Initial Load & Page Refreshes**
+  - Prevent view and question transition animations from firing during cold loads, theme reloads, or quick browser refreshes.
+  - Ensure transitions only trigger on explicit user-initiated navigation events (e.g. drawer link clicks, question submissions, back buttons).
+  - Write automated tests to verify that restoring active view or session state on load immediately applies classes without triggering unwanted entry animations.
+
 ---
 
 ### Phase 3: Analytics & Data Visualization
@@ -117,6 +127,10 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 - [ ] **Task 3.9: Notes indicator on the graph timeline**
   - Show a small marker under any day that has a non-null `note` field on its log entry (notes are a single string per log, not tied to one question — do not try to plot them as a data series).
   - Tapping the marker reveals the note text.
+
+- [ ] **Task 3.10: Drawer "Restart Check-In" Action**
+  - Add a "Restart Check-In" / "Start Over" action within the navigation side drawer to allow users to reset their in-progress check-in back to Question 1 without cluttering the main tracker canvas.
+  - Clear active session storage, reset state to Question 1, update tracker view, and close the drawer cleanly.
 
 ---
 
@@ -180,3 +194,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 - [ ] **Task 6.3: Internationalization & Localization Pass**
   - Extract all hardcoded user-facing UI strings across `index.html` and `app.js` into a centralized translation dictionary.
   - Implement language switching and localization readiness for questions, controls, navigation, and settings interface elements.
+
+- [x] **Task 6.4: Shared Test Harness & Helper Utilities**
+  - Extract repetitive JSDOM bootstrapping, IndexedDB mocking, matchMedia/serviceWorker polyfills, and helper functions into a centralized `tests/test-utils.js` harness.
+  - Refactor all test suites (`drawer.test.js`, `graph.test.js`, `session_persistence.test.js`, `transitions.test.js`) to consume the shared harness, eliminating code duplication and WebStorm inspection warnings.

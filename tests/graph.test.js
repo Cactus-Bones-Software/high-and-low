@@ -1,27 +1,27 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
-import { setupTestDOM } from './test-utils.js';
+import { setupTestDOM, sleep } from './test-utils.js';
 
-let dom;
-let win;
-let doc;
+let domInstance;
+let windowInstance;
+let documentInstance;
 
 describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
     beforeEach(async () => {
-        const env = await setupTestDOM();
-        dom = env.dom;
-        win = env.win;
-        doc = env.doc;
+        const environment = await setupTestDOM();
+        domInstance = environment.dom;
+        windowInstance = environment.window;
+        documentInstance = environment.document;
     });
 
     it('renders empty placeholder when no logs exist', () => {
-        const container = doc.createElement('div');
-        win.renderLineGraph(container, { logs: [], questions: [] });
+        const container = documentInstance.createElement('div');
+        windowInstance.renderLineGraph(container, { logs: [], questions: [] });
         expect(container.textContent).toContain('No recorded mood history yet');
     });
 
     it('distinguishes answered points, skipped gaps with markers, and absent gaps without markers', () => {
-        const container = doc.createElement('div');
+        const container = documentInstance.createElement('div');
         const questions = [
             { id: 'q1', text: 'Overall Mood', shortLabel: 'Mood', curve: 'more-is-better' },
             { id: 'q2', text: 'Anxiety Level', shortLabel: 'Anxiety', curve: 'less-is-better' }
@@ -63,7 +63,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             }
         ];
 
-        win.renderLineGraph(container, { logs, questions });
+        windowInstance.renderLineGraph(container, { logs, questions });
 
         // 1. Check line paths:
         // For q1: answered on Day 1 (1 point) and Day 4 (1 point). Because both are isolated single-point segments, no continuous path connecting Day 1 to Day 4 across Day 2/3!
@@ -86,9 +86,9 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         expect(skipMarkers.length).toBe(2);
 
         // Verify titles/labels on skip markers
-        const skipLabels = Array.from(skipMarkers).map(m => m.getAttribute('aria-label'));
-        expect(skipLabels.some(lbl => lbl.includes('Mood') && lbl.includes('Skipped'))).toBe(true);
-        expect(skipLabels.some(lbl => lbl.includes('Anxiety') && lbl.includes('Skipped'))).toBe(true);
+        const skipLabels = Array.from(skipMarkers).map(marker => marker.getAttribute('aria-label'));
+        expect(skipLabels.some(label => label.includes('Mood') && label.includes('Skipped'))).toBe(true);
+        expect(skipLabels.some(label => label.includes('Anxiety') && label.includes('Skipped'))).toBe(true);
 
         // 4. Verify guide key is present
         expect(container.textContent).toContain('Answered');
@@ -97,7 +97,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
     });
 
     it('proportionally scales X-axis based on elapsed time for intra-day and irregular intervals', () => {
-        const container = doc.createElement('div');
+        const container = documentInstance.createElement('div');
         const questions = [
             { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' }
         ];
@@ -121,7 +121,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             }
         ];
 
-        win.renderLineGraph(container, { logs, questions });
+        windowInstance.renderLineGraph(container, { logs, questions });
 
         const points = Array.from(container.querySelectorAll('svg g.points circle'));
         expect(points.length).toBe(3);
@@ -145,31 +145,31 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
 
     it('enables recording multiple check-ins without refreshing the page', async () => {
         // Complete a check-in
-        win.finalizeSession();
-        await new Promise(resolve => setTimeout(resolve, 50));
+        windowInstance.finalizeSession();
+        await sleep(50);
 
-        const progressEl = doc.getElementById('progress-text');
-        const questionEl = doc.getElementById('question-text');
-        const newCheckinBtn = doc.getElementById('button-new-checkin');
-        const footerBox = doc.getElementById('footer-box');
+        const progressElement = documentInstance.getElementById('progress-text');
+        const questionElement = documentInstance.getElementById('question-text');
+        const newCheckinButton = documentInstance.getElementById('button-new-checkin');
+        const footerBox = documentInstance.getElementById('footer-box');
 
-        expect(progressEl.textContent).toBe('Check-In Complete');
-        expect(questionEl.textContent).toBe('Log recorded. Rest easy.');
-        expect(newCheckinBtn).toBeTruthy();
+        expect(progressElement.textContent).toBe('Check-In Complete');
+        expect(questionElement.textContent).toBe('Log recorded. Rest easy.');
+        expect(newCheckinButton).toBeTruthy();
         expect(footerBox.style.display).toBe('none');
 
         // Click "Record Another Check-In"
-        newCheckinBtn.click();
-        await new Promise(resolve => setTimeout(resolve, 50));
+        newCheckinButton.click();
+        await sleep(50);
 
         // Canvas should reset back to active Question 1
-        expect(doc.getElementById('progress-text').textContent).toContain('Question 1 of');
-        expect(doc.getElementById('button-stack').querySelectorAll('.score-button').length).toBeGreaterThan(0);
+        expect(documentInstance.getElementById('progress-text').textContent).toContain('Question 1 of');
+        expect(documentInstance.getElementById('button-stack').querySelectorAll('.score-button').length).toBeGreaterThan(0);
         expect(footerBox.style.display).not.toBe('none');
     });
 
     it('assigns distinct stroke-dasharray patterns to each active question line (Task 3.5)', () => {
-        const container = doc.createElement('div');
+        const container = documentInstance.createElement('div');
         const questions = [
             { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' },
             { id: 'q2', text: 'Sadness Depth', shortLabel: 'Sadness', curve: 'less-is-better' },
@@ -198,7 +198,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             }
         ];
 
-        win.renderLineGraph(container, { logs, questions });
+        windowInstance.renderLineGraph(container, { logs, questions });
 
         const paths = Array.from(container.querySelectorAll('svg g.lines path'));
         expect(paths.length).toBe(4);
@@ -227,7 +227,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
     });
 
     it('toggles question line visibility when tapping legend checklist rows and prevents toggling to zero (Task 3.6)', () => {
-        const container = doc.createElement('div');
+        const container = documentInstance.createElement('div');
         const questions = [
             { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' },
             { id: 'q2', text: 'Sadness Depth', shortLabel: 'Sadness', curve: 'less-is-better' },
@@ -253,7 +253,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             }
         ];
 
-        win.renderLineGraph(container, { logs, questions });
+        windowInstance.renderLineGraph(container, { logs, questions });
 
         // Initial state: 3 lines, 3 legend checklist buttons with aria-checked="true"
         let items = Array.from(container.querySelectorAll('.legend-checklist-item'));
@@ -302,7 +302,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
     });
 
     it('isolates a single question on long-press (450ms) and restores all on second long-press (Task 3.7)', async () => {
-        const container = doc.createElement('div');
+        const container = documentInstance.createElement('div');
         const questions = [
             { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' },
             { id: 'q2', text: 'Sadness Depth', shortLabel: 'Sadness', curve: 'less-is-better' },
@@ -328,25 +328,25 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             }
         ];
 
-        win.renderLineGraph(container, { logs, questions });
+        windowInstance.renderLineGraph(container, { logs, questions });
 
         let items = Array.from(container.querySelectorAll('.legend-checklist-item'));
         expect(items.length).toBe(3);
         expect(container.querySelectorAll('svg g.lines path').length).toBe(3);
 
         // Simulate long-press pointerdown on item 1 (q2)
-        const q2Item = items[1];
-        const pointerDownEvent = new win.PointerEvent('pointerdown', {
+        const secondQuestionItem = items[1];
+        const pointerDownEvent = new windowInstance.PointerEvent('pointerdown', {
             bubbles: true,
             cancelable: true,
             button: 0,
             clientX: 100,
             clientY: 100
         });
-        q2Item.dispatchEvent(pointerDownEvent);
+        secondQuestionItem.dispatchEvent(pointerDownEvent);
 
         // Wait 500ms for long-press timer to fire
-        await new Promise(r => setTimeout(r, 500));
+        await sleep(500);
 
         // Graph should now be isolated to q2 alone
         items = Array.from(container.querySelectorAll('.legend-checklist-item'));
@@ -357,8 +357,8 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         expect(container.querySelectorAll('svg g.points circle').length).toBe(2);
 
         // Long-press q2 again while isolated to restore all
-        const q2IsolatedItem = items[1];
-        q2IsolatedItem.dispatchEvent(new win.PointerEvent('pointerdown', {
+        const secondQuestionIsolatedItem = items[1];
+        secondQuestionIsolatedItem.dispatchEvent(new windowInstance.PointerEvent('pointerdown', {
             bubbles: true,
             cancelable: true,
             button: 0,
@@ -366,7 +366,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             clientY: 100
         }));
 
-        await new Promise(r => setTimeout(r, 500));
+        await sleep(500);
 
         items = Array.from(container.querySelectorAll('.legend-checklist-item'));
         expect(items[0].getAttribute('aria-checked')).toBe('true');
