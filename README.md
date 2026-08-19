@@ -30,6 +30,45 @@ High & Low exists to eliminate that friction. By prioritizing rapid tap choices,
 
 ---
 
+## Donations and Funding
+
+### Not for Sale
+High & Low is not for sale, and it never will be. It is open source and local-first, specifically because my main goal is the existence of a tool to track moods privately. Thus, I will not accept any offers of sale, ever, regardless of amount. I would rather the tool cease to exist than betray that principal.
+
+### Donation Terms
+If you would like to donate money, products, or services to make High and Low possible, I would humbly accept, as long as you agree with the following:
+- I cannot in good conscience advertise with this application, or this repository. This application is aimed, by definition, at users who are psychologically vulnerable. No attempts at manipulation can be tolerated, as there is simply too much potential for harm, intentional or otherwise.
+- Donors, no matter how much given, have no influence in how the app functions or is developed.
+- I may refuse a donation or sponsorship if it is too large for me to be comfortable with, or if I feel I have more resources than I can reasonably be expected to use.
+- I will not be distributing custom builds or making custom versions. I will consider feature requests, but my motivation cannot be money.
+- There will be no perk-tiers or early access. Everyone gets the same application, regardless of what someone has or hasn't donated.
+
+### Funding Goals
+Funding will be spent on the following:
+- **Psychological Harm Audit/Consultation:** I am not a psychologist or a medical practitioner of any kind. I need the help of an expert to make reasonably certain that the design decisions and questions I put into the app will not cause harm. I am morally obligated to my fellow humans to do my due diligence in this matter.
+  - Preliminary results from the APA App Evaluation Model are promising, but I need to carry out the evaluation myself and by a licensed psychologist.
+  - Quote needed
+- **Accessibility and Friction Audit:** A core principal of the app is that it should be usable by anyone, including those in the lowest of low moods. I am not experienced enough in user experience (UX) to perform such an audit, so I need the help of an expert.
+  - Quote needed
+- **Domain Names:** I have reserved the domain names `high-and-low.app` (primary, easy to read) and `highandlow.app` (secondary, easy to type and remember) for access to this app.
+  - Cost: about USD $60 per year.
+- 
+
+Secondary, or stretch goals include the following:
+- **AI Server:** Headless large language model (LLM, or AI) computer for use in developing this and other projects
+  - Total cost not to exceed USD $5500, depending on PC Market conditions
+  - I will be building the machine myself, as I have schooling and experience in such projects.
+- **Non-Profit Organization:** 
+
+## Project Outlook
+I cannot promise to care for and maintain High & Low forever. However, it is my goal not to need to. After all, you do not need continuous research and development to make a screwdriver. Thus, one of my goals is to be finished with this project one day. While this might not be completely possible due to changes in the Web landscape beyond my control, I hope to meet the scope of this project and then stop developing new features.
+
+If it is no longer possible for me to continue maintaining the app, I will do my utmost to let  you know here, in this README file. The app should continue working, as there is no backend to shut down, just static files. However, in such a case, High & Low will no longer be updated by me.
+
+That being said, if I stop maintaining the app, it doesn't have to be the end of High & Low. This project is licensed AGPL, which means that anyone, or any group can continue this work, as long as their work is licensed AGPL as well, and they abide by the license agreement. So if I have to bow out, then others will be able to pick up where I left off. The license also means that if someone wants a feature that I am unwilling to implement, such as syncing, they may make that feature themselves, provided their code remains a matter of public record.
+
+
+
 ## Technical Writeup
 
 ### Architecture Overview
