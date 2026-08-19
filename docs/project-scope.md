@@ -61,7 +61,7 @@ Local-first, zero-friction mood tracker for bipolar/unipolar cycles, optimized f
 
 ## Build Status
 - **Ph1 Storage**: done
-- **Ph2 UI/A11y**: done
+- **Ph2 UI/Accessability**: done
 - **Ph3 Analytics**: mostly done. Open: 3.8 accessible isolate/keyboard, 3.9 notes indicator, 3.10 drawer restart
 - **Ph4 Question Library**: not started (tags, handedness alignment, search UI, card sections, edit/archive, Yes/No schema+UI)
 - **Ph5 PWA/Offline**: not started (service worker, manifest verification)
