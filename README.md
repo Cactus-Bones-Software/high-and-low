@@ -42,6 +42,12 @@ If you would like to donate money, products, or services to make High and Low po
 - I may refuse a donation or sponsorship if it is too large for me to be comfortable with, or if I feel I have more resources than I can reasonably be expected to use.
 - I will not be distributing custom builds or making custom versions. I will consider feature requests, but my motivation cannot be money.
 - There will be no perk-tiers or early access. Everyone gets the same application, regardless of what someone has or hasn't donated.
+- There will be no thank-you section in the app or in this repository. As much as I appreciate all donations, legal names are a liability, and internet names can get rather wild, so I will be avoiding all possible drama in this regard.
+
+### Donation Sources
+Donations are accepted from the following sources:
+- GitHub Sponsors
+- Open Collective
 
 ### Funding Goals
 Funding will be spent on the following:
@@ -52,13 +58,14 @@ Funding will be spent on the following:
   - Quote needed
 - **Domain Names:** I have reserved the domain names `high-and-low.app` (primary, easy to read) and `highandlow.app` (secondary, easy to type and remember) for access to this app.
   - Cost: about USD $60 per year.
-- 
 
 Secondary, or stretch goals include the following:
 - **AI Server:** Headless large language model (LLM, or AI) computer for use in developing this and other projects
   - Total cost not to exceed USD $5500, depending on PC Market conditions
   - I will be building the machine myself, as I have schooling and experience in such projects.
-- **Non-Profit Organization:** 
+- **Non-Profit Organization:** I would like to establish a small non-profit to accept donations and hold the intellectual property of High & Low, safeguarding it so that it can be useful for decades to come regardless of my own condition.
+  - Needs legal consultation (and quote for such)
+  - Needs a comprehensive charter written.
 
 ## Project Outlook
 I cannot promise to care for and maintain High & Low forever. However, it is my goal not to need to. After all, you do not need continuous research and development to make a screwdriver. Thus, one of my goals is to be finished with this project one day. While this might not be completely possible due to changes in the Web landscape beyond my control, I hope to meet the scope of this project and then stop developing new features.
