@@ -12,7 +12,7 @@ Locked design decisions and open questions for High & Low (menu, questions store
 - **No magic numbers for missing data (confirmed).** score stays 1–5 for real answers. Three states: answered = record with score 1–5 + `status:"answered"`; presented-but-skipped = record with `score:null` + `status:"skipped"`; not-asked/didn't-exist = NO record (absence). Never 0/-1 in the score field — it poisons the graph.
 - **Notes are a `note` field on the entry**, not a fake `custom_note` answer (retire the old `score:0` note hack).
 - **Export dumps all three stores entire** (config + questions incl. archived + entries). Bump exportVersion→"2.0". Only merge conflict: same id, different text (an edit) → newest `updatedAt` wins.
-- **`config` formalized:** `activeQuestionSet` (ordered id list), `theme`, `contrast`, `handedness`, `seedVersion` (drives adding new built-in defaults on app refresh without touching the user's set).
+- **`config` formalized:** `activeQuestionSet` (ordered id list), `theme`, `contrast`, `menuSide`, `seedVersion` (drives adding new built-in defaults on app refresh without touching the user's set).
 
 ## Locked decisions (as of 2026-08-06)
 
