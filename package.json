@@ -2,9 +2,9 @@
   "name": "high-and-low",
   "version": "1.0.0",
   "description": "",
-  "main": "app.js",
+  "main": "public/app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run"
   },
   "repository": {
     "type": "git",

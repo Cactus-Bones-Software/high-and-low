@@ -860,7 +860,7 @@ function closeNotesDialog() {
 }
 
 function saveNotesFromDialog() {
-    const input = document.getElementById('session-note-input');
+    const input = document.getElementById('checkin-note-input');
     if (input) {
         const note = input.value.trim();
         STATE.sessionNote = note.length > 0 ? note : null;
@@ -872,7 +872,7 @@ function saveNotesFromDialog() {
 
 function setupNotesDialog() {
     const overlay = document.getElementById('notes-dialog-overlay');
-    const input = document.getElementById('session-note-input');
+    const input = document.getElementById('checkin-note-input');
     if (!overlay || !input) return;
 
     // Handle Escape and Ctrl/Cmd+Enter inside the modal

@@ -3,8 +3,8 @@ import { resolve } from 'path';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { JSDOM } from 'jsdom';
 
-const htmlContent = readFileSync(resolve(__dirname, '../index.html'), 'utf8');
-const appJsContent = readFileSync(resolve(__dirname, '../app.js'), 'utf8');
+const htmlContent = readFileSync(resolve(__dirname, '../public/index.html'), 'utf8');
+const appJsContent = readFileSync(resolve(__dirname, '../public/app.js'), 'utf8');
 
 /**
  * Checks whether an element is marked as inert either via attribute or property.
