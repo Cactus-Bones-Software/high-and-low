@@ -222,7 +222,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         expect(uniquePatterns.size).toBe(4);
 
         // Legend swatches must contain preview dash SVG indicators
-        const legendSwatches = container.querySelectorAll('.graph-legend svg');
+        const legendSwatches = container.querySelectorAll('.graph-legend .legend-swatch');
         expect(legendSwatches.length).toBe(4);
     });
 
@@ -282,23 +282,25 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         expect(container.querySelectorAll('svg g.lines path').length).toBe(1);
         expect(container.querySelectorAll('svg g.points circle').length).toBe(2);
 
-        // Attempt to toggle off the last remaining visible question (q3) -> MUST NOT hide, keep at least 1 visible
+        // Toggle off the last remaining visible question (q3) -> allows 0 lines visible
         items[2].click();
 
         items = Array.from(container.querySelectorAll('.legend-checklist-item'));
-        expect(items[2].getAttribute('aria-checked')).toBe('true');
-        expect(container.querySelectorAll('svg g.lines path').length).toBe(1);
-        expect(container.querySelectorAll('svg g.points circle').length).toBe(2);
+        expect(items[0].getAttribute('aria-checked')).toBe('false');
+        expect(items[1].getAttribute('aria-checked')).toBe('false');
+        expect(items[2].getAttribute('aria-checked')).toBe('false');
+        expect(container.querySelectorAll('svg g.lines path').length).toBe(0);
+        expect(container.querySelectorAll('svg g.points circle').length).toBe(0);
 
-        // Click item 1 (q1) again -> toggles q1 back on (now q1 and q3 are visible)
+        // Click item 1 (q1) again -> toggles q1 back on (now q1 is visible)
         items[0].click();
 
         items = Array.from(container.querySelectorAll('.legend-checklist-item'));
         expect(items[0].getAttribute('aria-checked')).toBe('true');
         expect(items[1].getAttribute('aria-checked')).toBe('false');
-        expect(items[2].getAttribute('aria-checked')).toBe('true');
-        expect(container.querySelectorAll('svg g.lines path').length).toBe(2);
-        expect(container.querySelectorAll('svg g.points circle').length).toBe(4);
+        expect(items[2].getAttribute('aria-checked')).toBe('false');
+        expect(container.querySelectorAll('svg g.lines path').length).toBe(1);
+        expect(container.querySelectorAll('svg g.points circle').length).toBe(2);
     });
 
     it('isolates a single question on long-press (450ms) and restores all on second long-press (Task 3.7)', async () => {
@@ -374,5 +376,119 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         expect(items[2].getAttribute('aria-checked')).toBe('true');
         expect(container.querySelectorAll('svg g.lines path').length).toBe(3);
         expect(container.querySelectorAll('svg g.points circle').length).toBe(6);
+    });
+
+    it('isolates and restores questions via accessible per-row isolate button (Task 3.8)', () => {
+        const container = documentInstance.createElement('div');
+        const questions = [
+            { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' },
+            { id: 'q2', text: 'Sadness Depth', shortLabel: 'Sadness', curve: 'less-is-better' },
+            { id: 'q3', text: 'Self-Worth', shortLabel: 'Worth', curve: 'more-is-better' }
+        ];
+
+        const logs = [
+            {
+                timestamp: '2026-08-14T08:00:00.000Z',
+                answers: [
+                    { questionId: 'q1', score: 3, status: 'answered' },
+                    { questionId: 'q2', score: 2, status: 'answered' },
+                    { questionId: 'q3', score: 4, status: 'answered' }
+                ]
+            },
+            {
+                timestamp: '2026-08-14T18:00:00.000Z',
+                answers: [
+                    { questionId: 'q1', score: 4, status: 'answered' },
+                    { questionId: 'q2', score: 1, status: 'answered' },
+                    { questionId: 'q3', score: 5, status: 'answered' }
+                ]
+            }
+        ];
+
+        windowInstance.renderLineGraph(container, { logs, questions });
+
+        let isolateButtons = Array.from(container.querySelectorAll('.legend-isolate-button'));
+        expect(isolateButtons.length).toBe(3);
+
+        // Click isolate button on question 2 (Sadness)
+        isolateButtons[1].click();
+
+        let items = Array.from(container.querySelectorAll('.legend-checklist-item'));
+        expect(items[0].getAttribute('aria-checked')).toBe('false');
+        expect(items[1].getAttribute('aria-checked')).toBe('true');
+        expect(items[2].getAttribute('aria-checked')).toBe('false');
+        expect(container.querySelectorAll('svg g.lines path').length).toBe(1);
+
+        isolateButtons = Array.from(container.querySelectorAll('.legend-isolate-button'));
+        expect(isolateButtons[1].classList.contains('is-isolated')).toBe(true);
+        expect(isolateButtons[1].getAttribute('aria-label')).toContain('Restore all');
+
+        // Click isolate button on question 2 again while isolated -> restores all
+        isolateButtons[1].click();
+
+        items = Array.from(container.querySelectorAll('.legend-checklist-item'));
+        expect(items[0].getAttribute('aria-checked')).toBe('true');
+        expect(items[1].getAttribute('aria-checked')).toBe('true');
+        expect(items[2].getAttribute('aria-checked')).toBe('true');
+        expect(container.querySelectorAll('svg g.lines path').length).toBe(3);
+
+        isolateButtons = Array.from(container.querySelectorAll('.legend-isolate-button'));
+        expect(isolateButtons[1].classList.contains('is-isolated')).toBe(false);
+        expect(isolateButtons[1].getAttribute('aria-label')).toContain('Isolate Sadness');
+    });
+
+    it('provides Show all and Clear all quick action buttons for fast timeline filter reset (Task 3.8)', () => {
+        const container = documentInstance.createElement('div');
+        const questions = [
+            { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' },
+            { id: 'q2', text: 'Sadness Depth', shortLabel: 'Sadness', curve: 'less-is-better' },
+            { id: 'q3', text: 'Self-Worth', shortLabel: 'Worth', curve: 'more-is-better' }
+        ];
+
+        const logs = [
+            {
+                timestamp: '2026-08-14T08:00:00.000Z',
+                answers: [
+                    { questionId: 'q1', score: 3, status: 'answered' },
+                    { questionId: 'q2', score: 2, status: 'answered' },
+                    { questionId: 'q3', score: 4, status: 'answered' }
+                ]
+            },
+            {
+                timestamp: '2026-08-14T18:00:00.000Z',
+                answers: [
+                    { questionId: 'q1', score: 4, status: 'answered' },
+                    { questionId: 'q2', score: 1, status: 'answered' },
+                    { questionId: 'q3', score: 5, status: 'answered' }
+                ]
+            }
+        ];
+
+        windowInstance.renderLineGraph(container, { logs, questions });
+
+        const showAllButton = container.querySelector('#button-legend-show-all');
+        const clearAllButton = container.querySelector('#button-legend-clear-all');
+
+        expect(showAllButton).toBeTruthy();
+        expect(clearAllButton).toBeTruthy();
+
+        // Click Clear All -> clears all questions (0 lines)
+        clearAllButton.click();
+
+        let items = Array.from(container.querySelectorAll('.legend-checklist-item'));
+        expect(items[0].getAttribute('aria-checked')).toBe('false');
+        expect(items[1].getAttribute('aria-checked')).toBe('false');
+        expect(items[2].getAttribute('aria-checked')).toBe('false');
+        expect(container.querySelectorAll('svg g.lines path').length).toBe(0);
+        expect(container.querySelectorAll('svg g.points circle').length).toBe(0);
+
+        // Click Show All -> restores all questions
+        showAllButton.click();
+
+        items = Array.from(container.querySelectorAll('.legend-checklist-item'));
+        expect(items[0].getAttribute('aria-checked')).toBe('true');
+        expect(items[1].getAttribute('aria-checked')).toBe('true');
+        expect(items[2].getAttribute('aria-checked')).toBe('true');
+        expect(container.querySelectorAll('svg g.lines path').length).toBe(3);
     });
 });

@@ -1253,17 +1253,12 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
         currentVisibleSet = new Set(visibleQuestionIds);
     } else if (Array.isArray(visibleQuestionIds)) {
         currentVisibleSet = new Set(visibleQuestionIds);
-    } else if (STATE.historyVisibleQuestionIds instanceof Set && STATE.historyVisibleQuestionIds.size > 0) {
+    } else if (STATE.historyVisibleQuestionIds instanceof Set) {
         currentVisibleSet = new Set(STATE.historyVisibleQuestionIds);
     } else {
         currentVisibleSet = new Set(questions.map(question => question.id));
     }
 
-    // Ensure at least one active question remains in the visible set
-    const validQuestionsInSet = questions.filter(question => currentVisibleSet.has(question.id));
-    if (validQuestionsInSet.length === 0 && questions.length > 0) {
-        currentVisibleSet.add(questions[0].id);
-    }
     STATE.historyVisibleQuestionIds = currentVisibleSet;
 
     const width = 600;
@@ -1361,16 +1356,25 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
         const dashAttr = dashArray !== 'none' ? ` stroke-dasharray="${dashArray}"` : '';
         const swatchLineDash = dashArray !== 'none' ? ` stroke-dasharray="${dashArray}"` : '';
         const isVisible = currentVisibleSet.has(question.id);
+        const isIsolated = currentVisibleSet.size === 1 && currentVisibleSet.has(question.id);
 
         legendItemsHTML += `
-            <button type="button" class="legend-checklist-item" role="checkbox" aria-checked="${isVisible ? 'true' : 'false'}" data-question-id="${escapeHTML(question.id)}" aria-label="Toggle ${questionTitle}">
-                <span class="legend-checkbox-box" aria-hidden="true">${isVisible ? '✓' : ''}</span>
-                <svg class="legend-swatch" width="22" height="10" viewBox="0 0 22 10" aria-hidden="true">
-                    <line x1="0" y1="5" x2="22" y2="5" stroke="${color}" stroke-width="2.5"${swatchLineDash} stroke-linecap="round" />
-                    <circle cx="11" cy="5" r="3" fill="${color}" stroke="var(--box-bg)" stroke-width="1" />
-                </svg>
-                <span class="legend-label">${questionTitle}</span>
-            </button>
+            <div class="legend-checklist-row">
+                <button type="button" class="legend-checklist-item" role="checkbox" aria-checked="${isVisible ? 'true' : 'false'}" data-question-id="${escapeHTML(question.id)}" aria-label="Toggle ${questionTitle}">
+                    <span class="legend-checkbox-box" aria-hidden="true">${isVisible ? '✓' : ''}</span>
+                    <svg class="legend-swatch" width="22" height="10" viewBox="0 0 22 10" aria-hidden="true">
+                        <line x1="0" y1="5" x2="22" y2="5" stroke="${color}" stroke-width="2.5"${swatchLineDash} stroke-linecap="round" />
+                        <circle cx="11" cy="5" r="3" fill="${color}" stroke="var(--box-bg)" stroke-width="1" />
+                    </svg>
+                    <span class="legend-label">${questionTitle}</span>
+                </button>
+                <button type="button" class="legend-isolate-button${isIsolated ? ' is-isolated' : ''}" data-question-id="${escapeHTML(question.id)}" aria-label="${isIsolated ? `Restore all questions (currently isolating ${questionTitle})` : `Isolate ${questionTitle}`}" title="${isIsolated ? 'Restore all questions' : `Isolate ${questionTitle}`}">
+                    <svg class="isolate-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="8" cy="8" r="6" />
+                        <circle cx="8" cy="8" r="2" fill="currentColor" />
+                    </svg>
+                </button>
+            </div>
         `;
 
         if (!isVisible) {
@@ -1441,6 +1445,16 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
         });
     });
 
+    const quickActionsHTML = `
+        <div class="legend-quick-actions" role="toolbar" aria-label="Timeline question quick filters">
+            <span class="legend-quick-title">Filter Questions</span>
+            <div class="legend-quick-buttons">
+                <button type="button" class="legend-quick-button" id="button-legend-show-all" aria-label="Show all questions on timeline">Show all</button>
+                <button type="button" class="legend-quick-button" id="button-legend-clear-all" aria-label="Clear all questions on timeline">Clear all</button>
+            </div>
+        </div>
+    `;
+
     const legendHTML = `
         <div class="graph-legend graph-legend-checklist" role="group" aria-label="Timeline Questions Filter">
             ${legendItemsHTML}
@@ -1480,9 +1494,29 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
         <div style="width: 100%; overflow-x: auto;">
             ${svgHTML}
         </div>
+        ${quickActionsHTML}
         ${legendHTML}
         ${guideKeyHTML}
     `;
+
+    const showAllButton = container.querySelector('#button-legend-show-all');
+    if (showAllButton) {
+        showAllButton.addEventListener('click', () => {
+            const allQuestionIds = questions.map(question => question.id);
+            currentVisibleSet = new Set(allQuestionIds);
+            STATE.historyVisibleQuestionIds = currentVisibleSet;
+            renderLineGraph(container, { logs, questions, visibleQuestionIds: currentVisibleSet });
+        });
+    }
+
+    const clearAllButton = container.querySelector('#button-legend-clear-all');
+    if (clearAllButton) {
+        clearAllButton.addEventListener('click', () => {
+            currentVisibleSet = new Set();
+            STATE.historyVisibleQuestionIds = currentVisibleSet;
+            renderLineGraph(container, { logs, questions, visibleQuestionIds: currentVisibleSet });
+        });
+    }
 
     const legendElement = container.querySelector('.graph-legend');
     if (legendElement) {
@@ -1519,6 +1553,10 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
         }
 
         legendElement.addEventListener('pointerdown', (event) => {
+            if (event.target.closest('.legend-isolate-button')) {
+                return;
+            }
+
             const button = event.target.closest('.legend-checklist-item');
             if (!button || (event.button !== undefined && event.button !== 0)) return;
 
@@ -1559,6 +1597,17 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
         });
 
         legendElement.addEventListener('click', (event) => {
+            const isolateButton = event.target.closest('.legend-isolate-button');
+            if (isolateButton) {
+                event.preventDefault();
+                event.stopPropagation();
+                const questionId = isolateButton.dataset.questionId;
+                if (questionId) {
+                    handleIsolateOrRestore(questionId);
+                }
+                return;
+            }
+
             const button = event.target.closest('.legend-checklist-item');
             if (!button) return;
 
@@ -1573,12 +1622,6 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
             if (!questionId) return;
 
             if (currentVisibleSet.has(questionId)) {
-                // Keep at least one line always visible (never allow toggling to zero)
-                if (currentVisibleSet.size <= 1) {
-                    button.classList.add('shake-feedback');
-                    setTimeout(() => button.classList.remove('shake-feedback'), 300);
-                    return;
-                }
                 currentVisibleSet.delete(questionId);
             } else {
                 currentVisibleSet.add(questionId);

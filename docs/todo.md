@@ -104,13 +104,13 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 
 - [x] **Task 3.6: Legend checklist — tap to toggle**
   - Build the one/two-column checklist of active questions using their `shortLabel` (Task 3.1), each with a color swatch matching its line.
-  - Tapping a row toggles that question's line visibility on the graph. Keep at least one line always visible (never allow toggling to zero).
+  - Tapping a row toggles that question's line visibility on the graph.
 
 - [x] **Task 3.7: Legend — long-press to isolate/restore**
   - Holding a legend row (~400-500ms, shorter than the existing 1500ms hold-actions since this isn't a destructive action) isolates the graph to that question alone, hiding all others.
   - Holding the same row again while it's the sole active line restores all questions.
 
-- [ ] **Task 3.8: Legend — accessible isolate alternative + quick actions**
+- [x] **Task 3.8: Legend — accessible isolate alternative + quick actions**
   - Add a small per-row icon button that performs the same isolate/restore toggle as Task 3.7's long-press, reachable by click and by keyboard (Enter/Space on focus), since long-press alone is invisible to keyboard and screen-reader users.
   - Add "Show all" / "Clear all" utility buttons above the legend for a fast reset.
 

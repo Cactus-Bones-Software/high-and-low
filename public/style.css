@@ -988,41 +988,126 @@ select, .utility-button, .form-input {
 }
 
 /* ==========================================================================
-7b. GRAPH & TIMELINE LEGEND CHECKLIST (TASK 3.6)
+7b. GRAPH & TIMELINE LEGEND & CONTROLS (TASK 3.6 - 3.8)
 ========================================================================== */
+.legend-quick-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 10px;
+    margin-bottom: 4px;
+    width: 100%;
+    box-sizing: border-box;
+    flex-wrap: wrap;
+}
+
+.legend-quick-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.legend-quick-buttons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.legend-quick-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    min-height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background-color: var(--button-default);
+    color: var(--text-bright);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 150ms var(--transition-curve), border-color 150ms var(--transition-curve);
+}
+
+@media (hover: hover) {
+    .legend-quick-button:hover {
+        background-color: var(--border-color);
+    }
+}
+
 .graph-legend-checklist {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 8px;
-    margin-top: 14px;
+    gap: 6px;
+    margin-top: 4px;
     width: 100%;
     box-sizing: border-box;
 }
 
-@media (min-width: 420px) {
+@media (min-width: 480px) {
     .graph-legend-checklist {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+}
+
+@media (min-width: 768px) {
+    .graph-legend-checklist {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1040px) {
+    .graph-legend-checklist {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+    .graph-legend-checklist {
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 6px;
+    }
+}
+
+.legend-checklist-row {
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.legend-checklist-row .legend-checklist-item {
+    flex: 1;
+    min-width: 0;
 }
 
 .legend-checklist-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    min-height: 44px;
-    border-radius: 10px;
+    gap: 7px;
+    padding: 6px 10px;
+    min-height: 36px;
+    border-radius: 8px;
     border: 1px solid var(--border-color);
     background-color: var(--button-default);
     color: var(--text-bright);
-    font-size: 0.88rem;
+    font-size: 0.84rem;
     font-weight: 500;
     cursor: pointer;
     text-align: left;
     user-select: none;
     transition: opacity 160ms var(--transition-curve), background-color 160ms var(--transition-curve), border-color 160ms var(--transition-curve), transform 120ms var(--transition-curve);
-    width: 100%;
     box-sizing: border-box;
+    overflow: hidden;
+}
+
+.legend-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
 }
 
 .legend-checklist-item:active {
@@ -1046,12 +1131,12 @@ select, .utility-button, .form-input {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 18px;
-    height: 18px;
-    border-radius: 4px;
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
     border: 1px solid var(--text-muted);
     flex-shrink: 0;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
     line-height: 1;
     color: var(--text-bright);
@@ -1062,6 +1147,51 @@ select, .utility-button, .form-input {
     border-color: var(--text-bright);
     background-color: var(--button-default);
     color: var(--text-bright);
+}
+
+.legend-isolate-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    min-height: 36px;
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background-color: var(--button-default);
+    color: var(--text-muted);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 160ms var(--transition-curve), color 160ms var(--transition-curve), border-color 160ms var(--transition-curve), transform 120ms var(--transition-curve);
+    user-select: none;
+}
+
+.legend-isolate-button:active {
+    transform: scale(0.95);
+}
+
+@media (hover: hover) {
+    .legend-isolate-button:hover {
+        background-color: var(--border-color);
+        color: var(--text-bright);
+    }
+}
+
+.legend-isolate-button.is-isolated {
+    background-color: var(--text-bright);
+    color: var(--box-bg);
+    border-color: var(--text-bright);
+}
+
+.isolate-icon {
+    display: block;
+    width: 14px;
+    height: 14px;
+    pointer-events: none;
+}
+
+body[data-contrast="high"] .legend-quick-button {
+    border: 2px solid var(--text-bright);
 }
 
 body[data-contrast="high"] .legend-checklist-item {
@@ -1077,6 +1207,16 @@ body[data-contrast="high"] .legend-checkbox-box {
     border: 2px solid var(--text-bright);
 }
 
+body[data-contrast="high"] .legend-isolate-button {
+    border: 2px solid var(--text-bright);
+}
+
+body[data-contrast="high"] .legend-isolate-button.is-isolated {
+    border: 2px solid var(--text-bright);
+    background-color: var(--text-bright);
+    color: var(--box-bg);
+}
+
 .legend-swatch {
     flex-shrink: 0;
 }
@@ -1086,16 +1226,6 @@ body[data-contrast="high"] .legend-checkbox-box {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-.legend-checklist-item.shake-feedback {
-    animation: legend-shake 250ms ease-in-out;
-}
-
-@keyframes legend-shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-4px); }
-    75% { transform: translateX(4px); }
 }
 
 /* ==========================================================================
