@@ -70,6 +70,10 @@
   - Enforce the project taxonomy: standardize on **"Check-In"** for the user action/interaction and **"Entry"** for the stored historical record, removing confusing or conflicting aliases ("Session", "Quiz", "Test", and ambiguous "Log").
   - Ensure completion feedback (e.g. "Check-In recorded. Rest easy.") and navigation cues cleanly reflect this standard without ambiguity.
 
+- [ ] **Task 2.13: Drawer "Restart Check-In" Action**
+  - Add a "Restart Check-In" / "Start Over" action within the navigation side drawer to allow users to reset their in-progress check-in back to Question 1 without cluttering the main tracker canvas.
+  - Clear active check-in storage, reset state to Question 1, update tracker view, and close the drawer cleanly.
+
 ---
 
 ### Phase 3: Analytics & Data Visualization
@@ -117,10 +121,6 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 - [ ] **Task 3.9: Notes indicator on the graph timeline**
   - Show a small marker under any day that has a non-null `note` field on its log entry (notes are a single string per log, not tied to one question — do not try to plot them as a data series).
   - Tapping the marker reveals the note text.
-
-- [ ] **Task 3.10: Drawer "Restart Check-In" Action**
-  - Add a "Restart Check-In" / "Start Over" action within the navigation side drawer to allow users to reset their in-progress check-in back to Question 1 without cluttering the main tracker canvas.
-  - Clear active check-in storage, reset state to Question 1, update tracker view, and close the drawer cleanly.
 
 ---
 
