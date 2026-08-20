@@ -16,7 +16,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
 
     it('renders empty placeholder when no logs exist', () => {
         const container = documentInstance.createElement('div');
-        windowInstance.renderLineGraph(container, { logs: [], questions: [] });
+        windowInstance.renderLineGraph(container, { entries: [], questions: [] });
         expect(container.textContent).toContain('No recorded mood history yet');
     });
 
@@ -63,7 +63,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             }
         ];
 
-        windowInstance.renderLineGraph(container, { logs, questions });
+        windowInstance.renderLineGraph(container, { entries: logs, questions });
 
         // 1. Check line paths:
         // For q1: answered on Day 1 (1 point) and Day 4 (1 point). Because both are isolated single-point segments, no continuous path connecting Day 1 to Day 4 across Day 2/3!
@@ -121,7 +121,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             }
         ];
 
-        windowInstance.renderLineGraph(container, { logs, questions });
+        windowInstance.renderLineGraph(container, { entries: logs, questions });
 
         const points = Array.from(container.querySelectorAll('svg g.points circle'));
         expect(points.length).toBe(3);
@@ -145,7 +145,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
 
     it('enables recording multiple check-ins without refreshing the page', async () => {
         // Complete a check-in
-        windowInstance.finalizeSession();
+        windowInstance.finalizeCheckin();
         await sleep(50);
 
         const progressElement = documentInstance.getElementById('progress-text');
@@ -198,7 +198,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             }
         ];
 
-        windowInstance.renderLineGraph(container, { logs, questions });
+        windowInstance.renderLineGraph(container, { entries: logs, questions });
 
         const paths = Array.from(container.querySelectorAll('svg g.lines path'));
         expect(paths.length).toBe(4);
@@ -253,7 +253,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             }
         ];
 
-        windowInstance.renderLineGraph(container, { logs, questions });
+        windowInstance.renderLineGraph(container, { entries: logs, questions });
 
         // Initial state: 3 lines, 3 legend checklist buttons with aria-checked="true"
         let items = Array.from(container.querySelectorAll('.legend-checklist-item'));
@@ -330,7 +330,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             }
         ];
 
-        windowInstance.renderLineGraph(container, { logs, questions });
+        windowInstance.renderLineGraph(container, { entries: logs, questions });
 
         let items = Array.from(container.querySelectorAll('.legend-checklist-item'));
         expect(items.length).toBe(3);
@@ -405,7 +405,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             }
         ];
 
-        windowInstance.renderLineGraph(container, { logs, questions });
+        windowInstance.renderLineGraph(container, { entries: logs, questions });
 
         let isolateButtons = Array.from(container.querySelectorAll('.legend-isolate-button'));
         expect(isolateButtons.length).toBe(3);
@@ -464,7 +464,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             }
         ];
 
-        windowInstance.renderLineGraph(container, { logs, questions });
+        windowInstance.renderLineGraph(container, { entries: logs, questions });
 
         const showAllButton = container.querySelector('#button-legend-show-all');
         const clearAllButton = container.querySelector('#button-legend-clear-all');

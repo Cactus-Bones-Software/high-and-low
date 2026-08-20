@@ -13,19 +13,19 @@ async function initializeTestEnvironment(customSessionStorage = {}) {
     documentInstance = environment.document;
 }
 
-describe('Session and View State Persistence (Theme Switch & Reload Resilience)', () => {
+describe('Check-in and View State Persistence (Theme Switch & Reload Resilience)', () => {
     it('restores in-progress question index and note on reload', async () => {
-        const savedSession = {
+        const savedCheckin = {
             currentQuestionIndex: 2,
-            sessionAnswers: [
+            checkinAnswers: [
                 { questionId: 'q_energy', score: 4, status: 'answered' },
                 { questionId: 'q_sadness', score: 1, status: 'answered' }
             ],
-            sessionNote: 'Feeling decent this afternoon.'
+            checkinNote: 'Feeling decent this afternoon.'
         };
 
         await initializeTestEnvironment({
-            'high_and_low_active_checkin': JSON.stringify(savedSession)
+            'high_and_low_active_checkin': JSON.stringify(savedCheckin)
         });
 
         const progressText = documentInstance.getElementById('progress-text');
@@ -35,8 +35,8 @@ describe('Session and View State Persistence (Theme Switch & Reload Resilience)'
         expect(noteButtonLabel.textContent).toBe('Note Attached ✓');
 
         expect(windowInstance.STATE.currentQuestionIndex).toBe(2);
-        expect(windowInstance.STATE.sessionAnswers.length).toBe(2);
-        expect(windowInstance.STATE.sessionNote).toBe('Feeling decent this afternoon.');
+        expect(windowInstance.STATE.checkinAnswers.length).toBe(2);
+        expect(windowInstance.STATE.checkinNote).toBe('Feeling decent this afternoon.');
     });
 
     it('restores currently active view on reload', async () => {
@@ -65,7 +65,7 @@ describe('Session and View State Persistence (Theme Switch & Reload Resilience)'
 
         const parsed = JSON.parse(stored);
         expect(parsed.currentQuestionIndex).toBe(1);
-        expect(parsed.sessionAnswers.length).toBe(1);
+        expect(parsed.checkinAnswers.length).toBe(1);
     });
 
     it('persists view in sessionStorage when navigateTo is called', async () => {
@@ -76,21 +76,21 @@ describe('Session and View State Persistence (Theme Switch & Reload Resilience)'
         expect(windowInstance.sessionStorage.getItem('high_and_low_active_view')).toBe('history-canvas');
     });
 
-    it('clears active session in sessionStorage when check-in is finalized', async () => {
+    it('clears active check-in in sessionStorage when check-in is finalized', async () => {
         await initializeTestEnvironment();
 
-        windowInstance.finalizeSession();
+        windowInstance.finalizeCheckin();
         await sleep(50);
 
         expect(windowInstance.sessionStorage.getItem('high_and_low_active_checkin')).toBeNull();
     });
 
-    it('clears active session in sessionStorage when startNewCheckIn is called', async () => {
+    it('clears active check-in in sessionStorage when startNewCheckIn is called', async () => {
         await initializeTestEnvironment({
             'high_and_low_active_checkin': JSON.stringify({
                 currentQuestionIndex: 1,
-                sessionAnswers: [{ questionId: 'q_energy', score: 3, status: 'answered' }],
-                sessionNote: null,
+                checkinAnswers: [{ questionId: 'q_energy', score: 3, status: 'answered' }],
+                checkinNote: null,
                 updatedAt: Date.now()
             })
         });
@@ -101,26 +101,26 @@ describe('Session and View State Persistence (Theme Switch & Reload Resilience)'
         expect(windowInstance.STATE.currentQuestionIndex).toBe(0);
     });
 
-    it('discards stale session if older than 30 minutes (30m TTL expiry)', async () => {
+    it('discards stale check-in if older than 30 minutes (30m TTL expiry)', async () => {
         const thirtyOneMinutesAgo = Date.now() - (31 * 60 * 1000);
         await initializeTestEnvironment({
             'high_and_low_active_checkin': JSON.stringify({
                 currentQuestionIndex: 2,
-                sessionAnswers: [
+                checkinAnswers: [
                     { questionId: 'q_energy', score: 4, status: 'answered' },
                     { questionId: 'q_sadness', score: 1, status: 'answered' }
                 ],
-                sessionNote: 'Old stale note',
+                checkinNote: 'Old stale note',
                 updatedAt: thirtyOneMinutesAgo
             })
         });
 
-        // Should have reset to Question 1 because the session timed out
+        // Should have reset to Question 1 because the check-in timed out
         const progressText = documentInstance.getElementById('progress-text');
         expect(progressText.textContent).toContain('Question 1 of');
         expect(windowInstance.STATE.currentQuestionIndex).toBe(0);
-        expect(windowInstance.STATE.sessionAnswers.length).toBe(0);
-        expect(windowInstance.STATE.sessionNote).toBeNull();
+        expect(windowInstance.STATE.checkinAnswers.length).toBe(0);
+        expect(windowInstance.STATE.checkinNote).toBeNull();
         expect(windowInstance.sessionStorage.getItem('high_and_low_active_checkin')).toBeNull();
     });
 });

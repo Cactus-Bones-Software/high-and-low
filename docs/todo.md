@@ -120,7 +120,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 
 - [ ] **Task 3.10: Drawer "Restart Check-In" Action**
   - Add a "Restart Check-In" / "Start Over" action within the navigation side drawer to allow users to reset their in-progress check-in back to Question 1 without cluttering the main tracker canvas.
-  - Clear active session storage, reset state to Question 1, update tracker view, and close the drawer cleanly.
+  - Clear active check-in storage, reset state to Question 1, update tracker view, and close the drawer cleanly.
 
 ---
 

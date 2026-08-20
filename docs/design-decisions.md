@@ -34,12 +34,12 @@ Locked design decisions and open questions for High & Low (menu, questions store
 
 - **Intra-Day & Multi-Log Check-Ins:** Patients often need to record mood check-ins multiple times per day (e.g., morning/evening or during acute symptom spikes). The application fully supports multiple logs per day:
   - **Time-Scaled History Graph:** The history timeline X-axis is chronologically continuous, scaling proportional to the real elapsed time between records (`(t - t_min) / (t_max - t_min)`). Spaced check-ins reflect real elapsed time rather than arbitrary discrete indices. Ticks and tooltips adaptively surface hours/minutes when logs share the same day or when viewing short-range histories.
-  - **Zero-Reload Continuous Check-In Workflow:** The completion screen surfaces a primary "Record Another Check-In" action, and navigating to the Mood Tracker from the drawer or secondary views automatically starts a fresh check-in if the previous session was completed. Users never need to reload the page or restart the PWA to log again.
+  - **Zero-Reload Continuous Check-In Workflow:** The completion screen surfaces a primary "Record Another Check-In" action, and navigating to the Mood Tracker from the drawer or secondary views automatically starts a fresh check-in if the previous check-in was completed. Users never need to reload the page or restart the PWA to log again.
 
 ## Locked decisions (as of 2026-08-18)
 
-- **Session Persistence & Stale Expiry:**
-  - Active check-in progress (current question index, session answers, attached session note) and current view state are persisted in `sessionStorage` with a 30-minute inactivity TTL timeout.
+- **Check-in Persistence & Stale Expiry:**
+  - Active check-in progress (current question index, check-in answers, attached check-in note) and current view state are persisted in `sessionStorage` with a 30-minute inactivity TTL timeout.
   - This protects in-progress logs from accidental page reloads, theme switches, and mobile memory reclamation while ensuring that quitting/closing the app or leaving a check-in idle for >30 minutes reliably starts clean on Question 1 of the Tracker canvas.
 - **Drawer "Start Over / Restart Check-In" Placement:**
   - The "Start Over" action will be housed inside the navigation side drawer rather than on the main tracker canvas.

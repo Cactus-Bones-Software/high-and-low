@@ -7,51 +7,51 @@
 const STATE = {
     activeQuestions: [],
     currentQuestionIndex: 0,
-    sessionAnswers: [],
-    sessionNote: null,
+    checkinAnswers: [],
+    checkinNote: null,
     deviceMode: 'mouse',
     historyVisibleQuestionIds: null
 };
 
-const SESSION_STORAGE_KEY = 'high_and_low_active_checkin';
+const CHECKIN_STORAGE_KEY = 'high_and_low_active_checkin';
 const VIEW_STORAGE_KEY = 'high_and_low_active_view';
-const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30-minute timeout for stale sessions
+const CHECKIN_TIMEOUT_MS = 30 * 60 * 1000; // 30-minute timeout for stale check-ins
 
-function saveActiveSession() {
+function saveActiveCheckin() {
     try {
         const payload = {
             currentQuestionIndex: STATE.currentQuestionIndex,
-            sessionAnswers: STATE.sessionAnswers,
-            sessionNote: STATE.sessionNote,
+            checkinAnswers: STATE.checkinAnswers,
+            checkinNote: STATE.checkinNote,
             updatedAt: Date.now()
         };
-        sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(payload));
+        sessionStorage.setItem(CHECKIN_STORAGE_KEY, JSON.stringify(payload));
     } catch (_) {}
 }
 
-function clearActiveSession() {
+function clearActiveCheckin() {
     try {
-        sessionStorage.removeItem(SESSION_STORAGE_KEY);
+        sessionStorage.removeItem(CHECKIN_STORAGE_KEY);
     } catch (_) {}
 }
 
-function restoreActiveSession() {
+function restoreActiveCheckin() {
     try {
-        const rawSession = sessionStorage.getItem(SESSION_STORAGE_KEY);
-        if (!rawSession) return false;
-        const parsedSession = JSON.parse(rawSession);
-        if (parsedSession && typeof parsedSession.currentQuestionIndex === 'number' && Array.isArray(parsedSession.sessionAnswers)) {
+        const rawCheckin = sessionStorage.getItem(CHECKIN_STORAGE_KEY);
+        if (!rawCheckin) return false;
+        const parsedCheckin = JSON.parse(rawCheckin);
+        if (parsedCheckin && typeof parsedCheckin.currentQuestionIndex === 'number' && Array.isArray(parsedCheckin.checkinAnswers)) {
             // Expire if inactive for > 30 minutes
-            if (typeof parsedSession.updatedAt === 'number') {
-                const elapsedMilliseconds = Date.now() - parsedSession.updatedAt;
-                if (elapsedMilliseconds > SESSION_TIMEOUT_MS) {
-                    clearActiveSession();
+            if (typeof parsedCheckin.updatedAt === 'number') {
+                const elapsedMilliseconds = Date.now() - parsedCheckin.updatedAt;
+                if (elapsedMilliseconds > CHECKIN_TIMEOUT_MS) {
+                    clearActiveCheckin();
                     return false;
                 }
             }
-            STATE.currentQuestionIndex = parsedSession.currentQuestionIndex;
-            STATE.sessionAnswers = parsedSession.sessionAnswers;
-            STATE.sessionNote = parsedSession.sessionNote || null;
+            STATE.currentQuestionIndex = parsedCheckin.currentQuestionIndex;
+            STATE.checkinAnswers = parsedCheckin.checkinAnswers;
+            STATE.checkinNote = parsedCheckin.checkinNote || null;
             return true;
         }
     } catch (_) {}
@@ -122,8 +122,8 @@ function initDatabase() {
             if (!upgradeDb.objectStoreNames.contains('config')) {
                 upgradeDb.createObjectStore('config', { keyPath: 'key' });
             }
-            if (!upgradeDb.objectStoreNames.contains('logs')) {
-                upgradeDb.createObjectStore('logs', { keyPath: 'timestamp' });
+            if (!upgradeDb.objectStoreNames.contains('entries')) {
+                upgradeDb.createObjectStore('entries', { keyPath: 'timestamp' });
             }
             if (!upgradeDb.objectStoreNames.contains('questions')) {
                 upgradeDb.createObjectStore('questions', { keyPath: 'id' });
@@ -182,7 +182,7 @@ function fnv1a32(inputString) {
 // Custom (user-authored) question ids are prefixed 'c_' so a raw export is
 // human-scannable against the built-in 'q_' slugs. The id is frozen at creation
 // from the original text; later edits to display text never change it, so
-// historical logs never orphan.
+// historical entries never orphan.
 function makeCustomId(text) {
     return 'c_' + fnv1a32(normalizeQuestionText(text));
 }
@@ -328,7 +328,7 @@ function renderCurrentQuestion() {
     const currentQuestion = STATE.activeQuestions[STATE.currentQuestionIndex];
 
     if (!currentQuestion) {
-        finalizeSession();
+        finalizeCheckin();
         return;
     }
 
@@ -359,9 +359,9 @@ function safeRAF(callback) {
 }
 
 function handleScoreSubmission(questionId, score) {
-    STATE.sessionAnswers.push({ questionId, score, status: 'answered' });
+    STATE.checkinAnswers.push({ questionId, score, status: 'answered' });
     STATE.currentQuestionIndex++;
-    saveActiveSession();
+    saveActiveCheckin();
 
     const headerBox = document.getElementById('header-box');
     const inputBox = document.getElementById('input-box');
@@ -399,10 +399,10 @@ function handleScoreSubmission(questionId, score) {
 }
 
 function startNewCheckIn() {
-    clearActiveSession();
+    clearActiveCheckin();
     STATE.currentQuestionIndex = 0;
-    STATE.sessionAnswers = [];
-    STATE.sessionNote = null;
+    STATE.checkinAnswers = [];
+    STATE.checkinNote = null;
     updateNotesButtonLabel();
 
     const completionView = document.getElementById('completion-view');
@@ -425,25 +425,25 @@ function startNewCheckIn() {
     });
 }
 
-function finalizeSession() {
-    clearActiveSession();
-    const answeredIds = new Set(STATE.sessionAnswers.map(answer => answer.questionId));
+function finalizeCheckin() {
+    clearActiveCheckin();
+    const answeredIds = new Set(STATE.checkinAnswers.map(answer => answer.questionId));
     STATE.activeQuestions.forEach(question => {
         if (!answeredIds.has(question.id)) {
-            STATE.sessionAnswers.push({ questionId: question.id, score: null, status: 'skipped' });
+            STATE.checkinAnswers.push({ questionId: question.id, score: null, status: 'skipped' });
         }
     });
 
     const now = new Date();
-    const logEntry = {
+    const checkinEntry = {
         timestamp: now.toISOString(),
         dateString: now.toISOString().split('T')[0],
-        note: STATE.sessionNote || null,
-        answers: STATE.sessionAnswers
+        note: STATE.checkinNote || null,
+        answers: STATE.checkinAnswers
     };
 
-    const transaction = db.transaction(['logs'], 'readwrite');
-    transaction.objectStore('logs').add(logEntry);
+    const transaction = db.transaction(['entries'], 'readwrite');
+    transaction.objectStore('entries').add(checkinEntry);
 
     transaction.oncomplete = () => {
         const progressElement = document.getElementById('progress-text');
@@ -473,10 +473,10 @@ function finalizeSession() {
     };
 }
 
-// --- 4. DATA LOG MANAGEMENT (JSON INTERFACE) ---
+// --- 4. DATA ENTRY MANAGEMENT (JSON INTERFACE) ---
 function exportAllDataAndConfig() {
-    const backupData = { exportVersion: "2.0", exportTimestamp: new Date().toISOString(), config: [], questions: [], logs: [] };
-    const transaction = db.transaction(['config', 'questions', 'logs'], 'readonly');
+    const backupData = { exportVersion: "2.0", exportTimestamp: new Date().toISOString(), config: [], questions: [], entries: [] };
+    const transaction = db.transaction(['config', 'questions', 'entries'], 'readonly');
 
     transaction.objectStore('config').openCursor().onsuccess = (event) => {
         const cursor = event.target.result;
@@ -486,9 +486,9 @@ function exportAllDataAndConfig() {
         const cursor = event.target.result;
         if (cursor) { backupData.questions.push(cursor.value); cursor.continue(); }
     };
-    transaction.objectStore('logs').openCursor().onsuccess = (event) => {
+    transaction.objectStore('entries').openCursor().onsuccess = (event) => {
         const cursor = event.target.result;
-        if (cursor) { backupData.logs.push(cursor.value); cursor.continue(); }
+        if (cursor) { backupData.entries.push(cursor.value); cursor.continue(); }
     };
     transaction.oncomplete = () => {
         const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
@@ -514,28 +514,28 @@ function handleFileImport(file, mode) {
         }
         try {
             const importedData = JSON.parse(result);
-            if (!importedData.logs || !importedData.config) {
-                showNoticeDialog('Invalid Backup File', 'The selected file is missing required blueprint structure (logs or configuration).', 'file-import');
+            if (!importedData.entries || !importedData.config) {
+                showNoticeDialog('Invalid Backup File', 'The selected file is missing required blueprint structure (entries or configuration).', 'file-import');
                 return;
             }
             const importedQuestions = Array.isArray(importedData.questions) ? importedData.questions : [];
 
-            const transaction = db.transaction(['config', 'questions', 'logs'], 'readwrite');
+            const transaction = db.transaction(['config', 'questions', 'entries'], 'readwrite');
             const configStore = transaction.objectStore('config');
             const questionStore = transaction.objectStore('questions');
-            const logStore = transaction.objectStore('logs');
+            const entryStore = transaction.objectStore('entries');
 
             if (mode === 'replace') {
                 configStore.clear();
                 questionStore.clear();
-                logStore.clear();
+                entryStore.clear();
                 importedData.config.forEach(configItem => configStore.add(configItem));
                 importedQuestions.forEach(questionItem => questionStore.add(questionItem));
-                importedData.logs.forEach(logItem => logStore.add(logItem));
+                importedData.entries.forEach(entryItem => entryStore.add(entryItem));
             } else {
                 importedData.config.forEach(configItem => configStore.put(configItem));
                 importedQuestions.forEach(questionItem => mergeQuestionWithConflictCheck(questionStore, questionItem));
-                importedData.logs.forEach(logItem => safelyAddLogWithCollisionCheck(logStore, logItem));
+                importedData.entries.forEach(entryItem => safelyAddEntryWithCollisionCheck(entryStore, entryItem));
             }
             transaction.oncomplete = () => window.location.reload();
         } catch (error) {
@@ -560,30 +560,30 @@ function mergeQuestionWithConflictCheck(store, incoming) {
     };
 }
 
-function safelyAddLogWithCollisionCheck(store, incomingLog, attempt = 0) {
+function safelyAddEntryWithCollisionCheck(store, incomingEntry, attempt = 0) {
     const MAX_COLLISION_ATTEMPTS = 1000;
-    const getRequest = store.get(incomingLog.timestamp);
+    const getRequest = store.get(incomingEntry.timestamp);
     getRequest.onsuccess = (event) => {
         const existingRecord = event.target.result;
         if (existingRecord) {
-            if (areLogAnswersIdentical(existingRecord.answers, incomingLog.answers)) return;
+            if (areEntryAnswersIdentical(existingRecord.answers, incomingEntry.answers)) return;
 
             if (attempt >= MAX_COLLISION_ATTEMPTS) {
-                console.error('safelyAddLogWithCollisionCheck: could not resolve a free timestamp key after', MAX_COLLISION_ATTEMPTS, 'attempts near', incomingLog.timestamp, '- log NOT imported:', incomingLog);
+                console.error('safelyAddEntryWithCollisionCheck: could not resolve a free timestamp key after', MAX_COLLISION_ATTEMPTS, 'attempts near', incomingEntry.timestamp, '- entry NOT imported:', incomingEntry);
                 return;
             }
 
-            const dateObject = new Date(incomingLog.timestamp);
+            const dateObject = new Date(incomingEntry.timestamp);
             dateObject.setUTCMilliseconds(dateObject.getUTCMilliseconds() + 1);
-            incomingLog.timestamp = dateObject.toISOString();
-            safelyAddLogWithCollisionCheck(store, incomingLog, attempt + 1);
+            incomingEntry.timestamp = dateObject.toISOString();
+            safelyAddEntryWithCollisionCheck(store, incomingEntry, attempt + 1);
         } else {
-            store.add(incomingLog);
+            store.add(incomingEntry);
         }
     };
 }
 
-function areLogAnswersIdentical(answersA, answersB) {
+function areEntryAnswersIdentical(answersA, answersB) {
     if (answersA.length !== answersB.length) return false;
     const sortFunction = (firstAnswer, secondAnswer) => firstAnswer.questionId > secondAnswer.questionId ? 1 : -1;
     const sortedAnswersA = [...answersA].sort(sortFunction);
@@ -695,7 +695,7 @@ function executeHoldAction(id) {
     setTimeout(() => { isExecutingAction = false; }, 300);
 
     if (id === 'button-skip') {
-        finalizeSession();
+        finalizeCheckin();
     } else if (id === 'button-notes') {
         openNotesDialog();
     } else if (id === 'button-note-cancel') {
@@ -830,7 +830,7 @@ function openNotesDialog() {
     const input = document.getElementById('checkin-note-input');
     if (!overlay || !input) return;
 
-    input.value = STATE.sessionNote || '';
+    input.value = STATE.checkinNote || '';
     overlay.removeAttribute('inert');
     overlay.setAttribute('aria-hidden', 'false');
     overlay.classList.add('is-open');
@@ -863,9 +863,9 @@ function saveNotesFromDialog() {
     const input = document.getElementById('checkin-note-input');
     if (input) {
         const note = input.value.trim();
-        STATE.sessionNote = note.length > 0 ? note : null;
+        STATE.checkinNote = note.length > 0 ? note : null;
         updateNotesButtonLabel();
-        saveActiveSession();
+        saveActiveCheckin();
     }
     closeNotesDialog();
 }
@@ -896,7 +896,7 @@ function updateNotesButtonLabel() {
     if (!notesButton) return;
     const labelSpan = notesButton.querySelector('.button-label');
     if (labelSpan) {
-        labelSpan.textContent = STATE.sessionNote ? 'Note Attached ✓' : 'Add Note';
+        labelSpan.textContent = STATE.checkinNote ? 'Note Attached ✓' : 'Add Note';
     }
     updateHoldActionAriaLabels();
 }
@@ -908,7 +908,7 @@ function updateHoldActionAriaLabels() {
     }
     const notesButton = document.getElementById('button-notes');
     if (notesButton) {
-        const noteStateText = STATE.sessionNote ? 'Note Attached' : 'Add custom note';
+        const noteStateText = STATE.checkinNote ? 'Note Attached' : 'Add custom note';
         notesButton.setAttribute('aria-label', isHoldDelayEnabled ? `${noteStateText} (Hold to confirm)` : noteStateText);
     }
 }
@@ -1151,8 +1151,8 @@ async function loadHistoryView() {
     if (!container) return;
 
     try {
-        const [logs, questions, activeSet] = await Promise.all([
-            getAll('logs'),
+        const [entries, questions, activeSet] = await Promise.all([
+            getAll('entries'),
             getAll('questions'),
             getConfig('activeQuestionSet')
         ]);
@@ -1161,10 +1161,10 @@ async function loadHistoryView() {
         const activeIds = Array.isArray(activeSet) ? activeSet : DEFAULT_ACTIVE_SET;
         const activeQuestions = activeIds.map(id => questionsById.get(id)).filter(question => question && !question.archived);
 
-        const sortedLogs = (logs || []).slice().sort((firstLog, secondLog) => new Date(firstLog.timestamp) - new Date(secondLog.timestamp));
+        const sortedEntries = (entries || []).slice().sort((firstEntry, secondEntry) => new Date(firstEntry.timestamp) - new Date(secondEntry.timestamp));
 
         STATE.historyData = {
-            logs: sortedLogs,
+            entries: sortedEntries,
             questions: activeQuestions,
             allQuestionsMap: questionsById
         };
@@ -1185,7 +1185,7 @@ function escapeHTML(stringToEscape) {
         .replace(/'/g, '&#039;');
 }
 
-function formatLogDateTime(isoString) {
+function formatEntryDateTime(isoString) {
     if (!isoString) return '';
     try {
         const date = new Date(isoString);
@@ -1224,10 +1224,10 @@ function formatTickDate(timeMilliseconds, isShortRange) {
     }
 }
 
-function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}) {
+function renderLineGraph(container, { entries, questions, visibleQuestionIds } = {}) {
     if (!container) return;
 
-    if (!logs || logs.length === 0) {
+    if (!entries || entries.length === 0) {
         container.innerHTML = `
             <h3>Mood Timeline</h3>
             <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 12px; line-height: 1.5; text-align: center;">
@@ -1279,20 +1279,20 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
 
     const skipBaselineY = height - paddingBottom + 18;
 
-    const logCount = logs.length;
-    const logTimes = logs.map(log => {
-        const time = new Date(log.timestamp).getTime();
+    const entryCount = entries.length;
+    const entryTimes = entries.map(entry => {
+        const time = new Date(entry.timestamp).getTime();
         return isNaN(time) ? 0 : time;
     });
 
-    const minTime = logTimes[0];
-    const maxTime = logTimes[logCount - 1];
+    const minTime = entryTimes[0];
+    const maxTime = entryTimes[entryCount - 1];
     const timeDuration = maxTime - minTime;
 
     function getX(index) {
-        if (logCount === 1) return paddingLeft + chartWidth / 2;
-        if (timeDuration <= 0) return paddingLeft + (index / (logCount - 1)) * chartWidth;
-        const ratio = (logTimes[index] - minTime) / timeDuration;
+        if (entryCount === 1) return paddingLeft + chartWidth / 2;
+        if (timeDuration <= 0) return paddingLeft + (index / (entryCount - 1)) * chartWidth;
+        const ratio = (entryTimes[index] - minTime) / timeDuration;
         return paddingLeft + ratio * chartWidth;
     }
 
@@ -1314,7 +1314,7 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
 
     // Time-Scaled X-Axis Gridlines & Tick Labels
     let xAxisHTML = '';
-    if (logCount === 1) {
+    if (entryCount === 1) {
         const xPosition = paddingLeft + chartWidth / 2;
         const dateString = formatTickDate(minTime, true);
         xAxisHTML += `
@@ -1322,9 +1322,9 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
             <text x="${xPosition}" y="${height - 12}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${dateString}</text>
         `;
     } else if (timeDuration <= 0) {
-        logs.forEach((log, logIndex) => {
-            const xPosition = getX(logIndex);
-            const dateString = formatTickDate(logTimes[logIndex], true);
+        entries.forEach((entry, entryIndex) => {
+            const xPosition = getX(entryIndex);
+            const dateString = formatTickDate(entryTimes[entryIndex], true);
             xAxisHTML += `
                 <line x1="${xPosition}" y1="${paddingTop}" x2="${xPosition}" y2="${height - paddingBottom}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2,2" opacity="0.4" />
                 <text x="${xPosition}" y="${height - 12}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${dateString}</text>
@@ -1332,7 +1332,7 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
         });
     } else {
         const isShortRange = timeDuration <= 36 * 3600 * 1000;
-        const numTicks = Math.min(6, Math.max(3, logCount));
+        const numTicks = Math.min(6, Math.max(3, entryCount));
         for (let tickIndex = 0; tickIndex < numTicks; tickIndex++) {
             const tickTime = minTime + (tickIndex / (numTicks - 1)) * timeDuration;
             const xPosition = paddingLeft + (tickIndex / (numTicks - 1)) * chartWidth;
@@ -1385,15 +1385,15 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
         const segments = [];
         let currentSegment = [];
 
-        logs.forEach((log, logIndex) => {
-            const answer = (log.answers || []).find(answerItem => answerItem.questionId === question.id);
+        entries.forEach((entry, entryIndex) => {
+            const answer = (entry.answers || []).find(answerItem => answerItem.questionId === question.id);
             const isAnswered = answer && answer.status === 'answered' && answer.score !== null && answer.score >= 1 && answer.score <= 5;
             const isSkipped = answer && (answer.status === 'skipped' || answer.score === null);
 
             if (isAnswered) {
-                const x = getX(logIndex);
+                const x = getX(entryIndex);
                 const y = getY(answer.score);
-                currentSegment.push({ x, y, score: answer.score, logIndex, timestamp: log.timestamp });
+                currentSegment.push({ x, y, score: answer.score, entryIndex: entryIndex, timestamp: entry.timestamp });
             } else {
                 if (currentSegment.length > 0) {
                     segments.push(currentSegment);
@@ -1401,11 +1401,11 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
                 }
 
                 if (isSkipped) {
-                    const rawXPosition = getX(logIndex);
-                    const fannedXPosition = (logCount === 1 || questions.length === 1)
+                    const rawXPosition = getX(entryIndex);
+                    const fannedXPosition = (entryCount === 1 || questions.length === 1)
                         ? rawXPosition
                         : rawXPosition + (questionIndex - (questions.length - 1) / 2) * 6;
-                    const dateString = formatLogDateTime(log.timestamp);
+                    const dateString = formatEntryDateTime(entry.timestamp);
                     skipsHTML += `
                         <g class="skip-marker" aria-label="${questionTitle}: Skipped (${dateString})">
                             <title>${questionTitle}: Skipped (${dateString})</title>
@@ -1435,7 +1435,7 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
 
             // Draw data point circles with accessible tooltips
             segment.forEach(point => {
-                const dateString = formatLogDateTime(point.timestamp);
+                const dateString = formatEntryDateTime(point.timestamp);
                 pointsHTML += `
                     <circle cx="${point.x}" cy="${point.y}" r="4" fill="${color}" stroke="var(--box-bg)" stroke-width="1.5" aria-label="${questionTitle}: Score ${point.score} (${dateString})">
                         <title>${questionTitle}: Score ${point.score}/5 (${dateString})</title>
@@ -1505,7 +1505,7 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
             const allQuestionIds = questions.map(question => question.id);
             currentVisibleSet = new Set(allQuestionIds);
             STATE.historyVisibleQuestionIds = currentVisibleSet;
-            renderLineGraph(container, { logs, questions, visibleQuestionIds: currentVisibleSet });
+            renderLineGraph(container, { entries: entries, questions, visibleQuestionIds: currentVisibleSet });
         });
     }
 
@@ -1514,7 +1514,7 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
         clearAllButton.addEventListener('click', () => {
             currentVisibleSet = new Set();
             STATE.historyVisibleQuestionIds = currentVisibleSet;
-            renderLineGraph(container, { logs, questions, visibleQuestionIds: currentVisibleSet });
+            renderLineGraph(container, { entries: entries, questions, visibleQuestionIds: currentVisibleSet });
         });
     }
 
@@ -1549,7 +1549,7 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
             if (navigator.vibrate) {
                 try { navigator.vibrate(40); } catch (_) {}
             }
-            renderLineGraph(container, { logs, questions, visibleQuestionIds: currentVisibleSet });
+            renderLineGraph(container, { entries: entries, questions, visibleQuestionIds: currentVisibleSet });
         }
 
         legendElement.addEventListener('pointerdown', (event) => {
@@ -1628,7 +1628,7 @@ function renderLineGraph(container, { logs, questions, visibleQuestionIds } = {}
             }
 
             STATE.historyVisibleQuestionIds = currentVisibleSet;
-            renderLineGraph(container, { logs, questions, visibleQuestionIds: currentVisibleSet });
+            renderLineGraph(container, { entries: entries, questions, visibleQuestionIds: currentVisibleSet });
         });
     }
 }
@@ -2041,7 +2041,7 @@ function initApp() {
         .then(seedDefaults)
         .then(() => Promise.all([applyStoredDisplay(), loadActiveQuestions()]))
         .then(() => {
-            restoreActiveSession();
+            restoreActiveCheckin();
             updateNotesButtonLabel();
 
             if (STATE.currentQuestionIndex >= STATE.activeQuestions.length && STATE.activeQuestions.length > 0) {
@@ -2075,7 +2075,7 @@ function initApp() {
                 window.startNewCheckIn = startNewCheckIn;
                 window.renderLineGraph = renderLineGraph;
                 window.navigateTo = navigateTo;
-                window.finalizeSession = finalizeSession;
+                window.finalizeCheckin = finalizeCheckin;
                 window.STATE = STATE;
             }
 
@@ -2105,7 +2105,7 @@ if (typeof window !== 'undefined') {
     window.startNewCheckIn = startNewCheckIn;
     window.renderLineGraph = renderLineGraph;
     window.navigateTo = navigateTo;
-    window.finalizeSession = finalizeSession;
+    window.finalizeCheckin = finalizeCheckin;
     window.STATE = STATE;
 }
 

@@ -143,19 +143,19 @@ describe('Task 2.11: Suppress Transitions on Initial Load & Page Refreshes', () 
         expect(historyCanvas.classList.contains('question-transition-in')).toBe(false);
     });
 
-    it('3. Restoring active session on load renders in-progress question immediately without triggering question transition animations', async () => {
-        const savedSession = {
+    it('3. Restoring active check-in on load renders in-progress question immediately without triggering question transition animations', async () => {
+        const savedCheckin = {
             currentQuestionIndex: 2,
-            sessionAnswers: [
+            checkinAnswers: [
                 { questionId: 'q_energy', score: 4, status: 'answered' },
                 { questionId: 'q_sadness', score: 2, status: 'answered' }
             ],
-            sessionNote: null,
+            checkinNote: null,
             updatedAt: Date.now()
         };
 
         const environment = await setupTestDOM({
-            'high_and_low_active_checkin': JSON.stringify(savedSession)
+            'high_and_low_active_checkin': JSON.stringify(savedCheckin)
         });
         const document = environment.document;
 
@@ -165,7 +165,7 @@ describe('Task 2.11: Suppress Transitions on Initial Load & Page Refreshes', () 
 
         expect(progressElement.textContent).toContain('Question 3 of');
 
-        // Question transition classes MUST NOT be applied during session restore
+        // Question transition classes MUST NOT be applied during check-in restore
         expect(headerBox.classList.contains('question-transition-out')).toBe(false);
         expect(headerBox.classList.contains('question-transition-enter')).toBe(false);
         expect(headerBox.classList.contains('question-transition-in')).toBe(false);
