@@ -6,12 +6,12 @@ Locked design decisions and open questions for High & Low (menu, questions store
 
 - **Navigation:** Retire the double-tap-header settings gesture. Originally a top-right hamburger menu, now enhanced to support user-configurable handedness (`right` default / `left`).
 - **Two workflows:** low-energy (daily/semi-daily) = the tracker canvas is the home screen, just answer the active question set; high-energy (occasional) = everything behind the menu: question library, custom-question authoring, analytics/line graph, backup/restore, settings. The bridge is an **"active question set"** persisted to `config.activeQuestionSet`.
-- **Questions store:** IndexedDB `questions` store (DB_VERSION 2). Keyed by an **immutable `id`**: built-ins get readable slugs (`q_energy`); custom questions get `c_` + FNV-1a-32 hex of normalized `originalText` (sync, dependency-free; content-addressing self-dedupes identical questions on merge). ID is FROZEN at creation — editing display `text` never changes the id, so edits don't orphan logs. **Never hard-delete a question — `archived: true` instead**, so historical logs always resolve. Fields: `id`, `originalText` (frozen), `text` (editable), `shortLabel`, `tags`, `curve`, `minLabel`, `maxLabel`, `midLabel`, `builtIn`, `archived`, `createdAt`, `updatedAt`.
+- **Questions store:** IndexedDB `questions` store (DB_VERSION 2). Keyed by an **immutable `id`**: built-ins get readable slugs (`q_energy`); custom questions get `c_` + FNV-1a-32 hex of normalized `originalText` (sync, dependency-free; content-addressing self-dedupes identical questions on merge). ID is FROZEN at creation — editing display `text` never changes the id, so edits don't orphan entries. **Never hard-delete a question — `archived: true` instead**, so historical entries always resolve. Fields: `id`, `originalText` (frozen), `text` (editable), `shortLabel`, `tags`, `curve`, `minLabel`, `maxLabel`, `midLabel`, `builtIn`, `archived`, `createdAt`, `updatedAt`.
   - **`originalText` is deliberately retained as the collision-audit / content-verification anchor** (decided 2026-07-16). Because the id is a lossy one-way FNV-1a-32 hash you cannot reconstruct the text from `c_<hash>`, so `originalText` is the only thing that keeps the id genuinely *content-addressed*: recompute `makeCustomId(originalText)` to confirm id integrity, and on a backup merge distinguish a legitimate display-`text` edit (same `originalText` → newest `updatedAt` wins) from a genuine 32-bit hash collision on two different questions (different `originalText` → must NOT be silently merged).
 - **Curves:** `middle-is-best` curve is IN scope (deep blue → emerald → fire orange). Needs JS mapping, CSS (alongside `more-is-better` and `less-is-better`), and a `midLabel` shown on score 3.
 - **No magic numbers for missing data (confirmed).** score stays 1–5 for real answers. Three states: answered = record with score 1–5 + `status:"answered"`; presented-but-skipped = record with `score:null` + `status:"skipped"`; not-asked/didn't-exist = NO record (absence). Never 0/-1 in the score field — it poisons the graph.
-- **Notes are a `note` field on the log**, not a fake `custom_note` answer (retire the old `score:0` note hack).
-- **Export dumps all three stores entire** (config + questions incl. archived + logs). Bump exportVersion→"2.0". Only merge conflict: same id, different text (an edit) → newest `updatedAt` wins.
+- **Notes are a `note` field on the entry**, not a fake `custom_note` answer (retire the old `score:0` note hack).
+- **Export dumps all three stores entire** (config + questions incl. archived + entries). Bump exportVersion→"2.0". Only merge conflict: same id, different text (an edit) → newest `updatedAt` wins.
 - **`config` formalized:** `activeQuestionSet` (ordered id list), `theme`, `contrast`, `handedness`, `seedVersion` (drives adding new built-in defaults on app refresh without touching the user's set).
 
 ## Locked decisions (as of 2026-08-06)
@@ -32,15 +32,15 @@ Locked design decisions and open questions for High & Low (menu, questions store
 
 ## Locked decisions (as of 2026-08-14)
 
-- **Intra-Day & Multi-Log Check-Ins:** Patients often need to record mood check-ins multiple times per day (e.g., morning/evening or during acute symptom spikes). The application fully supports multiple logs per day:
-  - **Time-Scaled History Graph:** The history timeline X-axis is chronologically continuous, scaling proportional to the real elapsed time between records (`(t - t_min) / (t_max - t_min)`). Spaced check-ins reflect real elapsed time rather than arbitrary discrete indices. Ticks and tooltips adaptively surface hours/minutes when logs share the same day or when viewing short-range histories.
+- **Intra-Day & Multi-Entry Check-Ins:** Patients often need to record mood check-ins multiple times per day (e.g., morning/evening or during acute symptom spikes). The application fully supports multiple entries per day:
+  - **Time-Scaled History Graph:** The history timeline X-axis is chronologically continuous, scaling proportional to the real elapsed time between records (`(t - t_min) / (t_max - t_min)`). Spaced check-ins reflect real elapsed time rather than arbitrary discrete indices. Ticks and tooltips adaptively surface hours/minutes when entries share the same day or when viewing short-range histories.
   - **Zero-Reload Continuous Check-In Workflow:** The completion screen surfaces a primary "Record Another Check-In" action, and navigating to the Mood Tracker from the drawer or secondary views automatically starts a fresh check-in if the previous check-in was completed. Users never need to reload the page or restart the PWA to log again.
 
 ## Locked decisions (as of 2026-08-18)
 
 - **Check-in Persistence & Stale Expiry:**
   - Active check-in progress (current question index, check-in answers, attached check-in note) and current view state are persisted in `sessionStorage` with a 30-minute inactivity TTL timeout.
-  - This protects in-progress logs from accidental page reloads, theme switches, and mobile memory reclamation while ensuring that quitting/closing the app or leaving a check-in idle for >30 minutes reliably starts clean on Question 1 of the Tracker canvas.
+  - This protects in-progress check-ins from accidental page reloads, theme switches, and mobile memory reclamation while ensuring that quitting/closing the app or leaving a check-in idle for >30 minutes reliably starts clean on Question 1 of the Tracker canvas.
 - **Drawer "Start Over / Restart Check-In" Placement:**
   - The "Start Over" action will be housed inside the navigation side drawer rather than on the main tracker canvas.
   - This avoids visual clutter on the tracker screen and prevents accidental taps during low-energy states, while maintaining a clear, accessible route back to a known initial state.
@@ -53,6 +53,3 @@ Locked design decisions and open questions for High & Low (menu, questions store
   - **UI Copy Consistency:** Standardize completion and prompt messages around Check-In (e.g. "Check-In recorded", "New Check-In"). Retire ambiguous aliases like "Session", "Quiz", "Test", and "Log" in user-facing text.
 
 ## Open Questions
-
-
-
