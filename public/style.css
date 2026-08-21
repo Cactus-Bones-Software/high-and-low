@@ -1367,6 +1367,173 @@ body[data-contrast="high"] .note-marker:focus-visible .note-marker-icon {
 }
 
 /* ==========================================================================
+8b. LANDSCAPE MOBILE & CONSTRAINED-HEIGHT LANDSCAPE ORIENTATION
+========================================================================== */
+@media (orientation: landscape) and (max-height: 600px) {
+    .app-canvas {
+        padding: 10px 14px;
+        gap: 10px;
+    }
+
+    .menu-toggle {
+        top: 10px;
+        right: 12px;
+        width: 40px;
+        height: 40px;
+    }
+
+    body[data-menu-side="left"] .menu-toggle {
+        left: 12px;
+        right: auto;
+    }
+
+    body[data-menu-side="right"] .menu-toggle {
+        right: 12px;
+        left: auto;
+    }
+
+    /* Tracker Canvas: 2-column layout. Left: Header (Question) + Footer (Actions); Right: Input (Score buttons) */
+    #tracker-canvas {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr auto;
+        grid-template-areas:
+            "header input"
+            "footer input";
+        gap: 10px;
+        height: 100%;
+        flex-direction: unset;
+    }
+
+    #tracker-canvas .header-box {
+        grid-area: header;
+        height: 100%;
+        min-height: 0;
+        padding: 12px 16px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+        overflow-y: auto;
+    }
+
+    body[data-menu-side="left"] #tracker-canvas .header-box {
+        padding-left: 48px;
+    }
+
+    #tracker-canvas .header-box .progress-text {
+        font-size: 0.78rem;
+    }
+
+    #tracker-canvas .header-box .question-text {
+        font-size: 1.15rem;
+        line-height: 1.25;
+        margin-top: 4px;
+    }
+
+    #tracker-canvas .footer-box {
+        grid-area: footer;
+        height: auto;
+        flex: unset;
+        flex-direction: row;
+        gap: 8px;
+        padding: 8px 10px;
+        min-height: 0;
+    }
+
+    #tracker-canvas .footer-box .control-button {
+        flex: 1;
+        height: 44px;
+        min-height: 44px;
+        font-size: 0.9rem;
+        width: auto;
+    }
+
+    #tracker-canvas .input-box {
+        grid-area: input;
+        height: 100%;
+        min-height: 0;
+        padding: 8px 12px;
+        overflow-y: auto;
+        flex: unset;
+    }
+
+    body[data-menu-side="right"] #tracker-canvas .input-box {
+        padding-right: 48px;
+    }
+
+    #tracker-canvas .button-stack {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        gap: 6px;
+        justify-content: space-between;
+    }
+
+    #tracker-canvas .score-button {
+        flex: 1;
+        min-height: 36px;
+        padding: 0 12px;
+        border-radius: 10px;
+        font-size: 0.92rem;
+    }
+
+    #tracker-canvas .score-button .num {
+        font-size: 1.25rem;
+        margin-right: 8px;
+    }
+
+    #tracker-canvas .score-button .label-desc {
+        font-size: 0.85rem;
+    }
+
+    #tracker-canvas:has(#footer-box[style*="display: none"]) .header-box {
+        grid-row: 1 / -1;
+    }
+
+    #tracker-canvas .completion-view {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        gap: 10px;
+        padding: 8px;
+        text-align: center;
+    }
+
+    #tracker-canvas .completion-message {
+        font-size: 0.88rem;
+    }
+
+    #tracker-canvas .button-new-checkin {
+        min-height: 44px;
+        font-size: 0.92rem;
+    }
+
+    /* Non-Tracker Views on Landscape Mobile */
+    .view-canvas,
+    .app-canvas:not(#tracker-canvas) {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .view-header-box {
+        flex: 0 0 auto;
+        padding: 8px 14px;
+        min-height: 44px;
+    }
+
+    .view-content-box,
+    .app-canvas:not(#tracker-canvas) .menu-box {
+        flex: 1;
+        padding: 12px 14px;
+        gap: 10px;
+    }
+}
+
+/* ==========================================================================
 9. LAYOUT RIG DEBUG OUTLINES (SANITY CHECK BOUNDARIES)
 ========================================================================== */
 body[data-debug-bounds="true"] .viewport-wrapper { outline: 2px dashed #3b82f6 !important; outline-offset: -2px; }

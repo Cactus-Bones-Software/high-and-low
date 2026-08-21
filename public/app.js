@@ -358,10 +358,28 @@ function safeRAF(callback) {
     return setTimeout(callback, 16);
 }
 
+function clearQuestionTransitions() {
+    const headerBox = document.getElementById('header-box');
+    const inputBox = document.getElementById('input-box');
+    if (headerBox) {
+        headerBox.classList.remove('question-transition-out', 'question-transition-enter', 'question-transition-in');
+    }
+    if (inputBox) {
+        inputBox.classList.remove('question-transition-out', 'question-transition-enter', 'question-transition-in');
+    }
+}
+
 function handleScoreSubmission(questionId, score) {
     STATE.checkinAnswers.push({ questionId, score, status: 'answered' });
     STATE.currentQuestionIndex++;
     saveActiveCheckin();
+
+    // If check-in is complete after this score, finalize cleanly without question advance transition
+    if (STATE.currentQuestionIndex >= STATE.activeQuestions.length) {
+        clearQuestionTransitions();
+        finalizeCheckin();
+        return;
+    }
 
     const headerBox = document.getElementById('header-box');
     const inputBox = document.getElementById('input-box');
@@ -371,13 +389,12 @@ function handleScoreSubmission(questionId, score) {
     if (inputBox) inputBox.classList.add('question-transition-out');
 
     setTimeout(() => {
+        clearQuestionTransitions();
         renderCurrentQuestion();
         if (headerBox) {
-            headerBox.classList.remove('question-transition-out');
             headerBox.classList.add('question-transition-enter');
         }
         if (inputBox) {
-            inputBox.classList.remove('question-transition-out');
             inputBox.classList.add('question-transition-enter');
         }
 
@@ -399,6 +416,7 @@ function handleScoreSubmission(questionId, score) {
 }
 
 function startNewCheckIn() {
+    clearQuestionTransitions();
     clearActiveCheckin();
     STATE.currentQuestionIndex = 0;
     STATE.checkinAnswers = [];
@@ -426,6 +444,7 @@ function startNewCheckIn() {
 }
 
 function finalizeCheckin() {
+    clearQuestionTransitions();
     clearActiveCheckin();
     const answeredIds = new Set(STATE.checkinAnswers.map(answer => answer.questionId));
     STATE.activeQuestions.forEach(question => {
@@ -2119,6 +2138,7 @@ function initApp() {
         .then(() => {
             restoreActiveCheckin();
             updateNotesButtonLabel();
+            clearQuestionTransitions();
 
             if (STATE.currentQuestionIndex >= STATE.activeQuestions.length && STATE.activeQuestions.length > 0) {
                 const buttonStack = document.getElementById('button-stack');

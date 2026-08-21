@@ -6,6 +6,13 @@ let domInstance;
 let windowInstance;
 let documentInstance;
 
+function expectNoTransitionClasses(targetElement) {
+    if (!targetElement) return;
+    expect(targetElement.classList.contains('question-transition-out')).toBe(false);
+    expect(targetElement.classList.contains('question-transition-enter')).toBe(false);
+    expect(targetElement.classList.contains('question-transition-in')).toBe(false);
+}
+
 describe('Task 2.10: Seamless View & Question Transitions Tests', () => {
     beforeEach(async () => {
         const environment = await setupTestDOM();
@@ -168,9 +175,7 @@ describe('Task 2.11: Suppress Transitions on Initial Load & Page Refreshes', () 
         expect(isElementInert(settingsCanvas)).toBe(true);
 
         // No lingering transition or entrance classes
-        expect(historyCanvas.classList.contains('question-transition-out')).toBe(false);
-        expect(historyCanvas.classList.contains('question-transition-enter')).toBe(false);
-        expect(historyCanvas.classList.contains('question-transition-in')).toBe(false);
+        expectNoTransitionClasses(historyCanvas);
     });
 
     it('3. Restoring active check-in on load renders in-progress question immediately without triggering question transition animations', async () => {
@@ -196,13 +201,8 @@ describe('Task 2.11: Suppress Transitions on Initial Load & Page Refreshes', () 
         expect(progressElement.textContent).toContain('Question 3 of');
 
         // Question transition classes MUST NOT be applied during check-in restore
-        expect(headerBox.classList.contains('question-transition-out')).toBe(false);
-        expect(headerBox.classList.contains('question-transition-enter')).toBe(false);
-        expect(headerBox.classList.contains('question-transition-in')).toBe(false);
-
-        expect(inputBox.classList.contains('question-transition-out')).toBe(false);
-        expect(inputBox.classList.contains('question-transition-enter')).toBe(false);
-        expect(inputBox.classList.contains('question-transition-in')).toBe(false);
+        expectNoTransitionClasses(headerBox);
+        expectNoTransitionClasses(inputBox);
     });
 
     it('4. Theme and contrast updates do not trigger view or question transition animations', async () => {
@@ -231,14 +231,32 @@ describe('Task 2.11: Suppress Transitions on Initial Load & Page Refreshes', () 
         expect(document.body.getAttribute('data-contrast')).toBe('high');
 
         // Verify no transition classes were erroneously triggered on boxes or canvases
-        expect(headerBox.classList.contains('question-transition-out')).toBe(false);
-        expect(headerBox.classList.contains('question-transition-enter')).toBe(false);
-        expect(headerBox.classList.contains('question-transition-in')).toBe(false);
-
-        expect(inputBox.classList.contains('question-transition-out')).toBe(false);
-        expect(inputBox.classList.contains('question-transition-enter')).toBe(false);
-        expect(inputBox.classList.contains('question-transition-in')).toBe(false);
+        expectNoTransitionClasses(headerBox);
+        expectNoTransitionClasses(inputBox);
 
         expect(trackerCanvas.classList.contains('view-active')).toBe(true);
+    });
+
+    it('5. Completing check-in clears all question transition classes so content remains visible', async () => {
+        const environment = await setupTestDOM();
+        const document = environment.document;
+
+        const headerBox = document.getElementById('header-box');
+        const inputBox = document.getElementById('input-box');
+        const completionView = document.getElementById('completion-view');
+
+        // Answer all questions sequentially
+        for (let i = 0; i < 5; i++) {
+            const firstScoreButton = document.querySelector('.score-button');
+            if (firstScoreButton) {
+                firstScoreButton.click();
+                await sleep(150);
+            }
+        }
+
+        // Completion view should be visible and transition classes cleanly removed
+        expect(completionView.hidden).toBe(false);
+        expectNoTransitionClasses(headerBox);
+        expectNoTransitionClasses(inputBox);
     });
 });

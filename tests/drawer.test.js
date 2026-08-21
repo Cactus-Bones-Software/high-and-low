@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setupTestDOM, isElementInert } from './test-utils.js';
 
@@ -232,5 +234,26 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
 
         windowInstance.toggleDebugBounds();
         expect(documentInstance.body.getAttribute('data-debug-bounds')).toBe('false');
+    });
+
+    it('10. Landscape Mobile Layout Verification: CSS contains 2-column landscape grid rules and action buttons', () => {
+        const cssContent = readFileSync(resolve(__dirname, '../public/style.css'), 'utf8');
+        expect(cssContent).toContain('@media (orientation: landscape) and (max-height: 600px)');
+        expect(cssContent).toContain('"header input"');
+        expect(cssContent).toContain('"footer input"');
+
+        const trackerCanvas = documentInstance.getElementById('tracker-canvas');
+        const headerBox = documentInstance.getElementById('header-box');
+        const inputBox = documentInstance.getElementById('input-box');
+        const footerBox = documentInstance.getElementById('footer-box');
+        const notesButton = documentInstance.getElementById('button-notes');
+        const skipButton = documentInstance.getElementById('button-skip');
+
+        expect(trackerCanvas).not.toBeNull();
+        expect(headerBox).not.toBeNull();
+        expect(inputBox).not.toBeNull();
+        expect(footerBox).not.toBeNull();
+        expect(notesButton).not.toBeNull();
+        expect(skipButton).not.toBeNull();
     });
 });
