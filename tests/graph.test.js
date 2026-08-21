@@ -587,4 +587,122 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         await sleep(50);
         expect(overlayElement.classList.contains('is-open')).toBe(false);
     });
+
+    it('renders timeframe presets toolbar and filters data points by selected window (Task 3.10)', async () => {
+        const container = documentInstance.createElement('div');
+        const questions = [
+            { id: 'q1', text: 'Overall Mood', shortLabel: 'Mood', curve: 'more-is-better' }
+        ];
+
+        // 5 entries spanning 40 days:
+        // Day 0: 40 days ago
+        // Day 1: 20 days ago
+        // Day 2: 10 days ago
+        // Day 3: 5 days ago
+        // Day 4: today
+        const now = Date.now();
+        const logs = [
+            {
+                timestamp: new Date(now - 40 * 24 * 3600 * 1000).toISOString(),
+                answers: [{ questionId: 'q1', score: 2, status: 'answered' }]
+            },
+            {
+                timestamp: new Date(now - 20 * 24 * 3600 * 1000).toISOString(),
+                answers: [{ questionId: 'q1', score: 3, status: 'answered' }]
+            },
+            {
+                timestamp: new Date(now - 10 * 24 * 3600 * 1000).toISOString(),
+                answers: [{ questionId: 'q1', score: 4, status: 'answered' }]
+            },
+            {
+                timestamp: new Date(now - 5 * 24 * 3600 * 1000).toISOString(),
+                answers: [{ questionId: 'q1', score: 5, status: 'answered' }]
+            },
+            {
+                timestamp: new Date(now).toISOString(),
+                answers: [{ questionId: 'q1', score: 4, status: 'answered' }]
+            }
+        ];
+
+        windowInstance.renderLineGraph(container, { entries: logs, questions });
+
+        // 1. Check timeframe toolbar existence and buttons
+        const toolbar = container.querySelector('.graph-timeframe-toolbar');
+        expect(toolbar).toBeTruthy();
+        const timeframeButtons = Array.from(container.querySelectorAll('.graph-timeframe-button'));
+        expect(timeframeButtons.length).toBe(5);
+        expect(timeframeButtons.map(button => button.dataset.range)).toEqual(['7d', '14d', '30d', '90d', 'all']);
+
+        // Default 'all' range should render all 5 points
+        let points = container.querySelectorAll('svg g.points circle');
+        expect(points.length).toBe(5);
+
+        // 2. Click '7d' button -> Should show Day 3 and Day 4 (2 points within last 7 days)
+        const button7D = container.querySelector('.graph-timeframe-button[data-range="7d"]');
+        button7D.click();
+        await sleep(50);
+
+        points = container.querySelectorAll('svg g.points circle');
+        expect(points.length).toBe(2);
+        expect(container.querySelector('.graph-timeframe-button[data-range="7d"]').classList.contains('is-active')).toBe(true);
+
+        // 3. Click '14d' button -> Should show Day 2, Day 3, and Day 4 (3 points within last 14 days)
+        const button14D = container.querySelector('.graph-timeframe-button[data-range="14d"]');
+        button14D.click();
+        await sleep(50);
+
+        points = container.querySelectorAll('svg g.points circle');
+        expect(points.length).toBe(3);
+
+        // 4. Click '30d' button -> Should show Day 1, Day 2, Day 3, and Day 4 (4 points within last 30 days)
+        const button30D = container.querySelector('.graph-timeframe-button[data-range="30d"]');
+        button30D.click();
+        await sleep(50);
+
+        points = container.querySelectorAll('svg g.points circle');
+        expect(points.length).toBe(4);
+
+        // 5. Click 'all' button -> Restores all 5 points
+        const buttonAll = container.querySelector('.graph-timeframe-button[data-range="all"]');
+        buttonAll.click();
+        await sleep(50);
+
+        points = container.querySelectorAll('svg g.points circle');
+        expect(points.length).toBe(5);
+    });
+
+    it('scales SVG width dynamically and provides horizontal scroll container for dense entries (Task 3.10)', () => {
+        const container = documentInstance.createElement('div');
+        const questions = [
+            { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' }
+        ];
+
+        // Generate 25 entries spaced across 25 days
+        const now = Date.now();
+        const logs = [];
+        for (let entryIndex = 0; entryIndex < 25; entryIndex++) {
+            logs.push({
+                timestamp: new Date(now - (24 - entryIndex) * 24 * 3600 * 1000).toISOString(),
+                answers: [{ questionId: 'q1', score: (entryIndex % 5) + 1, status: 'answered' }]
+            });
+        }
+
+        windowInstance.renderLineGraph(container, { entries: logs, questions });
+
+        // 1. Verify scroll container is present with appropriate region role & tabindex
+        const scrollContainer = container.querySelector('.graph-scroll-container');
+        expect(scrollContainer).toBeTruthy();
+        expect(scrollContainer.getAttribute('role')).toBe('region');
+        expect(scrollContainer.getAttribute('tabindex')).toBe('0');
+
+        // 2. Verify SVG width expands dynamically to provide comfortable point spacing (minimum 48px per point)
+        const svgElement = container.querySelector('svg.graph-svg');
+        expect(svgElement).toBeTruthy();
+        const viewBox = svgElement.getAttribute('viewBox');
+        expect(viewBox).toBeTruthy();
+        const [, , width] = viewBox.split(' ').map(Number);
+        // With 25 entries: 42 + 24 + 24 * 48 = 1218px
+        expect(width).toBeGreaterThan(600);
+        expect(width).toBe(42 + 24 + 24 * 48);
+    });
 });

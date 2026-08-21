@@ -10,7 +10,8 @@ const STATE = {
     checkinAnswers: [],
     checkinNote: null,
     deviceMode: 'mouse',
-    historyVisibleQuestionIds: null
+    historyVisibleQuestionIds: null,
+    historyTimeRange: 'all'
 };
 
 const CHECKIN_STORAGE_KEY = 'high_and_low_active_checkin';
@@ -653,14 +654,33 @@ function setupHoldActions() {
             button.classList.remove('is-holding');
         };
 
+        // Suppress native context menu and text selection callouts on mobile touch and touch emulation
+        button.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+        });
+
         if (window.PointerEvent) {
-            button.addEventListener('pointerdown', () => {
+            button.addEventListener('pointerdown', (event) => {
+                if (event.button !== undefined && event.button !== 0) return;
+                try {
+                    button.setPointerCapture(event.pointerId);
+                } catch (_) {}
                 if (isHoldDelayEnabled) startHold();
             });
-            button.addEventListener('pointerup', () => {
+            button.addEventListener('pointerup', (event) => {
+                try {
+                    if (button.hasPointerCapture && button.hasPointerCapture(event.pointerId)) {
+                        button.releasePointerCapture(event.pointerId);
+                    }
+                } catch (_) {}
                 if (isHoldDelayEnabled) cancelHold();
             });
-            button.addEventListener('pointercancel', () => {
+            button.addEventListener('pointercancel', (event) => {
+                try {
+                    if (button.hasPointerCapture && button.hasPointerCapture(event.pointerId)) {
+                        button.releasePointerCapture(event.pointerId);
+                    }
+                } catch (_) {}
                 if (isHoldDelayEnabled) cancelHold();
             });
             button.addEventListener('pointerleave', () => {
@@ -676,7 +696,8 @@ function setupHoldActions() {
             button.addEventListener('touchcancel', () => {
                 if (isHoldDelayEnabled) cancelHold();
             });
-            button.addEventListener('mousedown', () => {
+            button.addEventListener('mousedown', (event) => {
+                if (event.button !== undefined && event.button !== 0) return;
                 if (isHoldDelayEnabled) startHold();
             });
             button.addEventListener('mouseup', () => {
@@ -1215,6 +1236,7 @@ async function loadHistoryView() {
 
         STATE.historyData = {
             entries: sortedEntries,
+            allEntries: sortedEntries,
             questions: activeQuestions,
             allQuestionsMap: questionsById
         };
@@ -1274,10 +1296,24 @@ function formatTickDate(timeMilliseconds, isShortRange) {
     }
 }
 
-function renderLineGraph(container, { entries, questions, visibleQuestionIds } = {}) {
+function getTimeframeLabel(rangeKey) {
+    switch (rangeKey) {
+        case '7d': return '7 Days';
+        case '14d': return '14 Days';
+        case '30d': return '30 Days';
+        case '90d': return '90 Days';
+        default: return 'All Time';
+    }
+}
+
+function renderLineGraph(container, { entries, allEntries, questions, visibleQuestionIds, timeRange } = {}) {
     if (!container) return;
 
-    if (!entries || entries.length === 0) {
+    const rawAllEntries = Array.isArray(allEntries)
+        ? allEntries
+        : (Array.isArray(entries) ? entries : []);
+
+    if (!rawAllEntries || rawAllEntries.length === 0) {
         container.innerHTML = `
             <h3>Mood Timeline</h3>
             <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 12px; line-height: 1.5; text-align: center;">
@@ -1297,6 +1333,26 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
         return;
     }
 
+    const currentTimeRange = timeRange || STATE.historyTimeRange || 'all';
+    STATE.historyTimeRange = currentTimeRange;
+
+    // Filter entries according to active timeframe
+    let filteredEntries = rawAllEntries;
+    if (currentTimeRange !== 'all' && rawAllEntries.length > 0) {
+        const rangeDaysMap = { '7d': 7, '14d': 14, '30d': 30, '90d': 90 };
+        const numberOfDays = rangeDaysMap[currentTimeRange] || 30;
+        const millisecondsInWindow = numberOfDays * 24 * 60 * 60 * 1000;
+
+        const latestTimestampNumber = new Date(rawAllEntries[rawAllEntries.length - 1].timestamp).getTime();
+        const referenceTime = isNaN(latestTimestampNumber) ? Date.now() : latestTimestampNumber;
+        const cutoffTime = referenceTime - millisecondsInWindow;
+
+        filteredEntries = rawAllEntries.filter(entry => {
+            const entryTime = new Date(entry.timestamp).getTime();
+            return !isNaN(entryTime) && entryTime >= cutoffTime;
+        });
+    }
+
     // Determine current visible question IDs Set
     let currentVisibleSet;
     if (visibleQuestionIds instanceof Set) {
@@ -1311,12 +1367,191 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
 
     STATE.historyVisibleQuestionIds = currentVisibleSet;
 
-    const width = 600;
-    const height = 320;
+    const timeframeRanges = [
+        { key: '7d', label: '7D', ariaLabel: 'Last 7 days' },
+        { key: '14d', label: '14D', ariaLabel: 'Last 14 days' },
+        { key: '30d', label: '30D', ariaLabel: 'Last 30 days' },
+        { key: '90d', label: '90D', ariaLabel: 'Last 90 days' },
+        { key: 'all', label: 'All', ariaLabel: 'All time' }
+    ];
+
+    const timeframeButtonsHTML = timeframeRanges.map(rangeItem => {
+        const isActive = rangeItem.key === currentTimeRange;
+        return `
+            <button type="button" class="graph-timeframe-button${isActive ? ' is-active' : ''}" data-range="${rangeItem.key}" role="radio" aria-checked="${isActive ? 'true' : 'false'}" aria-label="${rangeItem.ariaLabel}">${rangeItem.label}</button>
+        `;
+    }).join('');
+
+    const timeframeToolbarHTML = `
+        <div class="graph-timeframe-toolbar" role="toolbar" aria-label="Timeline time range filter">
+            <span class="graph-timeframe-title">Timeframe</span>
+            <div class="graph-timeframe-buttons" role="radiogroup" aria-label="Select date range">
+                ${timeframeButtonsHTML}
+            </div>
+        </div>
+    `;
+
+    const quickActionsHTML = `
+        <div class="legend-quick-actions" role="toolbar" aria-label="Timeline question quick filters">
+            <span class="legend-quick-title">Filter Questions</span>
+            <div class="legend-quick-buttons">
+                <button type="button" class="legend-quick-button" id="button-legend-show-all" aria-label="Show all questions on timeline">Show all</button>
+                <button type="button" class="legend-quick-button" id="button-legend-clear-all" aria-label="Clear all questions on timeline">Clear all</button>
+            </div>
+        </div>
+    `;
+
+    let legendItemsHTML = '';
+    questions.forEach((question, questionIndex) => {
+        const color = getCurveColor(question.curve, questionIndex);
+        const dashArray = getQuestionDashArray(questionIndex);
+        const questionTitle = escapeHTML(question.shortLabel || question.text);
+        const swatchLineDash = dashArray !== 'none' ? ` stroke-dasharray="${dashArray}"` : '';
+        const isVisible = currentVisibleSet.has(question.id);
+        const isIsolated = currentVisibleSet.size === 1 && currentVisibleSet.has(question.id);
+
+        legendItemsHTML += `
+            <div class="legend-checklist-row">
+                <button type="button" class="legend-checklist-item" role="checkbox" aria-checked="${isVisible ? 'true' : 'false'}" data-question-id="${escapeHTML(question.id)}" aria-label="Toggle ${questionTitle}">
+                    <span class="legend-checkbox-box" aria-hidden="true">${isVisible ? '✓' : ''}</span>
+                    <svg class="legend-swatch" width="22" height="10" viewBox="0 0 22 10" aria-hidden="true">
+                        <line x1="0" y1="5" x2="22" y2="5" stroke="${color}" stroke-width="2.5"${swatchLineDash} stroke-linecap="round" />
+                        <circle cx="11" cy="5" r="3" fill="${color}" stroke="var(--box-bg)" stroke-width="1" />
+                    </svg>
+                    <span class="legend-label">${questionTitle}</span>
+                </button>
+                <button type="button" class="legend-isolate-button${isIsolated ? ' is-isolated' : ''}" data-question-id="${escapeHTML(question.id)}" aria-label="${isIsolated ? `Restore all questions (currently isolating ${questionTitle})` : `Isolate ${questionTitle}`}" title="${isIsolated ? 'Restore all questions' : `Isolate ${questionTitle}`}">
+                    <svg class="isolate-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="8" cy="8" r="6" />
+                        <circle cx="8" cy="8" r="2" fill="currentColor" />
+                    </svg>
+                </button>
+            </div>
+        `;
+    });
+
+    const legendHTML = `
+        <div class="graph-legend graph-legend-checklist" role="group" aria-label="Timeline Questions Filter">
+            ${legendItemsHTML}
+        </div>
+    `;
+
+    // Reading Key for clear visual differentiation between Answered, Skipped, and Not Asked
+    const guideKeyHTML = `
+        <div class="graph-guide-key" style="display: flex; gap: 14px; justify-content: center; margin-top: 10px; font-size: 0.8rem; color: var(--text-muted); flex-wrap: wrap;">
+            <span style="display: inline-flex; align-items: center; gap: 5px;">
+                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: currentColor;"></span>
+                <span>Answered (1–5)</span>
+            </span>
+            <span style="display: inline-flex; align-items: center; gap: 5px;">
+                <span style="display: inline-flex; align-items: center; justify-content: center; width: 10px; height: 10px; border-radius: 50%; border: 1px dashed currentColor; font-size: 7px; font-weight: bold; line-height: 1;">✕</span>
+                <span>Skipped (Chose not to answer)</span>
+            </span>
+            <span style="display: inline-flex; align-items: center; gap: 5px;">
+                <span style="display: inline-block; width: 12px; height: 0; border-top: 1px dashed currentColor;"></span>
+                <span>(Gap) Not Asked</span>
+            </span>
+            <span style="display: inline-flex; align-items: center; gap: 5px;">
+                <svg width="12" height="12" viewBox="0 0 14 14" style="flex-shrink: 0;" aria-hidden="true">
+                    <rect x="0" y="0" width="14" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="1.5" />
+                    <path d="M 3.5 3.5 h 7 M 3.5 7 h 7 M 3.5 10.5 h 4.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+                </svg>
+                <span>Note Attached (Tap to view)</span>
+            </span>
+        </div>
+    `;
+
+    function wireTimeframeAndLegendListeners() {
+        const timeframeButtonElements = container.querySelectorAll('.graph-timeframe-button');
+        timeframeButtonElements.forEach(timeframeButtonElement => {
+            timeframeButtonElement.addEventListener('click', () => {
+                const selectedRange = timeframeButtonElement.getAttribute('data-range');
+                if (selectedRange && selectedRange !== currentTimeRange) {
+                    STATE.historyTimeRange = selectedRange;
+                    renderLineGraph(container, {
+                        entries: rawAllEntries,
+                        allEntries: rawAllEntries,
+                        questions: questions,
+                        visibleQuestionIds: currentVisibleSet,
+                        timeRange: selectedRange
+                    });
+                }
+            });
+        });
+
+        const showAllButton = container.querySelector('#button-legend-show-all');
+        if (showAllButton) {
+            showAllButton.addEventListener('click', () => {
+                const allQuestionIds = questions.map(question => question.id);
+                currentVisibleSet = new Set(allQuestionIds);
+                STATE.historyVisibleQuestionIds = currentVisibleSet;
+                renderLineGraph(container, {
+                    entries: rawAllEntries,
+                    allEntries: rawAllEntries,
+                    questions: questions,
+                    visibleQuestionIds: currentVisibleSet,
+                    timeRange: currentTimeRange
+                });
+            });
+        }
+
+        const clearAllButton = container.querySelector('#button-legend-clear-all');
+        if (clearAllButton) {
+            clearAllButton.addEventListener('click', () => {
+                currentVisibleSet = new Set();
+                STATE.historyVisibleQuestionIds = currentVisibleSet;
+                renderLineGraph(container, {
+                    entries: rawAllEntries,
+                    allEntries: rawAllEntries,
+                    questions: questions,
+                    visibleQuestionIds: currentVisibleSet,
+                    timeRange: currentTimeRange
+                });
+            });
+        }
+    }
+
+    if (filteredEntries.length === 0) {
+        container.innerHTML = `
+            <div class="history-graph-wrapper">
+                <div class="graph-header-row" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 6px;">
+                    <h3 style="margin: 0;">Mood Timeline</h3>
+                    ${timeframeToolbarHTML}
+                </div>
+                <div style="padding: 32px 16px; text-align: center; color: var(--text-muted); font-size: 0.92rem; background: var(--box-bg); border: 1px solid var(--border-color); border-radius: 8px; margin: 12px 0;">
+                    No check-ins found in the selected timeframe (${getTimeframeLabel(currentTimeRange)}).<br>
+                    Switch to <strong>All</strong> or a wider timeframe to view earlier entries.
+                </div>
+                ${quickActionsHTML}
+                ${legendHTML}
+                ${guideKeyHTML}
+            </div>
+        `;
+        wireTimeframeAndLegendListeners();
+        return;
+    }
+
+    const entryCount = filteredEntries.length;
+    const entryTimes = filteredEntries.map(entry => {
+        const time = new Date(entry.timestamp).getTime();
+        return isNaN(time) ? 0 : time;
+    });
+
+    const minTime = entryTimes[0];
+    const maxTime = entryTimes[entryCount - 1];
+    const timeDuration = maxTime - minTime;
+
+    const minimumSpacingPerPoint = 48;
     const paddingTop = 24;
     const paddingBottom = 60;
     const paddingLeft = 42;
     const paddingRight = 24;
+
+    const calculatedWidth = entryCount > 1
+        ? Math.max(600, paddingLeft + paddingRight + (entryCount - 1) * minimumSpacingPerPoint)
+        : 600;
+    const width = calculatedWidth;
+    const height = 320;
 
     const chartWidth = width - paddingLeft - paddingRight;
     const chartHeight = height - paddingTop - paddingBottom;
@@ -1329,16 +1564,6 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
 
     const skipBaselineY = height - paddingBottom + 16;
     const noteBaselineY = height - paddingBottom + 32;
-
-    const entryCount = entries.length;
-    const entryTimes = entries.map(entry => {
-        const time = new Date(entry.timestamp).getTime();
-        return isNaN(time) ? 0 : time;
-    });
-
-    const minTime = entryTimes[0];
-    const maxTime = entryTimes[entryCount - 1];
-    const timeDuration = maxTime - minTime;
 
     function getX(index) {
         if (entryCount === 1) return paddingLeft + chartWidth / 2;
@@ -1379,7 +1604,7 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
             <text x="${xPosition}" y="${height - 8}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${dateString}</text>
         `;
     } else if (timeDuration <= 0) {
-        entries.forEach((entry, entryIndex) => {
+        filteredEntries.forEach((entry, entryIndex) => {
             const xPosition = getX(entryIndex);
             const dateString = formatTickDate(entryTimes[entryIndex], true);
             xAxisHTML += `
@@ -1389,10 +1614,10 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
         });
     } else {
         const isShortRange = timeDuration <= 36 * 3600 * 1000;
-        const numTicks = Math.min(6, Math.max(3, entryCount));
-        for (let tickIndex = 0; tickIndex < numTicks; tickIndex++) {
-            const tickTime = minTime + (tickIndex / (numTicks - 1)) * timeDuration;
-            const xPosition = paddingLeft + (tickIndex / (numTicks - 1)) * chartWidth;
+        const tickDensity = Math.max(3, Math.min(entryCount, Math.round(chartWidth / 90)));
+        for (let tickIndex = 0; tickIndex < tickDensity; tickIndex++) {
+            const tickTime = minTime + (tickIndex / (tickDensity - 1)) * timeDuration;
+            const xPosition = paddingLeft + (tickIndex / (tickDensity - 1)) * chartWidth;
             const dateString = formatTickDate(tickTime, isShortRange);
             xAxisHTML += `
                 <line x1="${xPosition}" y1="${paddingTop}" x2="${xPosition}" y2="${height - paddingBottom}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2,2" opacity="0.35" />
@@ -1405,35 +1630,13 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
     let skipsHTML = '';
     let notesHTML = '';
     let pointsHTML = '';
-    let legendItemsHTML = '';
 
     questions.forEach((question, questionIndex) => {
         const color = getCurveColor(question.curve, questionIndex);
         const dashArray = getQuestionDashArray(questionIndex);
         const questionTitle = escapeHTML(question.shortLabel || question.text);
         const dashAttr = dashArray !== 'none' ? ` stroke-dasharray="${dashArray}"` : '';
-        const swatchLineDash = dashArray !== 'none' ? ` stroke-dasharray="${dashArray}"` : '';
         const isVisible = currentVisibleSet.has(question.id);
-        const isIsolated = currentVisibleSet.size === 1 && currentVisibleSet.has(question.id);
-
-        legendItemsHTML += `
-            <div class="legend-checklist-row">
-                <button type="button" class="legend-checklist-item" role="checkbox" aria-checked="${isVisible ? 'true' : 'false'}" data-question-id="${escapeHTML(question.id)}" aria-label="Toggle ${questionTitle}">
-                    <span class="legend-checkbox-box" aria-hidden="true">${isVisible ? '✓' : ''}</span>
-                    <svg class="legend-swatch" width="22" height="10" viewBox="0 0 22 10" aria-hidden="true">
-                        <line x1="0" y1="5" x2="22" y2="5" stroke="${color}" stroke-width="2.5"${swatchLineDash} stroke-linecap="round" />
-                        <circle cx="11" cy="5" r="3" fill="${color}" stroke="var(--box-bg)" stroke-width="1" />
-                    </svg>
-                    <span class="legend-label">${questionTitle}</span>
-                </button>
-                <button type="button" class="legend-isolate-button${isIsolated ? ' is-isolated' : ''}" data-question-id="${escapeHTML(question.id)}" aria-label="${isIsolated ? `Restore all questions (currently isolating ${questionTitle})` : `Isolate ${questionTitle}`}" title="${isIsolated ? 'Restore all questions' : `Isolate ${questionTitle}`}">
-                    <svg class="isolate-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <circle cx="8" cy="8" r="6" />
-                        <circle cx="8" cy="8" r="2" fill="currentColor" />
-                    </svg>
-                </button>
-            </div>
-        `;
 
         if (!isVisible) {
             return;
@@ -1443,7 +1646,7 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
         const segments = [];
         let currentSegment = [];
 
-        entries.forEach((entry, entryIndex) => {
+        filteredEntries.forEach((entry, entryIndex) => {
             const answer = (entry.answers || []).find(answerItem => answerItem.questionId === question.id);
             const isAnswered = answer && answer.status === 'answered' && answer.score !== null && answer.score >= 1 && answer.score <= 5;
             const isSkipped = answer && (answer.status === 'skipped' || answer.score === null);
@@ -1473,7 +1676,6 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
                         </g>
                     `;
                 }
-                // If question is absent (not in answers): line breaks, and NO skip marker is drawn (clean gap)
             }
         });
 
@@ -1504,7 +1706,7 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
     });
 
     // Generate Notes indicator markers on the timeline (Task 3.9)
-    entries.forEach((entry, entryIndex) => {
+    filteredEntries.forEach((entry, entryIndex) => {
         const hasNote = Boolean(entry.note && typeof entry.note === 'string' && entry.note.trim().length > 0);
         if (!hasNote) return;
 
@@ -1523,49 +1725,8 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
         `;
     });
 
-    const quickActionsHTML = `
-        <div class="legend-quick-actions" role="toolbar" aria-label="Timeline question quick filters">
-            <span class="legend-quick-title">Filter Questions</span>
-            <div class="legend-quick-buttons">
-                <button type="button" class="legend-quick-button" id="button-legend-show-all" aria-label="Show all questions on timeline">Show all</button>
-                <button type="button" class="legend-quick-button" id="button-legend-clear-all" aria-label="Clear all questions on timeline">Clear all</button>
-            </div>
-        </div>
-    `;
-
-    const legendHTML = `
-        <div class="graph-legend graph-legend-checklist" role="group" aria-label="Timeline Questions Filter">
-            ${legendItemsHTML}
-        </div>
-    `;
-
-    // Reading Key for clear visual differentiation between Answered, Skipped, and Not Asked
-    const guideKeyHTML = `
-        <div class="graph-guide-key" style="display: flex; gap: 14px; justify-content: center; margin-top: 10px; font-size: 0.8rem; color: var(--text-muted); flex-wrap: wrap;">
-            <span style="display: inline-flex; align-items: center; gap: 5px;">
-                <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: currentColor;"></span>
-                <span>Answered (1–5)</span>
-            </span>
-            <span style="display: inline-flex; align-items: center; gap: 5px;">
-                <span style="display: inline-flex; align-items: center; justify-content: center; width: 10px; height: 10px; border-radius: 50%; border: 1px dashed currentColor; font-size: 7px; font-weight: bold; line-height: 1;">✕</span>
-                <span>Skipped (Chose not to answer)</span>
-            </span>
-            <span style="display: inline-flex; align-items: center; gap: 5px;">
-                <span style="display: inline-block; width: 12px; height: 0; border-top: 1px dashed currentColor;"></span>
-                <span>(Gap) Not Asked</span>
-            </span>
-            <span style="display: inline-flex; align-items: center; gap: 5px;">
-                <svg width="12" height="12" viewBox="0 0 14 14" style="flex-shrink: 0;" aria-hidden="true">
-                    <rect x="0" y="0" width="14" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="1.5" />
-                    <path d="M 3.5 3.5 h 7 M 3.5 7 h 7 M 3.5 10.5 h 4.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
-                </svg>
-                <span>Note Attached (Tap to view)</span>
-            </span>
-        </div>
-    `;
-
     const svgHTML = `
-        <svg viewBox="0 0 ${width} ${height}" style="width: 100%; height: auto; max-height: 280px; overflow: visible;">
+        <svg class="graph-svg" viewBox="0 0 ${width} ${height}" style="width: ${calculatedWidth > 600 ? calculatedWidth + 'px' : '100%'}; min-width: 100%; height: auto; max-height: 280px; overflow: visible;">
             <g class="grid">${gridLinesHTML}</g>
             <g class="x-axis">${xAxisHTML}</g>
             <g class="lines">${linesHTML}</g>
@@ -1576,33 +1737,27 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
     `;
 
     container.innerHTML = `
-        <h3 style="margin-bottom: 4px;">Mood Timeline</h3>
-        <div style="width: 100%; overflow-x: auto;">
-            ${svgHTML}
+        <div class="history-graph-wrapper">
+            <div class="graph-header-row" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 6px;">
+                <h3 style="margin: 0;">Mood Timeline</h3>
+                ${timeframeToolbarHTML}
+            </div>
+            <div class="graph-scroll-container" tabindex="0" role="region" aria-label="Interactive mood timeline chart, scroll horizontally to view earlier dates">
+                ${svgHTML}
+            </div>
+            ${quickActionsHTML}
+            ${legendHTML}
+            ${guideKeyHTML}
         </div>
-        ${quickActionsHTML}
-        ${legendHTML}
-        ${guideKeyHTML}
     `;
 
-    const showAllButton = container.querySelector('#button-legend-show-all');
-    if (showAllButton) {
-        showAllButton.addEventListener('click', () => {
-            const allQuestionIds = questions.map(question => question.id);
-            currentVisibleSet = new Set(allQuestionIds);
-            STATE.historyVisibleQuestionIds = currentVisibleSet;
-            renderLineGraph(container, { entries: entries, questions, visibleQuestionIds: currentVisibleSet });
-        });
+    // Auto-scroll timeline to recent entries on render
+    const scrollContainerElement = container.querySelector('.graph-scroll-container');
+    if (scrollContainerElement && scrollContainerElement.scrollWidth > scrollContainerElement.clientWidth) {
+        scrollContainerElement.scrollLeft = scrollContainerElement.scrollWidth;
     }
 
-    const clearAllButton = container.querySelector('#button-legend-clear-all');
-    if (clearAllButton) {
-        clearAllButton.addEventListener('click', () => {
-            currentVisibleSet = new Set();
-            STATE.historyVisibleQuestionIds = currentVisibleSet;
-            renderLineGraph(container, { entries: entries, questions, visibleQuestionIds: currentVisibleSet });
-        });
-    }
+    wireTimeframeAndLegendListeners();
 
     // Attach click and keyboard interaction handlers to note markers
     const noteMarkerElements = container.querySelectorAll('.note-marker');
@@ -1610,7 +1765,7 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
         function displayNoteDialog() {
             const entryIndexAttribute = noteMarkerElement.getAttribute('data-entry-index');
             const entryIndex = entryIndexAttribute !== null ? parseInt(entryIndexAttribute, 10) : -1;
-            const targetEntry = Number.isInteger(entryIndex) && entries && entries[entryIndex] ? entries[entryIndex] : null;
+            const targetEntry = Number.isInteger(entryIndex) && filteredEntries && filteredEntries[entryIndex] ? filteredEntries[entryIndex] : null;
             const rawNoteContent = targetEntry && targetEntry.note
                 ? targetEntry.note.trim()
                 : (noteMarkerElement.dataset.note || noteMarkerElement.getAttribute('data-note') || '');
@@ -1668,7 +1823,13 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
             if (navigator.vibrate) {
                 try { navigator.vibrate(40); } catch (_) {}
             }
-            renderLineGraph(container, { entries: entries, questions, visibleQuestionIds: currentVisibleSet });
+            renderLineGraph(container, {
+                entries: rawAllEntries,
+                allEntries: rawAllEntries,
+                questions: questions,
+                visibleQuestionIds: currentVisibleSet,
+                timeRange: currentTimeRange
+            });
         }
 
         legendElement.addEventListener('pointerdown', (event) => {
@@ -1747,7 +1908,13 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
             }
 
             STATE.historyVisibleQuestionIds = currentVisibleSet;
-            renderLineGraph(container, { entries: entries, questions, visibleQuestionIds: currentVisibleSet });
+            renderLineGraph(container, {
+                entries: rawAllEntries,
+                allEntries: rawAllEntries,
+                questions: questions,
+                visibleQuestionIds: currentVisibleSet,
+                timeRange: currentTimeRange
+            });
         });
     }
 }

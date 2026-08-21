@@ -122,6 +122,11 @@ Patients and psychiatrists need a way to actually read the collected data back, 
   - Show a small marker under any day that has a non-null `note` field on its log entry (notes are a single string per log, not tied to one question — do not try to plot them as a data series).
   - Tapping the marker reveals the note text.
 
+- [x] **Task 3.10: Timeline timeframe presets and responsive horizontal scrolling**
+  - Add quick timeframe filter buttons (`7D`, `14D`, `30D`, `90D`, `All`) above the graph to filter the visible date range and zoom into recent check-ins without cognitive clutter.
+  - Implement a smooth, touch-friendly horizontal scroll container (`overflow-x: auto`) for dense timelines with a dynamic SVG width based on entry count, ensuring data points and note markers maintain comfortable touch target spacing.
+  - Keep the graph accessible with scroll indicators, keyboard navigation, and sticky/frozen Y-axis indicators.
+
 ---
 
 ### Phase 4: Question Library & Management
