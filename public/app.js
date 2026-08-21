@@ -103,7 +103,7 @@ const DEFAULT_ACTIVE_SET = ['q_energy', 'q_sadness', 'q_irritability', 'q_overal
 // --- 2. INDEXEDDB LOCAL VAULT STRUCT ---
 let db = null;
 const DB_NAME = 'HighAndLowDB';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 function initDatabase() {
     return new Promise((resolve, reject) => {
@@ -119,11 +119,27 @@ function initDatabase() {
         };
         request.onupgradeneeded = (event) => {
             const upgradeDb = event.target.result;
+            const transaction = event.target.transaction;
             if (!upgradeDb.objectStoreNames.contains('config')) {
                 upgradeDb.createObjectStore('config', { keyPath: 'key' });
             }
             if (!upgradeDb.objectStoreNames.contains('entries')) {
-                upgradeDb.createObjectStore('entries', { keyPath: 'timestamp' });
+                const entriesStore = upgradeDb.createObjectStore('entries', { keyPath: 'timestamp' });
+                // If an older 'logs' object store existed from earlier prototypes, migrate its records
+                if (upgradeDb.objectStoreNames.contains('logs') && transaction) {
+                    try {
+                        const oldLogsStore = transaction.objectStore('logs');
+                        oldLogsStore.openCursor().onsuccess = (cursorEvent) => {
+                            const cursor = cursorEvent.target.result;
+                            if (cursor) {
+                                entriesStore.put(cursor.value);
+                                cursor.continue();
+                            }
+                        };
+                    } catch (migrationError) {
+                        console.warn('Could not migrate legacy logs store:', migrationError);
+                    }
+                }
             }
             if (!upgradeDb.objectStoreNames.contains('questions')) {
                 upgradeDb.createObjectStore('questions', { keyPath: 'id' });
