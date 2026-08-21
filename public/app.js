@@ -442,33 +442,33 @@ function finalizeCheckin() {
         answers: STATE.checkinAnswers
     };
 
+    const progressElement = document.getElementById('progress-text');
+    const questionElement = document.getElementById('question-text');
+    if (progressElement) progressElement.textContent = "Check-In Complete";
+    if (questionElement) questionElement.textContent = "Mood recorded. Rest easy.";
+
+    const buttonStack = document.getElementById('button-stack');
+    if (buttonStack) {
+        buttonStack.hidden = true;
+    }
+
+    const completionView = document.getElementById('completion-view');
+    if (completionView) {
+        completionView.hidden = false;
+    }
+
+    const footerBox = document.getElementById('footer-box');
+    if (footerBox) {
+        footerBox.style.display = 'none';
+    }
+
     const transaction = db.transaction(['entries'], 'readwrite');
     transaction.objectStore('entries').add(checkinEntry);
 
     transaction.oncomplete = () => {
-        const progressElement = document.getElementById('progress-text');
-        const questionElement = document.getElementById('question-text');
-        if (progressElement) progressElement.textContent = "Check-In Complete";
-        if (questionElement) questionElement.textContent = "Mood recorded. Rest easy.";
-
-        const buttonStack = document.getElementById('button-stack');
-        if (buttonStack) {
-            buttonStack.hidden = true;
-        }
-
-        const completionView = document.getElementById('completion-view');
-        if (completionView) {
-            completionView.hidden = false;
-        }
-
         const newCheckinButton = document.getElementById('button-new-checkin');
         if (newCheckinButton) {
             setTimeout(() => newCheckinButton.focus({ preventScroll: true }), 60);
-        }
-
-        const footerBox = document.getElementById('footer-box');
-        if (footerBox) {
-            footerBox.style.display = 'none';
         }
     };
 }
@@ -653,11 +653,11 @@ function setupHoldActions() {
         }
 
         // Standard click handler:
-        // - When hold delay is enabled: short clicks/taps are ignored because a 1.5s hold is required.
+        // - When hold delay is enabled: short clicks/taps are ignored because a 1.5s hold is required (except informational notice dismissals).
         // - When hold delay is disabled: executes immediately on regular click/tap.
         button.addEventListener('click', (event) => {
             event.preventDefault();
-            if (isHoldDelayEnabled) {
+            if (isHoldDelayEnabled && button.id !== 'button-notice-ok' && button.id !== 'button-question-feedback-ok') {
                 return;
             }
             executeHoldAction(button.id);
@@ -715,7 +715,7 @@ function executeHoldAction(id) {
 
 let noticeReturnFocusElement = null;
 
-function showNoticeDialog(title, subtitle, returnFocusTarget) {
+function showNoticeDialog(title, subtitle, returnFocusTarget, isNote = false) {
     noticeReturnFocusElement = returnFocusTarget || null;
     const overlay = document.getElementById('notice-dialog-overlay') || document.getElementById('question-feedback-dialog-overlay');
     const titleElement = document.getElementById('notice-dialog-title') || document.getElementById('question-feedback-title');
@@ -723,7 +723,14 @@ function showNoticeDialog(title, subtitle, returnFocusTarget) {
     if (!overlay) return;
 
     if (titleElement) titleElement.textContent = title;
-    if (subtitleElement) subtitleElement.textContent = subtitle;
+    if (subtitleElement) {
+        subtitleElement.textContent = subtitle;
+        if (isNote) {
+            subtitleElement.classList.add('notice-note-content');
+        } else {
+            subtitleElement.classList.remove('notice-note-content');
+        }
+    }
 
     overlay.removeAttribute('inert');
     overlay.setAttribute('aria-hidden', 'false');
@@ -767,6 +774,14 @@ function setupNoticeDialog() {
             closeNoticeDialog();
         }
     });
+
+    const okButton = document.getElementById('button-notice-ok') || document.getElementById('button-question-feedback-ok');
+    if (okButton) {
+        okButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            closeNoticeDialog();
+        });
+    }
 }
 
 let pendingImportFile = null;
@@ -1277,7 +1292,8 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
         return paddingTop + chartHeight * (1 - ratio);
     }
 
-    const skipBaselineY = height - paddingBottom + 18;
+    const skipBaselineY = height - paddingBottom + 16;
+    const noteBaselineY = height - paddingBottom + 32;
 
     const entryCount = entries.length;
     const entryTimes = entries.map(entry => {
@@ -1312,6 +1328,12 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
         <text x="${paddingLeft - 8}" y="${skipBaselineY + 3.5}" fill="var(--text-muted)" font-size="9.5" text-anchor="end" font-style="italic">Skip</text>
     `;
 
+    // Dedicated Note Baseline Row on Y-Axis
+    gridLinesHTML += `
+        <line x1="${paddingLeft}" y1="${noteBaselineY}" x2="${width - paddingRight}" y2="${noteBaselineY}" stroke="var(--border-color)" stroke-width="0.8" stroke-dasharray="1,3" opacity="0.6" />
+        <text x="${paddingLeft - 8}" y="${noteBaselineY + 3.5}" fill="var(--text-muted)" font-size="9.5" text-anchor="end" font-style="italic">Note</text>
+    `;
+
     // Time-Scaled X-Axis Gridlines & Tick Labels
     let xAxisHTML = '';
     if (entryCount === 1) {
@@ -1319,7 +1341,7 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
         const dateString = formatTickDate(minTime, true);
         xAxisHTML += `
             <line x1="${xPosition}" y1="${paddingTop}" x2="${xPosition}" y2="${height - paddingBottom}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2,2" opacity="0.4" />
-            <text x="${xPosition}" y="${height - 12}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${dateString}</text>
+            <text x="${xPosition}" y="${height - 8}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${dateString}</text>
         `;
     } else if (timeDuration <= 0) {
         entries.forEach((entry, entryIndex) => {
@@ -1327,7 +1349,7 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
             const dateString = formatTickDate(entryTimes[entryIndex], true);
             xAxisHTML += `
                 <line x1="${xPosition}" y1="${paddingTop}" x2="${xPosition}" y2="${height - paddingBottom}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2,2" opacity="0.4" />
-                <text x="${xPosition}" y="${height - 12}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${dateString}</text>
+                <text x="${xPosition}" y="${height - 8}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${dateString}</text>
             `;
         });
     } else {
@@ -1339,13 +1361,14 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
             const dateString = formatTickDate(tickTime, isShortRange);
             xAxisHTML += `
                 <line x1="${xPosition}" y1="${paddingTop}" x2="${xPosition}" y2="${height - paddingBottom}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2,2" opacity="0.35" />
-                <text x="${xPosition}" y="${height - 12}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${dateString}</text>
+                <text x="${xPosition}" y="${height - 8}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${dateString}</text>
             `;
         }
     }
 
     let linesHTML = '';
     let skipsHTML = '';
+    let notesHTML = '';
     let pointsHTML = '';
     let legendItemsHTML = '';
 
@@ -1445,6 +1468,25 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
         });
     });
 
+    // Generate Notes indicator markers on the timeline (Task 3.9)
+    entries.forEach((entry, entryIndex) => {
+        const hasNote = Boolean(entry.note && typeof entry.note === 'string' && entry.note.trim().length > 0);
+        if (!hasNote) return;
+
+        const noteXPosition = getX(entryIndex);
+        const formattedDateString = formatEntryDateTime(entry.timestamp);
+        const rawNoteText = entry.note.trim();
+        const escapedNoteText = escapeHTML(rawNoteText);
+
+        notesHTML += `
+            <g class="note-marker" role="button" tabindex="0" data-entry-index="${entryIndex}" data-note="${escapedNoteText}" data-date="${escapeHTML(formattedDateString)}" aria-label="Note (${escapeHTML(formattedDateString)}): ${escapedNoteText}">
+                <title>Note (${escapeHTML(formattedDateString)}): ${escapedNoteText}</title>
+                <rect class="note-marker-box" x="${noteXPosition - 7}" y="${noteBaselineY - 7}" width="14" height="14" rx="3" fill="var(--button-default)" stroke="var(--border-color)" stroke-width="1.2" />
+                <path class="note-marker-icon" d="M ${noteXPosition - 3.5} ${noteBaselineY - 3.5} h 7 M ${noteXPosition - 3.5} ${noteBaselineY} h 7 M ${noteXPosition - 3.5} ${noteBaselineY + 3.5} h 4.5" stroke="var(--text-bright)" stroke-width="1.2" stroke-linecap="round" />
+            </g>
+        `;
+    });
+
     const quickActionsHTML = `
         <div class="legend-quick-actions" role="toolbar" aria-label="Timeline question quick filters">
             <span class="legend-quick-title">Filter Questions</span>
@@ -1476,6 +1518,13 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
                 <span style="display: inline-block; width: 12px; height: 0; border-top: 1px dashed currentColor;"></span>
                 <span>(Gap) Not Asked</span>
             </span>
+            <span style="display: inline-flex; align-items: center; gap: 5px;">
+                <svg width="12" height="12" viewBox="0 0 14 14" style="flex-shrink: 0;" aria-hidden="true">
+                    <rect x="0" y="0" width="14" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="1.5" />
+                    <path d="M 3.5 3.5 h 7 M 3.5 7 h 7 M 3.5 10.5 h 4.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+                </svg>
+                <span>Note Attached (Tap to view)</span>
+            </span>
         </div>
     `;
 
@@ -1485,6 +1534,7 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
             <g class="x-axis">${xAxisHTML}</g>
             <g class="lines">${linesHTML}</g>
             <g class="skips">${skipsHTML}</g>
+            <g class="notes">${notesHTML}</g>
             <g class="points">${pointsHTML}</g>
         </svg>
     `;
@@ -1517,6 +1567,32 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
             renderLineGraph(container, { entries: entries, questions, visibleQuestionIds: currentVisibleSet });
         });
     }
+
+    // Attach click and keyboard interaction handlers to note markers
+    const noteMarkerElements = container.querySelectorAll('.note-marker');
+    noteMarkerElements.forEach(noteMarkerElement => {
+        function displayNoteDialog() {
+            const rawNoteContent = noteMarkerElement.dataset.note || noteMarkerElement.getAttribute('data-note') || '';
+            const noteDateTime = noteMarkerElement.dataset.date || noteMarkerElement.getAttribute('data-date') || '';
+            if (rawNoteContent) {
+                showNoticeDialog(`Check-In Note — ${noteDateTime}`, rawNoteContent, noteMarkerElement, true);
+            }
+        }
+
+        noteMarkerElement.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            displayNoteDialog();
+        });
+
+        noteMarkerElement.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                event.stopPropagation();
+                displayNoteDialog();
+            }
+        });
+    });
 
     const legendElement = container.querySelector('.graph-legend');
     if (legendElement) {
@@ -2054,7 +2130,7 @@ function initApp() {
                 const progressElement = document.getElementById('progress-text');
                 const questionElement = document.getElementById('question-text');
                 if (progressElement) progressElement.textContent = "Check-In Complete";
-                if (questionElement) questionElement.textContent = "Mood recorded. Rest easy.";
+                if (questionElement) questionElement.textContent = "Check-In recorded. Rest easy.";
             } else {
                 renderCurrentQuestion();
             }

@@ -106,6 +106,36 @@ describe('Task 2.10: Seamless View & Question Transitions Tests', () => {
         expect(progressElement.textContent).toContain('Question 2');
         expect(trackerCanvas.classList.contains('view-active')).toBe(true);
     });
+
+    it('7. Final Question Completion: Hides button stack, displays completion view, and hides footer actions', async () => {
+        const buttonStack = documentInstance.getElementById('button-stack');
+        const completionView = documentInstance.getElementById('completion-view');
+        const footerBox = documentInstance.getElementById('footer-box');
+        const progressElement = documentInstance.getElementById('progress-text');
+        const questionElement = documentInstance.getElementById('question-text');
+
+        // Fast-forward to final question
+        windowInstance.STATE.currentQuestionIndex = windowInstance.STATE.activeQuestions.length - 1;
+        windowInstance.renderCurrentQuestion();
+
+        const lastScoreButton = documentInstance.querySelector('#button-stack .score-button[data-score="5"]');
+        expect(lastScoreButton).not.toBeNull();
+        lastScoreButton.click();
+
+        await sleep(200);
+
+        expect(buttonStack.hidden).toBe(true);
+        expect(completionView.hidden).toBe(false);
+        expect(footerBox.style.display).toBe('none');
+        expect(progressElement.textContent).toBe('Check-In Complete');
+        expect(questionElement.textContent).toBe('Mood recorded. Rest easy.');
+
+        // Restarting check-in restores button stack and footer
+        await windowInstance.startNewCheckIn();
+        expect(buttonStack.hidden).toBe(false);
+        expect(completionView.hidden).toBe(true);
+        expect(footerBox.style.display).toBe('');
+    });
 });
 
 describe('Task 2.11: Suppress Transitions on Initial Load & Page Refreshes', () => {

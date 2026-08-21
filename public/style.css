@@ -548,12 +548,20 @@ h3 {
 /* ==========================================================================
 4. INTERACTIVE BUTTON INTERFACES (INPUT DECK)
 ========================================================================== */
+[hidden] {
+    display: none !important;
+}
+
 .button-stack {
     display: flex;
     flex-direction: column;
     height: 100%;
     gap: 10px;
     justify-content: space-between;
+}
+
+.button-stack[hidden] {
+    display: none !important;
 }
 
 .completion-view {
@@ -1217,6 +1225,53 @@ body[data-contrast="high"] .legend-isolate-button.is-isolated {
     color: var(--box-bg);
 }
 
+/* 7c. Graph Note Timeline Markers (Task 3.9) */
+.note-marker {
+    cursor: pointer;
+    outline: none;
+    transition: transform 140ms var(--transition-curve);
+}
+
+.note-marker .note-marker-box {
+    transition: fill 150ms var(--transition-curve), stroke 150ms var(--transition-curve);
+}
+
+.note-marker .note-marker-icon {
+    transition: stroke 150ms var(--transition-curve);
+}
+
+@media (hover: hover) {
+    .note-marker:hover .note-marker-box {
+        fill: var(--border-color);
+        stroke: var(--text-bright);
+    }
+}
+
+.note-marker:focus-visible .note-marker-box {
+    fill: var(--border-color);
+    stroke: var(--text-bright);
+    stroke-width: 1.8;
+}
+
+.note-marker:active {
+    transform: scale(1.15);
+}
+
+body[data-contrast="high"] .note-marker .note-marker-box {
+    stroke: var(--text-bright);
+    stroke-width: 1.6;
+}
+
+body[data-contrast="high"] .note-marker:hover .note-marker-box,
+body[data-contrast="high"] .note-marker:focus-visible .note-marker-box {
+    fill: var(--text-bright);
+}
+
+body[data-contrast="high"] .note-marker:hover .note-marker-icon,
+body[data-contrast="high"] .note-marker:focus-visible .note-marker-icon {
+    stroke: var(--box-bg);
+}
+
 .legend-swatch {
     flex-shrink: 0;
 }
@@ -1419,6 +1474,33 @@ body:not([data-theme="dark"]) .modal-overlay {
     font-size: 0.88rem;
     color: var(--text-muted);
     line-height: 1.35;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Dedicated high-contrast styling when notice subtitle holds note content */
+.notice-note-content {
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: var(--text-bright);
+    line-height: 1.6;
+    padding: 16px 18px;
+    background-color: var(--button-default);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin-top: 6px;
+    max-height: 280px;
+    overflow-y: auto;
+    user-select: text;
+}
+
+.modal-header-tag {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+    margin-bottom: 2px;
 }
 
 .modal-body {
@@ -1552,4 +1634,3 @@ body[data-contrast="high"] .modal-info-badge {
     white-space: nowrap;
     border: 0;
 }
-
