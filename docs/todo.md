@@ -118,7 +118,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
   - Add a small per-row icon button that performs the same isolate/restore toggle as Task 3.7's long-press, reachable by click and by keyboard (Enter/Space on focus), since long-press alone is invisible to keyboard and screen-reader users.
   - Add "Show all" / "Clear all" utility buttons above the legend for a fast reset.
 
-- [ ] **Task 3.9: Notes indicator on the graph timeline**
+- [x] **Task 3.9: Notes indicator on the graph timeline**
   - Show a small marker under any day that has a non-null `note` field on its log entry (notes are a single string per log, not tied to one question — do not try to plot them as a data series).
   - Tapping the marker reveals the note text.
 

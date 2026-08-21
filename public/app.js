@@ -1516,6 +1516,7 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
         notesHTML += `
             <g class="note-marker" role="button" tabindex="0" data-entry-index="${entryIndex}" data-note="${escapedNoteText}" data-date="${escapeHTML(formattedDateString)}" aria-label="Note (${escapeHTML(formattedDateString)}): ${escapedNoteText}">
                 <title>Note (${escapeHTML(formattedDateString)}): ${escapedNoteText}</title>
+                <rect class="note-marker-hitbox" x="${noteXPosition - 14}" y="${noteBaselineY - 14}" width="28" height="28" fill="transparent" />
                 <rect class="note-marker-box" x="${noteXPosition - 7}" y="${noteBaselineY - 7}" width="14" height="14" rx="3" fill="var(--button-default)" stroke="var(--border-color)" stroke-width="1.2" />
                 <path class="note-marker-icon" d="M ${noteXPosition - 3.5} ${noteBaselineY - 3.5} h 7 M ${noteXPosition - 3.5} ${noteBaselineY} h 7 M ${noteXPosition - 3.5} ${noteBaselineY + 3.5} h 4.5" stroke="var(--text-bright)" stroke-width="1.2" stroke-linecap="round" />
             </g>
@@ -1607,8 +1608,15 @@ function renderLineGraph(container, { entries, questions, visibleQuestionIds } =
     const noteMarkerElements = container.querySelectorAll('.note-marker');
     noteMarkerElements.forEach(noteMarkerElement => {
         function displayNoteDialog() {
-            const rawNoteContent = noteMarkerElement.dataset.note || noteMarkerElement.getAttribute('data-note') || '';
-            const noteDateTime = noteMarkerElement.dataset.date || noteMarkerElement.getAttribute('data-date') || '';
+            const entryIndexAttribute = noteMarkerElement.getAttribute('data-entry-index');
+            const entryIndex = entryIndexAttribute !== null ? parseInt(entryIndexAttribute, 10) : -1;
+            const targetEntry = Number.isInteger(entryIndex) && entries && entries[entryIndex] ? entries[entryIndex] : null;
+            const rawNoteContent = targetEntry && targetEntry.note
+                ? targetEntry.note.trim()
+                : (noteMarkerElement.dataset.note || noteMarkerElement.getAttribute('data-note') || '');
+            const noteDateTime = targetEntry
+                ? formatEntryDateTime(targetEntry.timestamp)
+                : (noteMarkerElement.dataset.date || noteMarkerElement.getAttribute('data-date') || '');
             if (rawNoteContent) {
                 showNoticeDialog(`Check-In Note — ${noteDateTime}`, rawNoteContent, noteMarkerElement, true);
             }

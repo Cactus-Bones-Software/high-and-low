@@ -491,4 +491,100 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         expect(items[2].getAttribute('aria-checked')).toBe('true');
         expect(container.querySelectorAll('svg g.lines path').length).toBe(3);
     });
+
+    it('renders note indicators on timeline and opens note modal with content on tap or keyboard interaction (Task 3.9)', async () => {
+        const container = documentInstance.getElementById('panel-history');
+        const questions = [
+            { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' },
+            { id: 'q2', text: 'Sadness Depth', shortLabel: 'Sadness', curve: 'less-is-better' }
+        ];
+
+        // 4 logs:
+        // Day 1: With note
+        // Day 2: note is null (no marker)
+        // Day 3: note is whitespace string (no marker)
+        // Day 4: With note
+        const logs = [
+            {
+                timestamp: '2026-08-10T09:00:00.000Z',
+                note: 'Felt well-rested after 8 hours of sleep.',
+                answers: [
+                    { questionId: 'q1', score: 4, status: 'answered' },
+                    { questionId: 'q2', score: 1, status: 'answered' }
+                ]
+            },
+            {
+                timestamp: '2026-08-11T09:00:00.000Z',
+                note: null,
+                answers: [
+                    { questionId: 'q1', score: 3, status: 'answered' },
+                    { questionId: 'q2', score: 2, status: 'answered' }
+                ]
+            },
+            {
+                timestamp: '2026-08-12T09:00:00.000Z',
+                note: '   ',
+                answers: [
+                    { questionId: 'q1', score: 2, status: 'answered' },
+                    { questionId: 'q2', score: 4, status: 'answered' }
+                ]
+            },
+            {
+                timestamp: '2026-08-13T09:00:00.000Z',
+                note: 'Sudden spike in agitation after difficult meeting.',
+                answers: [
+                    { questionId: 'q1', score: 2, status: 'answered' },
+                    { questionId: 'q2', score: 5, status: 'answered' }
+                ]
+            }
+        ];
+
+        windowInstance.renderLineGraph(container, { entries: logs, questions });
+
+        // 1. Verify only 2 note markers are rendered (for Day 1 and Day 4)
+        const noteMarkers = Array.from(container.querySelectorAll('svg g.notes .note-marker'));
+        expect(noteMarkers.length).toBe(2);
+
+        // 2. Verify marker attributes and accessibility
+        const firstMarker = noteMarkers[0];
+        expect(firstMarker.getAttribute('role')).toBe('button');
+        expect(firstMarker.getAttribute('tabindex')).toBe('0');
+        expect(firstMarker.getAttribute('aria-label')).toContain('Felt well-rested');
+        expect(firstMarker.querySelector('title').textContent).toContain('Felt well-rested');
+
+        const secondMarker = noteMarkers[1];
+        expect(secondMarker.getAttribute('aria-label')).toContain('Sudden spike in agitation');
+
+        // 3. Click first note marker and verify notice modal dialog opens with note content
+        firstMarker.dispatchEvent(new windowInstance.MouseEvent('click', { bubbles: true, cancelable: true }));
+        await sleep(80);
+
+        const overlayElement = documentInstance.getElementById('notice-dialog-overlay');
+        const titleElement = documentInstance.getElementById('notice-dialog-title');
+        const subtitleElement = documentInstance.getElementById('notice-dialog-subtitle');
+
+        expect(overlayElement.classList.contains('is-open')).toBe(true);
+        expect(overlayElement.getAttribute('aria-hidden')).toBe('false');
+        expect(titleElement.textContent).toContain('Check-In Note');
+        expect(subtitleElement.textContent).toBe('Felt well-rested after 8 hours of sleep.');
+        expect(subtitleElement.classList.contains('notice-note-content')).toBe(true);
+
+        // Close dialog
+        const okButton = documentInstance.getElementById('button-notice-ok');
+        okButton.click();
+        await sleep(50);
+        expect(overlayElement.classList.contains('is-open')).toBe(false);
+
+        // 4. Test keyboard activation (Enter key) on second note marker
+        secondMarker.dispatchEvent(new windowInstance.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+        await sleep(80);
+
+        expect(overlayElement.classList.contains('is-open')).toBe(true);
+        expect(subtitleElement.textContent).toBe('Sudden spike in agitation after difficult meeting.');
+
+        // Close via Escape key
+        overlayElement.dispatchEvent(new windowInstance.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+        await sleep(50);
+        expect(overlayElement.classList.contains('is-open')).toBe(false);
+    });
 });

@@ -1229,7 +1229,10 @@ body[data-contrast="high"] .legend-isolate-button.is-isolated {
 .note-marker {
     cursor: pointer;
     outline: none;
-    transition: transform 140ms var(--transition-curve);
+}
+
+.note-marker .note-marker-hitbox {
+    fill: transparent;
 }
 
 .note-marker .note-marker-box {
@@ -1253,8 +1256,13 @@ body[data-contrast="high"] .legend-isolate-button.is-isolated {
     stroke-width: 1.8;
 }
 
-.note-marker:active {
-    transform: scale(1.15);
+.note-marker:active .note-marker-box {
+    fill: var(--text-bright);
+    stroke: var(--text-bright);
+}
+
+.note-marker:active .note-marker-icon {
+    stroke: var(--box-bg);
 }
 
 body[data-contrast="high"] .note-marker .note-marker-box {
@@ -1263,12 +1271,15 @@ body[data-contrast="high"] .note-marker .note-marker-box {
 }
 
 body[data-contrast="high"] .note-marker:hover .note-marker-box,
-body[data-contrast="high"] .note-marker:focus-visible .note-marker-box {
+body[data-contrast="high"] .note-marker:focus-visible .note-marker-box,
+body[data-contrast="high"] .note-marker:active .note-marker-box {
     fill: var(--text-bright);
+    stroke: var(--text-bright);
 }
 
 body[data-contrast="high"] .note-marker:hover .note-marker-icon,
-body[data-contrast="high"] .note-marker:focus-visible .note-marker-icon {
+body[data-contrast="high"] .note-marker:focus-visible .note-marker-icon,
+body[data-contrast="high"] .note-marker:active .note-marker-icon {
     stroke: var(--box-bg);
 }
 
