@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { setupTestDOM, sleep } from './test-utils.js';
+import { setupTestDOM, sleep, createSampleCheckIn } from './test-utils.js';
 
 let domInstance;
 let windowInstance;
@@ -15,14 +15,7 @@ async function initializeTestEnvironment(customSessionStorage = {}) {
 
 describe('Check-in and View State Persistence (Theme Switch & Reload Resilience)', () => {
     it('restores in-progress question index and note on reload', async () => {
-        const savedCheckin = {
-            currentQuestionIndex: 2,
-            checkinAnswers: [
-                { questionId: 'q_energy', score: 4, status: 'answered' },
-                { questionId: 'q_sadness', score: 1, status: 'answered' }
-            ],
-            checkinNote: 'Feeling decent this afternoon.'
-        };
+        const savedCheckin = createSampleCheckIn();
 
         await initializeTestEnvironment({
             'high_and_low_active_checkin': JSON.stringify(savedCheckin)
@@ -104,15 +97,10 @@ describe('Check-in and View State Persistence (Theme Switch & Reload Resilience)
     it('discards stale check-in if older than 30 minutes (30m TTL expiry)', async () => {
         const thirtyOneMinutesAgo = Date.now() - (31 * 60 * 1000);
         await initializeTestEnvironment({
-            'high_and_low_active_checkin': JSON.stringify({
-                currentQuestionIndex: 2,
-                checkinAnswers: [
-                    { questionId: 'q_energy', score: 4, status: 'answered' },
-                    { questionId: 'q_sadness', score: 1, status: 'answered' }
-                ],
+            'high_and_low_active_checkin': JSON.stringify(createSampleCheckIn({
                 checkinNote: 'Old stale note',
                 updatedAt: thirtyOneMinutesAgo
-            })
+            }))
         });
 
         // Should have reset to Question 1 because the check-in timed out

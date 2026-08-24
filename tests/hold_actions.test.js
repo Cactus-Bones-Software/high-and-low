@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { setupTestDOM, sleep } from './test-utils.js';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { setupTestDOM, sleep, dispatchContextMenuEvent } from './test-utils.js';
 
 let domInstance;
 let windowInstance;
@@ -19,12 +19,7 @@ describe('Hold-To-Confirm Actions & Mobile Touch Compatibility', () => {
         expect(holdButtons.length).toBeGreaterThan(0);
 
         holdButtons.forEach(button => {
-            const contextMenuEvent = new windowInstance.MouseEvent('contextmenu', {
-                bubbles: true,
-                cancelable: true
-            });
-            const defaultNotPrevented = button.dispatchEvent(contextMenuEvent);
-            expect(defaultNotPrevented).toBe(false);
+            const contextMenuEvent = dispatchContextMenuEvent(windowInstance, button);
             expect(contextMenuEvent.defaultPrevented).toBe(true);
         });
     });
@@ -45,11 +40,7 @@ describe('Hold-To-Confirm Actions & Mobile Touch Compatibility', () => {
         expect(replaceButton.classList.contains('is-holding')).toBe(true);
 
         // Simulate contextmenu event during hold (mobile long press)
-        const contextMenuEvent = new windowInstance.MouseEvent('contextmenu', {
-            bubbles: true,
-            cancelable: true
-        });
-        replaceButton.dispatchEvent(contextMenuEvent);
+        const contextMenuEvent = dispatchContextMenuEvent(windowInstance, replaceButton);
         expect(contextMenuEvent.defaultPrevented).toBe(true);
 
         // Holding should still be active

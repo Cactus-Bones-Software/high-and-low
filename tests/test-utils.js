@@ -110,3 +110,73 @@ export async function setupTestDOM(customSessionStorage = {}) {
         document: documentInstance
     };
 }
+
+/**
+ * Creates a standard sample check-in object for sessionStorage persistence testing.
+ * @param {Record<string, unknown>} [overrides={}]
+ * @returns {Record<string, unknown>}
+ */
+export function createSampleCheckIn(overrides = {}) {
+    return {
+        currentQuestionIndex: 2,
+        checkinAnswers: [
+            { questionId: 'q_energy', score: 4, status: 'answered' },
+            { questionId: 'q_sadness', score: 1, status: 'answered' }
+        ],
+        checkinNote: 'Feeling decent this afternoon.',
+        updatedAt: Date.now(),
+        ...overrides
+    };
+}
+
+/**
+ * Creates standard 3-question array for graph interaction testing.
+ * @returns {Array<Record<string, unknown>>}
+ */
+export function createSampleGraphQuestions() {
+    return [
+        { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' },
+        { id: 'q2', text: 'Sadness Depth', shortLabel: 'Sadness', curve: 'less-is-better' },
+        { id: 'q3', text: 'Self-Worth', shortLabel: 'Worth', curve: 'more-is-better' }
+    ];
+}
+
+/**
+ * Creates standard 2-day logs array for graph interaction testing.
+ * @returns {Array<Record<string, unknown>>}
+ */
+export function createSampleTwoDayLogs() {
+    return [
+        {
+            timestamp: '2026-08-14T08:00:00.000Z',
+            answers: [
+                { questionId: 'q1', score: 3, status: 'answered' },
+                { questionId: 'q2', score: 2, status: 'answered' },
+                { questionId: 'q3', score: 4, status: 'answered' }
+            ]
+        },
+        {
+            timestamp: '2026-08-14T18:00:00.000Z',
+            answers: [
+                { questionId: 'q1', score: 4, status: 'answered' },
+                { questionId: 'q2', score: 1, status: 'answered' },
+                { questionId: 'q3', score: 5, status: 'answered' }
+            ]
+        }
+    ];
+}
+
+/**
+ * Creates and dispatches a contextmenu event on a target element.
+ * @param {Window} windowInstance
+ * @param {HTMLElement} targetElement
+ * @returns {MouseEvent}
+ */
+export function dispatchContextMenuEvent(windowInstance, targetElement) {
+    const contextMenuEvent = new windowInstance.MouseEvent('contextmenu', {
+        bubbles: true,
+        cancelable: true
+    });
+    targetElement.dispatchEvent(contextMenuEvent);
+    return contextMenuEvent;
+}

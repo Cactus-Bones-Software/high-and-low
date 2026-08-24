@@ -1,10 +1,38 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
-import { setupTestDOM, sleep } from './test-utils.js';
+import { setupTestDOM, sleep, createSampleGraphQuestions, createSampleTwoDayLogs } from './test-utils.js';
 
 let domInstance;
 let windowInstance;
 let documentInstance;
+
+function expectGraphLegendAndLines(container, checkedStates, expectedPathsCount, expectedPointsCount) {
+    const items = Array.from(container.querySelectorAll('.legend-checklist-item'));
+    if (checkedStates) {
+        checkedStates.forEach((state, index) => {
+            expect(items[index].getAttribute('aria-checked')).toBe(state ? 'true' : 'false');
+        });
+    }
+    if (typeof expectedPathsCount === 'number') {
+        expect(container.querySelectorAll('svg g.lines path').length).toBe(expectedPathsCount);
+    }
+    if (typeof expectedPointsCount === 'number') {
+        expect(container.querySelectorAll('svg g.points circle').length).toBe(expectedPointsCount);
+    }
+    return items;
+}
+
+async function simulateLongPress(windowInstance, element, durationMs = 500) {
+    const pointerDownEvent = new windowInstance.PointerEvent('pointerdown', {
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+        clientX: 100,
+        clientY: 100
+    });
+    element.dispatchEvent(pointerDownEvent);
+    await sleep(durationMs);
+}
 
 describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
     beforeEach(async () => {
@@ -228,182 +256,56 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
 
     it('toggles question line visibility when tapping legend checklist rows and prevents toggling to zero (Task 3.6)', () => {
         const container = documentInstance.createElement('div');
-        const questions = [
-            { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' },
-            { id: 'q2', text: 'Sadness Depth', shortLabel: 'Sadness', curve: 'less-is-better' },
-            { id: 'q3', text: 'Self-Worth', shortLabel: 'Worth', curve: 'more-is-better' }
-        ];
-
-        const logs = [
-            {
-                timestamp: '2026-08-14T08:00:00.000Z',
-                answers: [
-                    { questionId: 'q1', score: 3, status: 'answered' },
-                    { questionId: 'q2', score: 2, status: 'answered' },
-                    { questionId: 'q3', score: 4, status: 'answered' }
-                ]
-            },
-            {
-                timestamp: '2026-08-14T18:00:00.000Z',
-                answers: [
-                    { questionId: 'q1', score: 4, status: 'answered' },
-                    { questionId: 'q2', score: 1, status: 'answered' },
-                    { questionId: 'q3', score: 5, status: 'answered' }
-                ]
-            }
-        ];
+        const questions = createSampleGraphQuestions();
+        const logs = createSampleTwoDayLogs();
 
         windowInstance.renderLineGraph(container, { entries: logs, questions });
 
         // Initial state: 3 lines, 3 legend checklist buttons with aria-checked="true"
-        let items = Array.from(container.querySelectorAll('.legend-checklist-item'));
-        expect(items.length).toBe(3);
-        expect(items.every(item => item.getAttribute('aria-checked') === 'true')).toBe(true);
-        expect(container.querySelectorAll('svg g.lines path').length).toBe(3);
-        expect(container.querySelectorAll('svg g.points circle').length).toBe(6);
+        let items = expectGraphLegendAndLines(container, [true, true, true], 3, 6);
 
         // Click item 1 (q1) -> toggles q1 off
         items[0].click();
-
-        items = Array.from(container.querySelectorAll('.legend-checklist-item'));
-        expect(items[0].getAttribute('aria-checked')).toBe('false');
-        expect(items[1].getAttribute('aria-checked')).toBe('true');
-        expect(items[2].getAttribute('aria-checked')).toBe('true');
-        expect(container.querySelectorAll('svg g.lines path').length).toBe(2);
-        expect(container.querySelectorAll('svg g.points circle').length).toBe(4);
+        items = expectGraphLegendAndLines(container, [false, true, true], 2, 4);
 
         // Click item 2 (q2) -> toggles q2 off
         items[1].click();
-
-        items = Array.from(container.querySelectorAll('.legend-checklist-item'));
-        expect(items[0].getAttribute('aria-checked')).toBe('false');
-        expect(items[1].getAttribute('aria-checked')).toBe('false');
-        expect(items[2].getAttribute('aria-checked')).toBe('true');
-        expect(container.querySelectorAll('svg g.lines path').length).toBe(1);
-        expect(container.querySelectorAll('svg g.points circle').length).toBe(2);
+        items = expectGraphLegendAndLines(container, [false, false, true], 1, 2);
 
         // Toggle off the last remaining visible question (q3) -> allows 0 lines visible
         items[2].click();
-
-        items = Array.from(container.querySelectorAll('.legend-checklist-item'));
-        expect(items[0].getAttribute('aria-checked')).toBe('false');
-        expect(items[1].getAttribute('aria-checked')).toBe('false');
-        expect(items[2].getAttribute('aria-checked')).toBe('false');
-        expect(container.querySelectorAll('svg g.lines path').length).toBe(0);
-        expect(container.querySelectorAll('svg g.points circle').length).toBe(0);
+        items = expectGraphLegendAndLines(container, [false, false, false], 0, 0);
 
         // Click item 1 (q1) again -> toggles q1 back on (now q1 is visible)
         items[0].click();
-
-        items = Array.from(container.querySelectorAll('.legend-checklist-item'));
-        expect(items[0].getAttribute('aria-checked')).toBe('true');
-        expect(items[1].getAttribute('aria-checked')).toBe('false');
-        expect(items[2].getAttribute('aria-checked')).toBe('false');
-        expect(container.querySelectorAll('svg g.lines path').length).toBe(1);
-        expect(container.querySelectorAll('svg g.points circle').length).toBe(2);
+        expectGraphLegendAndLines(container, [true, false, false], 1, 2);
     });
 
     it('isolates a single question on long-press (450ms) and restores all on second long-press (Task 3.7)', async () => {
         const container = documentInstance.createElement('div');
-        const questions = [
-            { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' },
-            { id: 'q2', text: 'Sadness Depth', shortLabel: 'Sadness', curve: 'less-is-better' },
-            { id: 'q3', text: 'Self-Worth', shortLabel: 'Worth', curve: 'more-is-better' }
-        ];
-
-        const logs = [
-            {
-                timestamp: '2026-08-14T08:00:00.000Z',
-                answers: [
-                    { questionId: 'q1', score: 3, status: 'answered' },
-                    { questionId: 'q2', score: 2, status: 'answered' },
-                    { questionId: 'q3', score: 4, status: 'answered' }
-                ]
-            },
-            {
-                timestamp: '2026-08-14T18:00:00.000Z',
-                answers: [
-                    { questionId: 'q1', score: 4, status: 'answered' },
-                    { questionId: 'q2', score: 1, status: 'answered' },
-                    { questionId: 'q3', score: 5, status: 'answered' }
-                ]
-            }
-        ];
+        const questions = createSampleGraphQuestions();
+        const logs = createSampleTwoDayLogs();
 
         windowInstance.renderLineGraph(container, { entries: logs, questions });
 
-        let items = Array.from(container.querySelectorAll('.legend-checklist-item'));
-        expect(items.length).toBe(3);
-        expect(container.querySelectorAll('svg g.lines path').length).toBe(3);
+        let items = expectGraphLegendAndLines(container, [true, true, true], 3, 6);
 
         // Simulate long-press pointerdown on item 1 (q2)
-        const secondQuestionItem = items[1];
-        const pointerDownEvent = new windowInstance.PointerEvent('pointerdown', {
-            bubbles: true,
-            cancelable: true,
-            button: 0,
-            clientX: 100,
-            clientY: 100
-        });
-        secondQuestionItem.dispatchEvent(pointerDownEvent);
-
-        // Wait 500ms for long-press timer to fire
-        await sleep(500);
+        await simulateLongPress(windowInstance, items[1], 500);
 
         // Graph should now be isolated to q2 alone
-        items = Array.from(container.querySelectorAll('.legend-checklist-item'));
-        expect(items[0].getAttribute('aria-checked')).toBe('false');
-        expect(items[1].getAttribute('aria-checked')).toBe('true');
-        expect(items[2].getAttribute('aria-checked')).toBe('false');
-        expect(container.querySelectorAll('svg g.lines path').length).toBe(1);
-        expect(container.querySelectorAll('svg g.points circle').length).toBe(2);
+        items = expectGraphLegendAndLines(container, [false, true, false], 1, 2);
 
         // Long-press q2 again while isolated to restore all
-        const secondQuestionIsolatedItem = items[1];
-        secondQuestionIsolatedItem.dispatchEvent(new windowInstance.PointerEvent('pointerdown', {
-            bubbles: true,
-            cancelable: true,
-            button: 0,
-            clientX: 100,
-            clientY: 100
-        }));
+        await simulateLongPress(windowInstance, items[1], 500);
 
-        await sleep(500);
-
-        items = Array.from(container.querySelectorAll('.legend-checklist-item'));
-        expect(items[0].getAttribute('aria-checked')).toBe('true');
-        expect(items[1].getAttribute('aria-checked')).toBe('true');
-        expect(items[2].getAttribute('aria-checked')).toBe('true');
-        expect(container.querySelectorAll('svg g.lines path').length).toBe(3);
-        expect(container.querySelectorAll('svg g.points circle').length).toBe(6);
+        expectGraphLegendAndLines(container, [true, true, true], 3, 6);
     });
 
     it('isolates and restores questions via accessible per-row isolate button (Task 3.8)', () => {
         const container = documentInstance.createElement('div');
-        const questions = [
-            { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' },
-            { id: 'q2', text: 'Sadness Depth', shortLabel: 'Sadness', curve: 'less-is-better' },
-            { id: 'q3', text: 'Self-Worth', shortLabel: 'Worth', curve: 'more-is-better' }
-        ];
-
-        const logs = [
-            {
-                timestamp: '2026-08-14T08:00:00.000Z',
-                answers: [
-                    { questionId: 'q1', score: 3, status: 'answered' },
-                    { questionId: 'q2', score: 2, status: 'answered' },
-                    { questionId: 'q3', score: 4, status: 'answered' }
-                ]
-            },
-            {
-                timestamp: '2026-08-14T18:00:00.000Z',
-                answers: [
-                    { questionId: 'q1', score: 4, status: 'answered' },
-                    { questionId: 'q2', score: 1, status: 'answered' },
-                    { questionId: 'q3', score: 5, status: 'answered' }
-                ]
-            }
-        ];
+        const questions = createSampleGraphQuestions();
+        const logs = createSampleTwoDayLogs();
 
         windowInstance.renderLineGraph(container, { entries: logs, questions });
 
@@ -413,11 +315,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         // Click isolate button on question 2 (Sadness)
         isolateButtons[1].click();
 
-        let items = Array.from(container.querySelectorAll('.legend-checklist-item'));
-        expect(items[0].getAttribute('aria-checked')).toBe('false');
-        expect(items[1].getAttribute('aria-checked')).toBe('true');
-        expect(items[2].getAttribute('aria-checked')).toBe('false');
-        expect(container.querySelectorAll('svg g.lines path').length).toBe(1);
+        expectGraphLegendAndLines(container, [false, true, false], 1);
 
         isolateButtons = Array.from(container.querySelectorAll('.legend-isolate-button'));
         expect(isolateButtons[1].classList.contains('is-isolated')).toBe(true);
@@ -426,11 +324,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         // Click isolate button on question 2 again while isolated -> restores all
         isolateButtons[1].click();
 
-        items = Array.from(container.querySelectorAll('.legend-checklist-item'));
-        expect(items[0].getAttribute('aria-checked')).toBe('true');
-        expect(items[1].getAttribute('aria-checked')).toBe('true');
-        expect(items[2].getAttribute('aria-checked')).toBe('true');
-        expect(container.querySelectorAll('svg g.lines path').length).toBe(3);
+        expectGraphLegendAndLines(container, [true, true, true], 3);
 
         isolateButtons = Array.from(container.querySelectorAll('.legend-isolate-button'));
         expect(isolateButtons[1].classList.contains('is-isolated')).toBe(false);
@@ -439,30 +333,8 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
 
     it('provides Show all and Clear all quick action buttons for fast timeline filter reset (Task 3.8)', () => {
         const container = documentInstance.createElement('div');
-        const questions = [
-            { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' },
-            { id: 'q2', text: 'Sadness Depth', shortLabel: 'Sadness', curve: 'less-is-better' },
-            { id: 'q3', text: 'Self-Worth', shortLabel: 'Worth', curve: 'more-is-better' }
-        ];
-
-        const logs = [
-            {
-                timestamp: '2026-08-14T08:00:00.000Z',
-                answers: [
-                    { questionId: 'q1', score: 3, status: 'answered' },
-                    { questionId: 'q2', score: 2, status: 'answered' },
-                    { questionId: 'q3', score: 4, status: 'answered' }
-                ]
-            },
-            {
-                timestamp: '2026-08-14T18:00:00.000Z',
-                answers: [
-                    { questionId: 'q1', score: 4, status: 'answered' },
-                    { questionId: 'q2', score: 1, status: 'answered' },
-                    { questionId: 'q3', score: 5, status: 'answered' }
-                ]
-            }
-        ];
+        const questions = createSampleGraphQuestions();
+        const logs = createSampleTwoDayLogs();
 
         windowInstance.renderLineGraph(container, { entries: logs, questions });
 
@@ -474,22 +346,11 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
 
         // Click Clear All -> clears all questions (0 lines)
         clearAllButton.click();
-
-        let items = Array.from(container.querySelectorAll('.legend-checklist-item'));
-        expect(items[0].getAttribute('aria-checked')).toBe('false');
-        expect(items[1].getAttribute('aria-checked')).toBe('false');
-        expect(items[2].getAttribute('aria-checked')).toBe('false');
-        expect(container.querySelectorAll('svg g.lines path').length).toBe(0);
-        expect(container.querySelectorAll('svg g.points circle').length).toBe(0);
+        expectGraphLegendAndLines(container, [false, false, false], 0, 0);
 
         // Click Show All -> restores all questions
         showAllButton.click();
-
-        items = Array.from(container.querySelectorAll('.legend-checklist-item'));
-        expect(items[0].getAttribute('aria-checked')).toBe('true');
-        expect(items[1].getAttribute('aria-checked')).toBe('true');
-        expect(items[2].getAttribute('aria-checked')).toBe('true');
-        expect(container.querySelectorAll('svg g.lines path').length).toBe(3);
+        expectGraphLegendAndLines(container, [true, true, true], 3);
     });
 
     it('renders note indicators on timeline and opens note modal with content on tap or keyboard interaction (Task 3.9)', async () => {
@@ -637,38 +498,25 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         let points = container.querySelectorAll('svg g.points circle');
         expect(points.length).toBe(5);
 
-        // 2. Click '7d' button -> Should show Day 3 and Day 4 (2 points within last 7 days)
-        const button7D = container.querySelector('.graph-timeframe-button[data-range="7d"]');
-        button7D.click();
-        await sleep(50);
+        // 2. Test timeframe filtering for preset intervals
+        const timeframeTestCases = [
+            { range: '7d', expectedPoints: 2, assertActive: true },
+            { range: '14d', expectedPoints: 3 },
+            { range: '30d', expectedPoints: 4 },
+            { range: 'all', expectedPoints: 5 }
+        ];
 
-        points = container.querySelectorAll('svg g.points circle');
-        expect(points.length).toBe(2);
-        expect(container.querySelector('.graph-timeframe-button[data-range="7d"]').classList.contains('is-active')).toBe(true);
+        for (const testCase of timeframeTestCases) {
+            const button = container.querySelector(`.graph-timeframe-button[data-range="${testCase.range}"]`);
+            button.click();
+            await sleep(50);
 
-        // 3. Click '14d' button -> Should show Day 2, Day 3, and Day 4 (3 points within last 14 days)
-        const button14D = container.querySelector('.graph-timeframe-button[data-range="14d"]');
-        button14D.click();
-        await sleep(50);
-
-        points = container.querySelectorAll('svg g.points circle');
-        expect(points.length).toBe(3);
-
-        // 4. Click '30d' button -> Should show Day 1, Day 2, Day 3, and Day 4 (4 points within last 30 days)
-        const button30D = container.querySelector('.graph-timeframe-button[data-range="30d"]');
-        button30D.click();
-        await sleep(50);
-
-        points = container.querySelectorAll('svg g.points circle');
-        expect(points.length).toBe(4);
-
-        // 5. Click 'all' button -> Restores all 5 points
-        const buttonAll = container.querySelector('.graph-timeframe-button[data-range="all"]');
-        buttonAll.click();
-        await sleep(50);
-
-        points = container.querySelectorAll('svg g.points circle');
-        expect(points.length).toBe(5);
+            points = container.querySelectorAll('svg g.points circle');
+            expect(points.length).toBe(testCase.expectedPoints);
+            if (testCase.assertActive) {
+                expect(container.querySelector(`.graph-timeframe-button[data-range="${testCase.range}"]`).classList.contains('is-active')).toBe(true);
+            }
+        }
     });
 
     it('scales SVG width dynamically and provides horizontal scroll container for dense entries (Task 3.10)', () => {

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
-import { setupTestDOM, isElementInert, sleep } from './test-utils.js';
+import { setupTestDOM, isElementInert, sleep, createSampleCheckIn } from './test-utils.js';
 
 let domInstance;
 let windowInstance;
@@ -179,15 +179,13 @@ describe('Task 2.11: Suppress Transitions on Initial Load & Page Refreshes', () 
     });
 
     it('3. Restoring active check-in on load renders in-progress question immediately without triggering question transition animations', async () => {
-        const savedCheckin = {
-            currentQuestionIndex: 2,
+        const savedCheckin = createSampleCheckIn({
             checkinAnswers: [
                 { questionId: 'q_energy', score: 4, status: 'answered' },
                 { questionId: 'q_sadness', score: 2, status: 'answered' }
             ],
-            checkinNote: null,
-            updatedAt: Date.now()
-        };
+            checkinNote: null
+        });
 
         const environment = await setupTestDOM({
             'high_and_low_active_checkin': JSON.stringify(savedCheckin)
