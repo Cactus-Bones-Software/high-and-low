@@ -379,6 +379,59 @@ body.drawer-open .side-drawer {
     font-weight: 700;
 }
 
+.drawer-actions {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.drawer-action-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background-color: rgba(255, 255, 255, 0.04);
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 100ms ease;
+    user-select: none;
+}
+
+.drawer-action-button:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: var(--text-muted);
+    color: var(--text-bright);
+}
+
+.drawer-action-button:active {
+    transform: scale(0.98);
+}
+
+.drawer-action-button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+body[data-contrast="high"] .drawer-action-button {
+    border-color: var(--text-bright);
+    color: var(--text-bright);
+}
+
+body[data-contrast="high"] .drawer-action-button:hover,
+body[data-contrast="high"] .drawer-action-button:focus-visible {
+    background-color: var(--text-bright);
+    color: var(--box-bg);
+}
+
 .drawer-quick-prefs {
     margin-top: auto;
     padding-top: 16px;

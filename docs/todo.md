@@ -70,7 +70,7 @@
   - Enforce the project taxonomy: standardize on **"Check-In"** for the user action/interaction and **"Entry"** for the stored historical record, removing confusing or conflicting aliases ("Session", "Quiz", "Test", and ambiguous "Log").
   - Ensure completion feedback (e.g. "Check-In recorded. Rest easy.") and navigation cues cleanly reflect this standard without ambiguity.
 
-- [ ] **Task 2.13: Drawer "Restart Check-In" Action**
+- [x] **Task 2.13: Drawer "Restart Check-In" Action**
   - Add a "Restart Check-In" / "Start Over" action within the navigation side drawer to allow users to reset their in-progress check-in back to Question 1 without cluttering the main tracker canvas.
   - Clear active check-in storage, reset state to Question 1, update tracker view, and close the drawer cleanly.
 

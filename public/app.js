@@ -1143,6 +1143,16 @@ function setupSettingsAndMenu() {
             }
         });
     });
+
+    // Drawer Actions: Restart Check-In (Task 2.13)
+    const restartCheckinButton = document.getElementById('button-restart-checkin');
+    if (restartCheckinButton) {
+        restartCheckinButton.addEventListener('click', () => {
+            closeDrawer();
+            navigateTo('tracker-canvas');
+            void startNewCheckIn();
+        });
+    }
 }
 
 function setupCanvasBackButtons() {
@@ -1711,7 +1721,7 @@ function renderLineGraph(container, { entries, allEntries, questions, visibleQue
             const isAnswered = answer && answer.status === 'answered' && answer.score !== null && answer.score >= 1 && answer.score <= 5;
             const isSkipped = answer && (answer.status === 'skipped' || answer.score === null);
 
-            if (isAnswered && answer) {
+            if (isAnswered) {
                 const x = getX(entryIndex);
                 const y = getY(answer.score);
                 currentSegment.push({ x, y, score: answer.score, entryIndex: entryIndex, timestamp: entry.timestamp });

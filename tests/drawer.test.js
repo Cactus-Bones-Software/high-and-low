@@ -236,4 +236,43 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
         expect(notesButton).not.toBeNull();
         expect(skipButton).not.toBeNull();
     });
+
+    it('11. Task 2.13: Restart Check-In action button in drawer resets active check-in to Question 1 and closes drawer', async () => {
+        const menuButton = documentInstance.getElementById('button-menu');
+        const restartCheckinButton = documentInstance.getElementById('button-restart-checkin');
+        const trackerCanvas = documentInstance.getElementById('tracker-canvas');
+        const progressElement = documentInstance.getElementById('progress-text');
+
+        expect(restartCheckinButton).not.toBeNull();
+
+        // Simulate an in-progress check-in by answering question 1
+        const scoreButton = documentInstance.querySelector('.score-button[data-score="4"]');
+        if (scoreButton) {
+            scoreButton.click();
+        }
+
+        expect(windowInstance.STATE.currentQuestionIndex).toBeGreaterThan(0);
+        expect(windowInstance.STATE.checkinAnswers.length).toBeGreaterThan(0);
+
+        // Open navigation drawer
+        menuButton.click();
+        expect(documentInstance.body.classList.contains('drawer-open')).toBe(true);
+
+        // Click Restart Check-In
+        restartCheckinButton.click();
+
+        // Drawer should be closed
+        expect(documentInstance.body.classList.contains('drawer-open')).toBe(false);
+
+        // Tracker canvas should be active
+        expect(trackerCanvas.classList.contains('view-active')).toBe(true);
+
+        // State must be reset back to Question 1
+        expect(windowInstance.STATE.currentQuestionIndex).toBe(0);
+        expect(windowInstance.STATE.checkinAnswers.length).toBe(0);
+        expect(windowInstance.STATE.checkinNote).toBeNull();
+
+        // Verify tracker UI shows Question 1 progress
+        expect(progressElement.textContent).toContain('1 of');
+    });
 });
