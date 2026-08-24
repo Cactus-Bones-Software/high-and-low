@@ -135,7 +135,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
   - Add `tags` (array of strings, e.g., `["Energy", "Somatic"]`, `["Mood", "Affect"]`) to the question object schema in IndexedDB.
   - Populate default tags for the 7 built-in questions during seeding.
 
-- [ ] **Task 4.2: Setting Alignment — Handedness (`handedness`)**
+- [x] **Task 4.2: Setting Alignment — Handedness (`handedness`)**
   - Update settings label/key to `handedness` (`right` default / `left`).
   - Dominant hand dictates menu drawer position (`right` or `left`), and non-dominant hand dictates edit button placement on cards to prevent accidental taps during single-handed use.
 
