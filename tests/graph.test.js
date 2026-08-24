@@ -553,4 +553,65 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         expect(width).toBeGreaterThan(600);
         expect(width).toBe(42 + 24 + 24 * 48);
     });
+
+    it('includes all answered questions from entries in addition to active questions when loading history view', async () => {
+        // Seed 7 questions in IDB
+        const allQuestions = [
+            { id: 'q_energy', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' },
+            { id: 'q_sadness', text: 'Sadness Depth', shortLabel: 'Sadness', curve: 'less-is-better' },
+            { id: 'q_worth', text: 'Self-Worth', shortLabel: 'Worth', curve: 'more-is-better' },
+            { id: 'q_irritability', text: 'Irritability', shortLabel: 'Irritability', curve: 'less-is-better' },
+            { id: 'q_racing', text: 'Racing Thoughts', shortLabel: 'Racing', curve: 'less-is-better' },
+            { id: 'q_impulse', text: 'Restless Urges', shortLabel: 'Impulse', curve: 'less-is-better' },
+            { id: 'q_overall', text: 'Overall Mood', shortLabel: 'Overall', curve: 'more-is-better' }
+        ];
+
+        for (const question of allQuestions) {
+            await windowInstance.put('questions', question);
+        }
+
+        // Active question set only has 4 questions
+        await windowInstance.setConfig('activeQuestionSet', ['q_energy', 'q_sadness', 'q_irritability', 'q_overall']);
+
+        // Seed entries with answers for all 7 questions
+        await windowInstance.put('entries', {
+            id: 'entry_1',
+            timestamp: new Date(Date.now() - 86400000).toISOString(),
+            answers: {
+                q_energy: 3,
+                q_sadness: 2,
+                q_worth: 4,
+                q_irritability: 1,
+                q_racing: 5,
+                q_impulse: 2,
+                q_overall: 4
+            }
+        });
+        await windowInstance.put('entries', {
+            id: 'entry_2',
+            timestamp: new Date().toISOString(),
+            answers: {
+                q_energy: 4,
+                q_sadness: 1,
+                q_worth: 5,
+                q_irritability: 2,
+                q_racing: 3,
+                q_impulse: 1,
+                q_overall: 5
+            }
+        });
+
+        await windowInstance.loadHistoryView();
+
+        const historyGraphContainer = documentInstance.getElementById('history-graph-container');
+        expect(historyGraphContainer).toBeTruthy();
+
+        // Verify all 7 legend items are rendered
+        const legendItems = historyGraphContainer.querySelectorAll('.legend-checklist-item');
+        expect(legendItems.length).toBe(7);
+
+        // Verify 7 lines are rendered in SVG
+        const paths = historyGraphContainer.querySelectorAll('svg g.lines path');
+        expect(paths.length).toBe(7);
+    });
 });

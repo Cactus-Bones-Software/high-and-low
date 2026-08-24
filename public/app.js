@@ -158,6 +158,15 @@ function getAll(storeName) {
         request.onerror = () => reject(request.error);
     });
 }
+function put(storeName, item) {
+    return new Promise((resolve, reject) => {
+        if (!db) return resolve();
+        const transaction = db.transaction([storeName], 'readwrite');
+        transaction.objectStore(storeName).put(item);
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+    });
+}
 function getConfig(key) {
     return new Promise((resolve, reject) => {
         if (!db) return resolve(undefined);
@@ -1230,14 +1239,42 @@ async function loadHistoryView() {
 
         const questionsById = new Map(questions.map(question => [question.id, question]));
         const activeIds = Array.isArray(activeSet) ? activeSet : DEFAULT_ACTIVE_SET;
-        const activeQuestions = activeIds.map(id => questionsById.get(id)).filter(question => question && !question.archived);
 
-        const sortedEntries = (entries || []).slice().sort((firstEntry, secondEntry) => new Date(firstEntry.timestamp) - new Date(secondEntry.timestamp));
+        const sortedEntries = (entries || [])
+            .filter(entry => entry && entry.timestamp && !isNaN(new Date(entry.timestamp).getTime()))
+            .slice()
+            .sort((firstEntry, secondEntry) => new Date(firstEntry.timestamp).getTime() - new Date(secondEntry.timestamp).getTime());
+
+        // Collect all question IDs that are either active or present in the logged entries
+        const relevantQuestionIds = new Set(activeIds);
+        sortedEntries.forEach(entry => {
+            if (Array.isArray(entry.answers)) {
+                entry.answers.forEach(answerItem => {
+                    if (answerItem && answerItem.questionId) {
+                        relevantQuestionIds.add(answerItem.questionId);
+                    }
+                });
+            } else if (entry && entry.answers && typeof entry.answers === 'object') {
+                Object.keys(entry.answers).forEach(questionId => {
+                    if (entry.answers[questionId] !== undefined && entry.answers[questionId] !== null) {
+                        relevantQuestionIds.add(questionId);
+                    }
+                });
+            }
+        });
+
+        const historyQuestions = [];
+        relevantQuestionIds.forEach(questionId => {
+            const foundQuestion = questionsById.get(questionId);
+            if (foundQuestion) {
+                historyQuestions.push(foundQuestion);
+            }
+        });
 
         STATE.historyData = {
             entries: sortedEntries,
             allEntries: sortedEntries,
-            questions: activeQuestions,
+            questions: historyQuestions,
             allQuestionsMap: questionsById
         };
 
@@ -1343,8 +1380,14 @@ function renderLineGraph(container, { entries, allEntries, questions, visibleQue
         const numberOfDays = rangeDaysMap[currentTimeRange] || 30;
         const millisecondsInWindow = numberOfDays * 24 * 60 * 60 * 1000;
 
-        const latestTimestampNumber = new Date(rawAllEntries[rawAllEntries.length - 1].timestamp).getTime();
-        const referenceTime = isNaN(latestTimestampNumber) ? Date.now() : latestTimestampNumber;
+        let latestTimestampNumber = -Infinity;
+        for (const entry of rawAllEntries) {
+            const time = new Date(entry.timestamp).getTime();
+            if (!isNaN(time) && time > latestTimestampNumber) {
+                latestTimestampNumber = time;
+            }
+        }
+        const referenceTime = latestTimestampNumber === -Infinity ? Date.now() : latestTimestampNumber;
         const cutoffTime = referenceTime - millisecondsInWindow;
 
         filteredEntries = rawAllEntries.filter(entry => {
@@ -1537,8 +1580,15 @@ function renderLineGraph(container, { entries, allEntries, questions, visibleQue
         return isNaN(time) ? 0 : time;
     });
 
-    const minTime = entryTimes[0];
-    const maxTime = entryTimes[entryCount - 1];
+    let minTime = Infinity;
+    let maxTime = -Infinity;
+    for (let index = 0; index < entryTimes.length; index++) {
+        const time = entryTimes[index];
+        if (time < minTime) minTime = time;
+        if (time > maxTime) maxTime = time;
+    }
+    if (minTime === Infinity) minTime = 0;
+    if (maxTime === -Infinity) maxTime = 0;
     const timeDuration = maxTime - minTime;
 
     const minimumSpacingPerPoint = 48;
@@ -1647,11 +1697,21 @@ function renderLineGraph(container, { entries, allEntries, questions, visibleQue
         let currentSegment = [];
 
         filteredEntries.forEach((entry, entryIndex) => {
-            const answer = (entry.answers || []).find(answerItem => answerItem.questionId === question.id);
+            let answer = null;
+            if (Array.isArray(entry.answers)) {
+                answer = entry.answers.find(answerItem => answerItem.questionId === question.id);
+            } else if (entry.answers && typeof entry.answers === 'object') {
+                const rawValue = entry.answers[question.id];
+                if (typeof rawValue === 'number') {
+                    answer = { questionId: question.id, score: rawValue, status: 'answered' };
+                } else if (rawValue && typeof rawValue === 'object') {
+                    answer = { questionId: question.id, ...rawValue };
+                }
+            }
             const isAnswered = answer && answer.status === 'answered' && answer.score !== null && answer.score >= 1 && answer.score <= 5;
             const isSkipped = answer && (answer.status === 'skipped' || answer.score === null);
 
-            if (isAnswered) {
+            if (isAnswered && answer) {
                 const x = getX(entryIndex);
                 const y = getY(answer.score);
                 currentSegment.push({ x, y, score: answer.score, entryIndex: entryIndex, timestamp: entry.timestamp });
@@ -2361,9 +2421,14 @@ function initApp() {
             if (typeof window !== 'undefined') {
                 window.startNewCheckIn = startNewCheckIn;
                 window.renderLineGraph = renderLineGraph;
+                window.loadHistoryView = loadHistoryView;
                 window.navigateTo = navigateTo;
                 window.finalizeCheckin = finalizeCheckin;
                 window.STATE = STATE;
+                window.put = put;
+                window.getAll = getAll;
+                window.getConfig = getConfig;
+                window.setConfig = setConfig;
             }
 
             safeRAF(() => {
