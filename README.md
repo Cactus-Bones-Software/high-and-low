@@ -52,20 +52,20 @@ Donations are accepted from the following sources:
 ### Funding Goals
 Funding will be spent on the following:
 - **Psychological Harm Audit/Consultation:** I am not a psychologist or a medical practitioner of any kind. I need the help of an expert to make reasonably certain that the design decisions and questions I put into the app will not cause harm. I am morally obligated to my fellow humans to do my due diligence in this matter.
-  - Preliminary results from the APA App Evaluation Model are promising, but I need to carry out the evaluation myself and by a licensed psychologist.
-  - Quote needed
+    - Preliminary results from the APA App Evaluation Model are promising, but I need to carry out the evaluation myself and by a licensed psychologist.
+    - Quote needed
 - **Accessibility and Friction Audit:** A core principal of the app is that it should be usable by anyone, including those in the lowest of low moods. I am not experienced enough in user experience (UX) to perform such an audit, so I need the help of an expert.
-  - Quote needed
+    - Quote needed
 - **Domain Names:** I have reserved the domain names `high-and-low.app` (primary, easy to read) and `highandlow.app` (secondary, easy to type and remember) for access to this app.
-  - Cost: about USD $60 per year.
+    - Cost: about USD $60 per year.
 
 Secondary, or stretch goals include the following:
 - **AI Server:** Headless large language model (LLM, or AI) computer for use in developing this and other projects
-  - Total cost not to exceed USD $5500, depending on PC Market conditions
-  - I will be building the machine myself, as I have schooling and experience in such projects.
+    - Total cost not to exceed USD $5500, depending on PC Market conditions
+    - I will be building the machine myself, as I have schooling and experience in such projects.
 - **Non-Profit Organization:** I would like to establish a small non-profit to accept donations and hold the intellectual property of High & Low, safeguarding it so that it can be useful for decades to come regardless of my own condition.
-  - Needs legal consultation (and quote for such)
-  - Needs a comprehensive charter written.
+    - Needs legal consultation (and quote for such)
+    - Needs a comprehensive charter written.
 
 ## Project Outlook
 I cannot promise to care for and maintain High & Low forever. However, it is my goal not to need to. After all, you do not need continuous research and development to make a screwdriver. Thus, one of my goals is to be finished with this project one day. While this might not be completely possible due to changes in the Web landscape beyond my control, I hope to meet the scope of this project and then stop developing new features.
@@ -94,7 +94,7 @@ High & Low is built as a zero-dependency, local-first Progressive Web Applicatio
 │            ▼                           ▼                 │
 │  ┌────────────────────────────────────────────────────┐  │
 │  │             IndexedDB Engine (v2)                  │  │
-│  │  • `config`     • `questions`     • `logs`         │  │
+│  │  • `config`     • `questions`     • `entries`      │  │
 │  └────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────┘
 ```
@@ -127,34 +127,39 @@ Data is partitioned into three dedicated IndexedDB object stores:
     * `theme`: `'system'` | `'dark'` | `'light'`
     * `contrast`: `'standard'` | `'high'`
     * `handedness`: `'right'` | `'left'`
-    * `onboardingCompleted`: `boolean`
+    * `holdDelay`: `'enabled'` | `'disabled'`
+    * `activeQuestionSet`: `string[]`
+    * `seedVersion`: `number`
 
 2. **`questions` Store**: Primary key `id` (string):
    ```typescript
    interface Question {
      id: string;
      text: string;
+     originalText: string;
      shortLabel?: string;
-     tags?: string[];
+     tags: string[];
      curve: 'more-is-better' | 'less-is-better' | 'middle-is-best';
-     responseType: 'scale' | 'boolean'; // 1-5 scale or Yes/No
-     minLabel?: string;
-     midLabel?: string;
-     maxLabel?: string;
+     minLabel?: string | null;
+     midLabel?: string | null;
+     maxLabel?: string | null;
      builtIn: boolean;
      archived: boolean;
-     order?: number;
+     createdAt: string;
+     updatedAt: string;
+     responseType?: 'scale' | 'boolean'; // Planned addition (Task 4.8)
    }
    ```
 
-3. **`logs` Store**: Primary key `timestamp` (ISO-8601 string):
+3. **`entries` Store**: Primary key `timestamp` (ISO-8601 string):
    ```typescript
-   interface LogEntry {
+   interface Entry {
      timestamp: string; // e.g. "2026-08-14T11:30:00.000Z"
+     dateString: string; // e.g. "2026-08-14"
      note?: string | null;
      answers: Array<{
        questionId: string;
-       score: number | null; // 1-5 for scale, 1/0 for boolean, null if skipped
+       score: number | null; // 1-5 for scale, null if skipped
        status: 'answered' | 'skipped';
      }>;
    }

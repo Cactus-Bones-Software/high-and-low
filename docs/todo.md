@@ -131,7 +131,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 
 ### Phase 4: Question Library & Management
 
-- [ ] **Task 4.1: Database Schema & Default Question Tags**
+- [x] **Task 4.1: Database Schema & Default Question Tags**
   - Add `tags` (array of strings, e.g., `["Energy", "Somatic"]`, `["Mood", "Affect"]`) to the question object schema in IndexedDB.
   - Populate default tags for the 7 built-in questions during seeding.
 

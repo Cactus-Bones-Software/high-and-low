@@ -20,7 +20,7 @@
 
 ## Core Interfaces & Data Schema
 * **Active State**: `{ activeQuestions: [], currentQuestionIndex: 0, checkinAnswers: [], checkinNote: null, deviceMode: 'mouse', historyVisibleQuestionIds: null }`.
-* **Question Object**: `{ id: string, text: string, originalText: string, shortLabel: string, curve: 'more-is-better'|'less-is-better'|'middle-is-best', minLabel: string|null, maxLabel: string|null, midLabel: string|null, builtIn: boolean, archived: boolean, createdAt: string, updatedAt: string }`. `tags` and `responseType` (`'scale'|'boolean'`) are planned additions, not yet implemented — see `docs/todo.md` Tasks 4.8–4.9.
+* **Question Object**: `{ id: string, text: string, originalText: string, shortLabel: string, tags: string[], curve: 'more-is-better'|'less-is-better'|'middle-is-best', minLabel: string|null, maxLabel: string|null, midLabel: string|null, builtIn: boolean, archived: boolean, createdAt: string, updatedAt: string }`. `responseType` (`'scale'|'boolean'`) is a planned addition, not yet implemented — see `docs/todo.md` Tasks 4.8–4.9.
 * **Entry**: `{ timestamp: string, dateString: string, note: string|null, answers: [{ questionId: string, score: number|null, status: 'answered'|'skipped' }] }` stored by ISO timestamp key in the `entries` IndexedDB object store.
 * **Config Object**: `{ activeQuestionSet: string[], theme: 'dark'|'light'|'system', contrast: 'low'|'high', menuSide: 'right'|'left', holdDelay: 'enabled'|'disabled', seedVersion: number }` stored as individual key/value rows in the `config` IndexedDB object store (also mirrored to `localStorage` for menu side and hold delay).
 

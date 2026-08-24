@@ -83,19 +83,19 @@ function syncMetaThemeColor(themeValue) {
 // Bump this whenever new entries are added to DEFAULT_QUESTIONS so that existing
 // installations pick up the new built-ins on next load (see seedDefaults) without
 // disturbing the user's own active set or authored questions.
-const SEED_VERSION = 1;
+const SEED_VERSION = 2;
 
 // Built-in questions shipped with the app. User-authored questions live in the
 // same 'questions' store but with builtIn:false and a content-addressed id
 // (see makeCustomId). Built-ins use readable slugs for export/debug legibility.
 const DEFAULT_QUESTIONS = [
-    { id: 'q_energy',       text: 'What is your current energy level?',            shortLabel: 'Energy Level',      curve: 'more-is-better',   minLabel: 'Bedbound/Depleted',      maxLabel: 'Fully Charged',   midLabel: null },
-    { id: 'q_sadness',      text: 'How heavy or deep is your sadness right now?',  shortLabel: 'Sadness Depth',     curve: 'less-is-better',   minLabel: 'No Sadness',             maxLabel: 'Overwhelming',    midLabel: null },
-    { id: 'q_worth',        text: 'How is your sense of self-worth and guilt?',    shortLabel: 'Self-Worth',        curve: 'more-is-better',   minLabel: 'Intense Guilt/Worthless', maxLabel: 'At Peace',        midLabel: null },
-    { id: 'q_irritability', text: 'How irritable or easily agitated do you feel?', shortLabel: 'Irritability',      curve: 'less-is-better',   minLabel: 'Calm & Patient',         maxLabel: 'Highly Snappy',   midLabel: null },
-    { id: 'q_racing',       text: 'How fast are your thoughts moving?',            shortLabel: 'Racing Thoughts',   curve: 'less-is-better',   minLabel: 'Quiet & Focused',        maxLabel: 'Unstoppable Racing', midLabel: null },
-    { id: 'q_impulse',      text: 'Are you experiencing restless or reckless urges?', shortLabel: 'Restless Urges', curve: 'less-is-better', minLabel: 'Deliberate',           maxLabel: 'Highly Impulsive', midLabel: null },
-    { id: 'q_overall',      text: 'Overall, where does your mood sit right now?',  shortLabel: 'Overall Mood',      curve: 'middle-is-best',   minLabel: 'Deeply Low',             maxLabel: 'Manic/Spiked',    midLabel: 'Stable & Even' }
+    { id: 'q_energy',       text: 'What is your current energy level?',            shortLabel: 'Energy Level',      tags: ['Energy', 'Somatic'],     curve: 'more-is-better',   minLabel: 'Bedbound/Depleted',      maxLabel: 'Fully Charged',   midLabel: null },
+    { id: 'q_sadness',      text: 'How heavy or deep is your sadness right now?',  shortLabel: 'Sadness Depth',     tags: ['Mood', 'Affect'],        curve: 'less-is-better',   minLabel: 'No Sadness',             maxLabel: 'Overwhelming',    midLabel: null },
+    { id: 'q_worth',        text: 'How is your sense of self-worth and guilt?',    shortLabel: 'Self-Worth',        tags: ['Cognitive', 'Self-Esteem'], curve: 'more-is-better', minLabel: 'Intense Guilt/Worthless', maxLabel: 'At Peace',        midLabel: null },
+    { id: 'q_irritability', text: 'How irritable or easily agitated do you feel?', shortLabel: 'Irritability',      tags: ['Mood', 'Reactivity'],    curve: 'less-is-better',   minLabel: 'Calm & Patient',         maxLabel: 'Highly Snappy',   midLabel: null },
+    { id: 'q_racing',       text: 'How fast are your thoughts moving?',            shortLabel: 'Racing Thoughts',   tags: ['Cognitive', 'Pacing'],   curve: 'less-is-better',   minLabel: 'Quiet & Focused',        maxLabel: 'Unstoppable Racing', midLabel: null },
+    { id: 'q_impulse',      text: 'Are you experiencing restless or reckless urges?', shortLabel: 'Restless Urges', tags: ['Behavioral', 'Impulse'], curve: 'less-is-better', minLabel: 'Deliberate',           maxLabel: 'Highly Impulsive', midLabel: null },
+    { id: 'q_overall',      text: 'Overall, where does your mood sit right now?',  shortLabel: 'Overall Mood',      tags: ['Mood', 'Core'],          curve: 'middle-is-best',   minLabel: 'Deeply Low',             maxLabel: 'Manic/Spiked',    midLabel: 'Stable & Even' }
 ];
 
 // Daily set established on first run (ids into the 'questions' store).
@@ -231,6 +231,7 @@ async function seedDefaults() {
                 store.add({
                     ...question,
                     originalText: question.text,
+                    tags: Array.isArray(question.tags) ? question.tags : [],
                     builtIn: true,
                     archived: false,
                     createdAt: now,
@@ -238,12 +239,17 @@ async function seedDefaults() {
                 });
             } else {
                 const existingQuestion = existing.find(item => item.id === question.id);
-                if (existingQuestion && (!existingQuestion.shortLabel || existingQuestion.shortLabel !== question.shortLabel)) {
-                    store.put({
-                        ...existingQuestion,
-                        shortLabel: question.shortLabel,
-                        updatedAt: now
-                    });
+                if (existingQuestion) {
+                    const needsTagUpdate = !Array.isArray(existingQuestion.tags) || existingQuestion.tags.length === 0;
+                    const needsShortLabelUpdate = !existingQuestion.shortLabel || existingQuestion.shortLabel !== question.shortLabel;
+                    if (needsTagUpdate || needsShortLabelUpdate) {
+                        store.put({
+                            ...existingQuestion,
+                            shortLabel: question.shortLabel,
+                            tags: Array.isArray(existingQuestion.tags) && existingQuestion.tags.length > 0 ? existingQuestion.tags : (question.tags || []),
+                            updatedAt: now
+                        });
+                    }
                 }
             }
         });
@@ -268,11 +274,17 @@ async function loadActiveQuestions() {
 }
 
 // Persist a user-authored question.
-async function createCustomQuestion({ text, shortLabel, curve, minLabel, maxLabel, midLabel, addToSet }) {
+async function createCustomQuestion({ text, shortLabel, tags, curve, minLabel, maxLabel, midLabel, addToSet }) {
     const normalized = normalizeQuestionText(text || '');
     const normalizedShort = normalizeQuestionText(shortLabel || '');
     if (!normalized) throw new Error('Question text is required.');
     if (!normalizedShort) throw new Error('Short label is required.');
+
+    const normalizedTags = Array.isArray(tags)
+        ? tags.map(tag => typeof tag === 'string' ? tag.trim() : '').filter(Boolean)
+        : (typeof tags === 'string'
+            ? tags.split(',').map(tag => tag.trim()).filter(Boolean)
+            : []);
 
     const id = makeCustomId(normalized);
     const now = new Date().toISOString();
@@ -287,7 +299,13 @@ async function createCustomQuestion({ text, shortLabel, curve, minLabel, maxLabe
             const existing = getRequest.result;
             if (existing) {
                 if (existing.archived) {
-                    const restored = { ...existing, shortLabel: normalizedShort, archived: false, updatedAt: now };
+                    const restored = {
+                        ...existing,
+                        shortLabel: normalizedShort,
+                        tags: normalizedTags.length > 0 ? normalizedTags : (existing.tags || []),
+                        archived: false,
+                        updatedAt: now
+                    };
                     store.put(restored);
                     result = { status: 'restored', id, question: restored };
                 } else {
@@ -298,6 +316,7 @@ async function createCustomQuestion({ text, shortLabel, curve, minLabel, maxLabe
                     id,
                     text: normalized,
                     shortLabel: normalizedShort,
+                    tags: normalizedTags,
                     originalText: normalized,
                     curve,
                     minLabel: minLabel || null,
@@ -1721,7 +1740,7 @@ function renderLineGraph(container, { entries, allEntries, questions, visibleQue
             const isAnswered = answer && answer.status === 'answered' && answer.score !== null && answer.score >= 1 && answer.score <= 5;
             const isSkipped = answer && (answer.status === 'skipped' || answer.score === null);
 
-            if (isAnswered) {
+            if (isAnswered && answer) {
                 const x = getX(entryIndex);
                 const y = getY(answer.score);
                 currentSegment.push({ x, y, score: answer.score, entryIndex: entryIndex, timestamp: entry.timestamp });
@@ -2448,6 +2467,8 @@ function initApp() {
                 window.loadHistoryView = loadHistoryView;
                 window.navigateTo = navigateTo;
                 window.finalizeCheckin = finalizeCheckin;
+                window.createCustomQuestion = createCustomQuestion;
+                window.DEFAULT_QUESTIONS = DEFAULT_QUESTIONS;
                 window.STATE = STATE;
                 window.put = put;
                 window.getAll = getAll;
