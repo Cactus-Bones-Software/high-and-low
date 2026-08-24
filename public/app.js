@@ -184,6 +184,15 @@ function setConfig(key, value) {
         transaction.onerror = () => reject(transaction.error);
     });
 }
+function deleteConfig(key) {
+    return new Promise((resolve, reject) => {
+        if (!db) return resolve();
+        const transaction = db.transaction(['config'], 'readwrite');
+        transaction.objectStore('config').delete(key);
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+    });
+}
 
 // --- 2b. QUESTION IDENTITY & SEEDING ---
 
@@ -1018,7 +1027,7 @@ function setupSettingsAndMenu() {
     const drawerThemeSelect = document.getElementById('drawer-theme-select');
     const contrastSelect = document.getElementById('contrast-select');
     const holdDelaySelect = document.getElementById('hold-delay-select');
-    const menuSideSelect = document.getElementById('menu-side-select');
+    const handednessSelect = document.getElementById('handedness-select');
 
     const handleThemeChange = async (themeValue) => {
         document.body.setAttribute('data-theme', themeValue);
@@ -1078,15 +1087,16 @@ function setupSettingsAndMenu() {
         return window.setDebugBounds(!currentState);
     };
 
-    const handleMenuSideChange = async (menuSideValue) => {
+    const handleHandednessChange = async (handednessValue) => {
         document.body.classList.add('suppress-transitions');
-        document.body.setAttribute('data-menu-side', menuSideValue);
-        await setConfig('menuSide', menuSideValue);
+        document.body.setAttribute('data-handedness', handednessValue);
+        document.body.setAttribute('data-menu-side', handednessValue);
         try {
-            localStorage.setItem('menuSide', menuSideValue);
+            localStorage.setItem('handedness', handednessValue);
         } catch (error) {
         }
-        if (menuSideSelect) menuSideSelect.value = menuSideValue;
+        await setConfig('handedness', handednessValue);
+        if (handednessSelect) handednessSelect.value = handednessValue;
         safeRAF(() => {
             safeRAF(() => {
                 if (typeof document !== 'undefined' && document.body) {
@@ -1096,8 +1106,8 @@ function setupSettingsAndMenu() {
         });
     };
 
-    if (menuSideSelect) {
-        menuSideSelect.addEventListener('change', (event) => handleMenuSideChange(event.target.value));
+    if (handednessSelect) {
+        handednessSelect.addEventListener('change', (event) => handleHandednessChange(event.target.value));
     }
 
     // Dynamic listener for OS system theme changes
@@ -2337,11 +2347,13 @@ async function applyStoredDisplay() {
     const [
         theme,
         contrast,
-        menuSide,
+        handedness,
+        legacyMenuSide,
         holdDelay
     ] = await Promise.all([
         getConfig('theme'),
         getConfig('contrast'),
+        getConfig('handedness'),
         getConfig('menuSide'),
         getConfig('holdDelay'),
         getConfig('debug-bounds')
@@ -2369,12 +2381,23 @@ async function applyStoredDisplay() {
     const holdDelaySelect = document.getElementById('hold-delay-select');
     if (holdDelaySelect) holdDelaySelect.value = isHoldDelayEnabled ? 'enabled' : 'disabled';
 
-    let localMenuSide = null;
-    try { localMenuSide = localStorage.getItem('menuSide'); } catch (error) { }
-    const finalMenuSide = menuSide || localMenuSide || 'right';
-    document.body.setAttribute('data-menu-side', finalMenuSide);
-    const menuSideSelect = document.getElementById('menu-side-select');
-    if (menuSideSelect) menuSideSelect.value = finalMenuSide;
+    let localHandedness = null;
+    let localLegacyMenuSide = null;
+    try {
+        localHandedness = localStorage.getItem('handedness');
+        localLegacyMenuSide = localStorage.getItem('menuSide');
+    } catch (error) {}
+    const finalHandedness = handedness || legacyMenuSide || localHandedness || localLegacyMenuSide || 'right';
+    document.body.setAttribute('data-handedness', finalHandedness);
+    document.body.setAttribute('data-menu-side', finalHandedness);
+    if (!handedness) {
+        await setConfig('handedness', finalHandedness);
+    }
+    try {
+        localStorage.setItem('handedness', finalHandedness);
+    } catch (error) {}
+    const handednessSelect = document.getElementById('handedness-select');
+    if (handednessSelect) handednessSelect.value = finalHandedness;
 
     // Ensure debug options/outlines are off on page load
     document.body.setAttribute('data-debug-bounds', 'false');
@@ -2474,6 +2497,8 @@ function initApp() {
                 window.getAll = getAll;
                 window.getConfig = getConfig;
                 window.setConfig = setConfig;
+                window.deleteConfig = deleteConfig;
+                window.applyStoredDisplay = applyStoredDisplay;
             }
 
             safeRAF(() => {
