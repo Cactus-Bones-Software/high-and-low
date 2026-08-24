@@ -614,4 +614,35 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         const paths = historyGraphContainer.querySelectorAll('svg g.lines path');
         expect(paths.length).toBe(7);
     });
+
+    it('captures vertical wheel events over timeline and converts delta to horizontal scroll', () => {
+        const container = documentInstance.createElement('div');
+        const questions = [
+            { id: 'q1', text: 'Overall Mood', shortLabel: 'Mood', curve: 'more-is-better' }
+        ];
+        const entries = [
+            { id: 'entry_1', timestamp: new Date(Date.now() - 86400000).toISOString(), answers: [{ questionId: 'q1', score: 3, status: 'answered' }] },
+            { id: 'entry_2', timestamp: new Date().toISOString(), answers: [{ questionId: 'q1', score: 4, status: 'answered' }] }
+        ];
+        windowInstance.renderLineGraph(container, { entries, questions });
+
+        const scrollContainer = container.querySelector('.graph-scroll-container');
+        expect(scrollContainer).toBeTruthy();
+
+        // Mock scroll dimensions so scrollWidth > clientWidth
+        Object.defineProperty(scrollContainer, 'scrollWidth', { value: 1200, configurable: true });
+        Object.defineProperty(scrollContainer, 'clientWidth', { value: 400, configurable: true });
+        scrollContainer.scrollLeft = 100;
+
+        let defaultPrevented = false;
+        const wheelEvent = new windowInstance.Event('wheel', { bubbles: true, cancelable: true });
+        Object.defineProperty(wheelEvent, 'deltaY', { value: 50 });
+        Object.defineProperty(wheelEvent, 'deltaX', { value: 0 });
+        wheelEvent.preventDefault = () => { defaultPrevented = true; };
+
+        scrollContainer.dispatchEvent(wheelEvent);
+
+        expect(defaultPrevented).toBe(true);
+        expect(scrollContainer.scrollLeft).toBe(150);
+    });
 });

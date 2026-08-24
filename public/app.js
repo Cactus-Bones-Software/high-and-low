@@ -1813,8 +1813,22 @@ function renderLineGraph(container, { entries, allEntries, questions, visibleQue
 
     // Auto-scroll timeline to recent entries on render
     const scrollContainerElement = container.querySelector('.graph-scroll-container');
-    if (scrollContainerElement && scrollContainerElement.scrollWidth > scrollContainerElement.clientWidth) {
-        scrollContainerElement.scrollLeft = scrollContainerElement.scrollWidth;
+    if (scrollContainerElement) {
+        if (scrollContainerElement.scrollWidth > scrollContainerElement.clientWidth) {
+            scrollContainerElement.scrollLeft = scrollContainerElement.scrollWidth;
+        }
+
+        // Map mouse wheel delta to horizontal scrolling when cursor is over the timeline
+        scrollContainerElement.addEventListener('wheel', (event) => {
+            if (scrollContainerElement.scrollWidth <= scrollContainerElement.clientWidth) {
+                return;
+            }
+            // If the user is scrolling vertically with the mouse wheel, translate to horizontal scroll
+            if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+                event.preventDefault();
+                scrollContainerElement.scrollLeft += event.deltaY;
+            }
+        }, { passive: false });
     }
 
     wireTimeframeAndLegendListeners();
