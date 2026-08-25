@@ -47,7 +47,7 @@ If you would like to donate money, products, or services to make High and Low po
 ### Donation Sources
 Donations are accepted from the following sources:
 - GitHub Sponsors
-- Open Collective
+- [Ko-fi](https://ko-fi.com/cactusbonessoftware)
 
 ### Funding Goals
 Funding will be spent on the following:
