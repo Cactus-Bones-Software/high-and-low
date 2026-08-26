@@ -140,7 +140,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 - [x] **Task 4.2: Extract `questions.js`**
   - Move `normalizeQuestionText`, `fnv1a32`, `makeCustomId`, `seedDefaults`, `loadActiveQuestions`, `createCustomQuestion`, `getCurveColor`, `getQuestionDashArray`, `DEFAULT_QUESTIONS`, `DEFAULT_ACTIVE_SET`, and `SEED_VERSION` out of `app.js` into `public/js/questions.js`, importing from `storage/db.js`.
 
-- [ ] **Task 4.3: Extract `checkin.js`**
+- [x] **Task 4.3: Extract `checkin.js`**
   - Move `buildScoreButtonsHTML`, `renderCurrentQuestion`, `clearQuestionTransitions`, `handleScoreSubmission`, `startNewCheckIn`, and `finalizeCheckin` into `public/js/checkin.js`, importing from `state.js`, `storage/db.js`, `storage/session.js`, `questions.js`, and `utils.js`.
 
 - [ ] **Task 4.4: Extract `data-io.js`**
