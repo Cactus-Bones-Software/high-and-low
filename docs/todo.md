@@ -165,8 +165,8 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 - [ ] **Task 4.10: Extract `ui/question-authoring.js`**
   - Move `setupQuestionAuthoring` into `public/js/ui/question-authoring.js`, importing from `questions.js` and `storage/db.js`.
 
-- [ ] **Task 4.11: Extract `ui/keyboard-nav.js`**
-  - Move `setupKeyboardNavigation` into `public/js/ui/keyboard-nav.js`, importing from `checkin.js` and `ui/navigation.js`.
+- [ ] **Task 4.11: Extract `ui/keyboard-navigation.js`**
+  - Move `setupKeyboardNavigation` into `public/js/ui/keyboard-navigation.js`, importing from `checkin.js` and `ui/navigation.js`.
 
 - [ ] **Task 4.12: Wire up `main.js` and retire `app.js`**
   - Create `public/js/main.js` containing `initApp` and the bootstrap sequence, importing from every module above.
