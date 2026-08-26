@@ -143,7 +143,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 - [x] **Task 4.3: Extract `checkin.js`**
   - Move `buildScoreButtonsHTML`, `renderCurrentQuestion`, `clearQuestionTransitions`, `handleScoreSubmission`, `startNewCheckIn`, and `finalizeCheckin` into `public/js/checkin.js`, importing from `state.js`, `storage/db.js`, `storage/session.js`, `questions.js`, and `utils.js`.
 
-- [ ] **Task 4.4: Extract `data-io.js`**
+- [x] **Task 4.4: Extract `data-io.js`**
   - Move `exportAllDataAndConfig`, `handleFileImport`, `mergeQuestionWithConflictCheck`, `safelyAddEntryWithCollisionCheck`, and `areEntryAnswersIdentical` into `public/js/data-io.js`, importing from `storage/db.js`.
 
 - [ ] **Task 4.5: Extract `ui/navigation.js`**
