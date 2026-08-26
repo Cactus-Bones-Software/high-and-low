@@ -149,7 +149,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 - [x] **Task 4.5: Extract `ui/navigation.js`**
   - Move `navigateTo` into `public/js/ui/navigation.js`, importing from `state.js` and `storage/session.js`. Do this before the other `ui/` modules below, since several of them call `navigateTo`.
 
-- [ ] **Task 4.6: Extract `ui/hold-actions.js`**
+- [x] **Task 4.6: Extract `ui/hold-actions.js`**
   - Move `setupHoldActions`, `resetHold`, `executeHoldAction`, and `updateHoldActionAriaLabels` into `public/js/ui/hold-actions.js`, importing from `state.js`.
 
 - [ ] **Task 4.7: Extract `ui/dialogs.js`**
