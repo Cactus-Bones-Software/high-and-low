@@ -146,7 +146,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 - [x] **Task 4.4: Extract `data-io.js`**
   - Move `exportAllDataAndConfig`, `handleFileImport`, `mergeQuestionWithConflictCheck`, `safelyAddEntryWithCollisionCheck`, and `areEntryAnswersIdentical` into `public/js/data-io.js`, importing from `storage/db.js`.
 
-- [ ] **Task 4.5: Extract `ui/navigation.js`**
+- [x] **Task 4.5: Extract `ui/navigation.js`**
   - Move `navigateTo` into `public/js/ui/navigation.js`, importing from `state.js` and `storage/session.js`. Do this before the other `ui/` modules below, since several of them call `navigateTo`.
 
 - [ ] **Task 4.6: Extract `ui/hold-actions.js`**
