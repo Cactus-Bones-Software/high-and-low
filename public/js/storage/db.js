@@ -7,6 +7,10 @@ let db = null;
 export const DB_NAME = 'HighAndLowDB';
 export const DB_VERSION = 3;
 
+export function getDatabase() {
+    return db;
+}
+
 export function initDatabase() {
     return new Promise((resolve, reject) => {
         if (!window.indexedDB) {

@@ -137,7 +137,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
   - Create `public/js/` and extract `utils.js` (`escapeHTML`, `safeRAF`), `state.js` (the `STATE` singleton), `storage/db.js` (`initDatabase`, `getAll`, `put`, `getConfig`, `setConfig`, `deleteConfig`, `DB_NAME`, `DB_VERSION`), and `storage/session.js` (`saveActiveCheckin`, `clearActiveCheckin`, `restoreActiveCheckin`, `saveActiveView`, `getStoredActiveView`, related constants).
   - These have no dependencies on other planned modules, so this is the lowest-risk starting point.
 
-- [ ] **Task 4.2: Extract `questions.js`**
+- [x] **Task 4.2: Extract `questions.js`**
   - Move `normalizeQuestionText`, `fnv1a32`, `makeCustomId`, `seedDefaults`, `loadActiveQuestions`, `createCustomQuestion`, `getCurveColor`, `getQuestionDashArray`, `DEFAULT_QUESTIONS`, `DEFAULT_ACTIVE_SET`, and `SEED_VERSION` out of `app.js` into `public/js/questions.js`, importing from `storage/db.js`.
 
 - [ ] **Task 4.3: Extract `checkin.js`**
