@@ -155,7 +155,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 - [x] **Task 4.7: Extract `ui/dialogs.js`**
   - Move `showNoticeDialog`, `closeNoticeDialog`, `setupNoticeDialog`, `openImportDialog`, `closeImportDialog`, `confirmImport`, `setupImportDialog`, `openNotesDialog`, `closeNotesDialog`, `saveNotesFromDialog`, `setupNotesDialog`, and `updateNotesButtonLabel` into `public/js/ui/dialogs.js`, importing from `data-io.js`, `checkin.js`, and `utils.js`.
 
-- [ ] **Task 4.8: Extract `ui/settings-menu.js`**
+- [x] **Task 4.8: Extract `ui/settings-menu.js`**
   - Move `setupSettingsAndMenu`, `setupCanvasBackButtons`, `setInert`, `openDrawer`, `closeDrawer`, `openSettings`, `closeSettings`, `syncMetaThemeColor`, and `applyStoredDisplay` into `public/js/ui/settings-menu.js`, importing from `storage/db.js` and `ui/navigation.js`.
 
 - [ ] **Task 4.9: Extract `ui/history-graph.js`**
