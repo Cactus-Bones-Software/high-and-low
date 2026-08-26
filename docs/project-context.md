@@ -6,7 +6,7 @@
 
 ## Tech Stack
 * **Frontend Core**: Vanilla HTML5, Vanilla CSS3 (Custom Properties), Vanilla JavaScript (ES6+, zero dependencies/frameworks).
-* **Deployment Format**: Progressive Web App (`manifest.json` present, registration hook for a Service Worker already wired up in `app.js`). Offline asset caching itself (`sw.js`) is not yet implemented — tracked as `docs/todo.md` Phase 5.
+* **Deployment Format**: Progressive Web App (`manifest.json` present, registration hook for a Service Worker already wired up in `app.js`). Offline asset caching itself (`sw.js`) is not yet implemented — tracked as `docs/todo.md` Phase 6.
 * **Local Persistence Engine**: IndexedDB (`HighAndLowDB` v2 with `config`, `entries`, and `questions` object stores).
 
 ## Architectural Rules

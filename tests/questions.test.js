@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setupTestDOM, waitFor } from './test-utils.js';
 
-describe('Question Schema & Default Tags Tests (Task 4.1)', () => {
+describe('Question Schema & Default Tags Tests (Task 5.1)', () => {
     let windowInstance;
     let documentInstance;
 

@@ -147,7 +147,7 @@ Data is partitioned into three dedicated IndexedDB object stores:
      archived: boolean;
      createdAt: string;
      updatedAt: string;
-     responseType?: 'scale' | 'boolean'; // Planned addition (Task 4.8)
+     responseType?: 'scale' | 'boolean'; // Planned addition (Task 5.8)
    }
    ```
 
@@ -164,4 +164,3 @@ Data is partitioned into three dedicated IndexedDB object stores:
      }>;
    }
    ```
-

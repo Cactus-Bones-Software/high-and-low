@@ -53,7 +53,7 @@ Local-first, zero-friction mood tracker for bipolar/unipolar cycles, optimized f
 - Terminology: "Check-In" (action), "Entry/Entries" (stored record). No "Session/Quiz/Test/Log."
 - No abbreviated names in code (`button` not `btn`, etc.)
 
-## Questions View (Phase 4 target)
+## Questions View (Phase 5 target)
 - Live search (text + tags)
 - Active Tracker section (top): reorderable, "In Tracker" toggle
 - Library Catalog (bottom): "Add to Tracker" toggle, Edit on non-dominant side

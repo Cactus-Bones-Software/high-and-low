@@ -129,67 +129,128 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 
 ---
 
-### Phase 4: Question Library & Management
+### Phase 4: Architectural Concerns & Code Modularization
 
-- [x] **Task 4.1: Database Schema & Default Question Tags**
+`app.js` has grown to a single ~2,500-line file mixing storage, business logic, and DOM rendering in one global scope, which makes individual pieces hard to test in isolation (`tests/test-utils.js` currently has to eval the whole file into jsdom rather than importing discrete units) and makes large functions like `renderLineGraph` do too many unrelated things at once. This phase splits `app.js` into focused ES modules under `public/js/` — no bundler or compiler, just native `<script type="module">`, staying within the vanilla-only constraint in `AGENTS.md`. Each task below is scoped to a single concern — pull only the task you're working on into context rather than the whole phase.
+
+- [ ] **Task 4.1: Module scaffold + foundation layer**
+  - Create `public/js/` and extract `utils.js` (`escapeHTML`, `safeRAF`), `state.js` (the `STATE` singleton), `storage/db.js` (`initDatabase`, `getAll`, `put`, `getConfig`, `setConfig`, `deleteConfig`, `DB_NAME`, `DB_VERSION`), and `storage/session.js` (`saveActiveCheckin`, `clearActiveCheckin`, `restoreActiveCheckin`, `saveActiveView`, `getStoredActiveView`, related constants).
+  - These have no dependencies on other planned modules, so this is the lowest-risk starting point.
+
+- [ ] **Task 4.2: Extract `questions.js`**
+  - Move `normalizeQuestionText`, `fnv1a32`, `makeCustomId`, `seedDefaults`, `loadActiveQuestions`, `createCustomQuestion`, `getCurveColor`, `getQuestionDashArray`, `DEFAULT_QUESTIONS`, `DEFAULT_ACTIVE_SET`, and `SEED_VERSION` out of `app.js` into `public/js/questions.js`, importing from `storage/db.js`.
+
+- [ ] **Task 4.3: Extract `checkin.js`**
+  - Move `buildScoreButtonsHTML`, `renderCurrentQuestion`, `clearQuestionTransitions`, `handleScoreSubmission`, `startNewCheckIn`, and `finalizeCheckin` into `public/js/checkin.js`, importing from `state.js`, `storage/db.js`, `storage/session.js`, `questions.js`, and `utils.js`.
+
+- [ ] **Task 4.4: Extract `data-io.js`**
+  - Move `exportAllDataAndConfig`, `handleFileImport`, `mergeQuestionWithConflictCheck`, `safelyAddEntryWithCollisionCheck`, and `areEntryAnswersIdentical` into `public/js/data-io.js`, importing from `storage/db.js`.
+
+- [ ] **Task 4.5: Extract `ui/navigation.js`**
+  - Move `navigateTo` into `public/js/ui/navigation.js`, importing from `state.js` and `storage/session.js`. Do this before the other `ui/` modules below, since several of them call `navigateTo`.
+
+- [ ] **Task 4.6: Extract `ui/hold-actions.js`**
+  - Move `setupHoldActions`, `resetHold`, `executeHoldAction`, and `updateHoldActionAriaLabels` into `public/js/ui/hold-actions.js`, importing from `state.js`.
+
+- [ ] **Task 4.7: Extract `ui/dialogs.js`**
+  - Move `showNoticeDialog`, `closeNoticeDialog`, `setupNoticeDialog`, `openImportDialog`, `closeImportDialog`, `confirmImport`, `setupImportDialog`, `openNotesDialog`, `closeNotesDialog`, `saveNotesFromDialog`, `setupNotesDialog`, and `updateNotesButtonLabel` into `public/js/ui/dialogs.js`, importing from `data-io.js`, `checkin.js`, and `utils.js`.
+
+- [ ] **Task 4.8: Extract `ui/settings-menu.js`**
+  - Move `setupSettingsAndMenu`, `setupCanvasBackButtons`, `setInert`, `openDrawer`, `closeDrawer`, `openSettings`, `closeSettings`, `syncMetaThemeColor`, and `applyStoredDisplay` into `public/js/ui/settings-menu.js`, importing from `storage/db.js` and `ui/navigation.js`.
+
+- [ ] **Task 4.9: Extract `ui/history-graph.js`**
+  - Move `loadHistoryView`, `renderLineGraph`, `formatEntryDateTime`, `formatTickDate`, and `getTimeframeLabel` into `public/js/ui/history-graph.js`, importing from `storage/db.js`, `questions.js`, and `utils.js`.
+  - Do not attempt to split `renderLineGraph` internally in this task — that is Task 4.13. This task only moves the file boundary.
+
+- [ ] **Task 4.10: Extract `ui/question-authoring.js`**
+  - Move `setupQuestionAuthoring` into `public/js/ui/question-authoring.js`, importing from `questions.js` and `storage/db.js`.
+
+- [ ] **Task 4.11: Extract `ui/keyboard-nav.js`**
+  - Move `setupKeyboardNavigation` into `public/js/ui/keyboard-nav.js`, importing from `checkin.js` and `ui/navigation.js`.
+
+- [ ] **Task 4.12: Wire up `main.js` and retire `app.js`**
+  - Create `public/js/main.js` containing `initApp` and the bootstrap sequence, importing from every module above.
+  - Update `index.html` to load `<script src="js/main.js" type="module" defer></script>` in place of `<script src="app.js" defer></script>`, and delete `app.js` once all functions have been migrated.
+  - Update the stale `main` field in `package.json` (currently `public/app.js`) to point at `public/js/main.js`.
+  - Update `tests/test-utils.js` and all test suites to import directly from the new module files instead of evaluating raw file text into jsdom.
+  - Run the full suite (`npm test` / `npx vitest run`) and confirm all existing tests pass unmodified in behavior before marking this task complete.
+
+- [ ] **Task 4.13: Split `renderLineGraph` into pure layout + render functions**
+  - Within `ui/history-graph.js`, extract a pure `computeGraphLayout()` function (data filtering, timeframe windowing, scale/coordinate math — no DOM access) out of the current `renderLineGraph`, leaving `renderLineGraph`/a new `renderGraphSVG()` responsible only for DOM/SVG string output.
+  - This unlocks direct unit testing of the graph math in `tests/graph.test.js` without a jsdom container.
+
+- [ ] **Task 4.14: Centralize HTML-escaping discipline**
+  - `buildScoreButtonsHTML()`'s `contextLabel` (sourced from a custom question's user-authored `minLabel`/`maxLabel`/`midLabel` fields) is currently inserted into `innerHTML` unescaped, in both the check-in button rendering and the live question-authoring preview — unlike the legend and note-marker code in the history graph, which already calls `escapeHTML()` consistently.
+  - Audit every `innerHTML` assignment across the newly split modules and route any interpolated user-authored text (question text, short labels, min/max/mid labels, tags, notes) through `escapeHTML()`. Consider a single small template helper so future render code can't skip it by accident.
+
+- [ ] **Task 4.15: Audit silent error handling**
+  - Several `catch (_) {}` blocks (around `sessionStorage` reads/writes in checkin/session persistence, pointer-capture calls in hold actions, and `navigator.vibrate`) currently swallow errors with no logging or user-facing signal.
+  - Add at minimum a `console.warn` at each swallow point with enough context to debug a user-reported issue, without changing the current fallback behavior (these should stay non-blocking for the user).
+
+---
+
+### Phase 5: Question Library & Management
+
+- [x] **Task 5.1: Database Schema & Default Question Tags**
   - Add `tags` (array of strings, e.g., `["Energy", "Somatic"]`, `["Mood", "Affect"]`) to the question object schema in IndexedDB.
   - Populate default tags for the 7 built-in questions during seeding.
 
-- [x] **Task 4.2: Setting Alignment — Handedness (`handedness`)**
+- [x] **Task 5.2: Setting Alignment — Handedness (`handedness`)**
   - Update settings label/key to `handedness` (`right` default / `left`).
   - Dominant hand dictates menu drawer position (`right` or `left`), and non-dominant hand dictates edit button placement on cards to prevent accidental taps during single-handed use.
 
-- [ ] **Task 4.3: Custom Question Dialog — Tags Field**
+- [ ] **Task 5.3: Custom Question Dialog — Tags Field**
   - Add a comma-separated or pill-based Tags input field to the custom question form in `index.html` and wire it into `app.js` save handlers.
 
-- [ ] **Task 4.4: Questions View — Search & Layout Structure**
+- [ ] **Task 5.4: Questions View — Search & Layout Structure**
   - Build the searchable Questions view in `index.html`/`app.js` featuring a search bar that filters questions by title, short label, or tags in real-time.
   - Split the view into two clear visual card sections: **Active in Tracker** (top) and **Question Library Catalog** (bottom).
 
-- [ ] **Task 4.5: Active Tracker Cards & Reordering Handles**
+- [ ] **Task 5.5: Active Tracker Cards & Reordering Handles**
   - Render active tracker question cards with prominent question text at top, tags below, reordering handles/controls (move up / move down or drag handle) to adjust tracker sequence
   - Add an "In Tracker" toggle switch to remove a question into the catalog.
 
-- [ ] **Task 4.6: Library Catalog Cards & Non-Dominant Edit Actions**
+- [ ] **Task 5.6: Library Catalog Cards & Non-Dominant Edit Actions**
   - Render inactive built-in and custom question cards in the library catalog.
   - Position "Edit" buttons on the non-dominant side (based on `handedness` setting).
   - Include an "Add to Tracker" toggle switch on each card to activate questions into the tracker.
 
-- [ ] **Task 4.7: Question Editing & Archiving Workflow**
+- [ ] **Task 5.7: Question Editing & Archiving Workflow**
   - Enable editing of existing custom questions (updating text, short label, tags, curve, and endpoint labels) while maintaining the immutable `id`.
   - Include soft-archive / restore capabilities for custom questions.
 
-- [ ] **Task 4.8: Yes/No Question Type Schema & Authoring**
+- [ ] **Task 5.8: Yes/No Question Type Schema & Authoring**
   - Extend question schema to support response types (`responseType: "scale" | "boolean"` or `curve: "boolean"`).
   - Add response type selector (5-Point Scale vs. Yes/No) to the custom question authoring & editing dialogs in `index.html` and wire it into `app.js`.
 
-- [ ] **Task 4.9: Yes/No Question Tracker UI & Graph Analytics**
+- [ ] **Task 5.9: Yes/No Question Tracker UI & Graph Analytics**
   - Update `renderCurrentQuestion` in `app.js` to render a clean 2-button (Yes / No) input deck when `responseType: "boolean"`.
   - Map Yes/No responses to binary score values (or boolean flags) that render accurately on the History line-graph without disrupting standard 1–5 scale questions.
 
 ---
 
-### Phase 5: Offline Capabilities & PWA Readiness
-- [ ] **Task 5.1: Service Worker Implementation**
+### Phase 6: Offline Capabilities & PWA Readiness
+- [ ] **Task 6.1: Service Worker Implementation**
   - Create a lightweight vanilla service worker (`sw.js`) to cache static assets (`index.html`, `style.css`, `app.js`, `manifest.json`).
   - Register the service worker inside `app.js` to enable 100% offline functionality.
 
-- [ ] **Task 5.2: Web App Manifest Verification**
+- [ ] **Task 6.2: Web App Manifest Verification**
   - Verify and complete `manifest.json` with correct relative paths, high-resolution app icons, theme colors (`#121212`), and `display: "standalone"` parameters.
 
 ---
 
-### Phase 6: Documentation & Final Cleanup
-- [ ] **Task 6.1: Code Base JSDoc & Architectural Comments**
+### Phase 7: Documentation & Final Cleanup
+- [ ] **Task 7.1: Code Base JSDoc & Architectural Comments**
   - Perform a complete documentation pass on `app.js`, adding JSDoc comments to all core functions (`initDatabase`, `renderCurrentQuestion`, `exportAllDataAndConfig`, `handleFileImport`).
 
-- [ ] **Task 6.2: Workspace File Cleanup**
-  - Remove any unneeded project boilerplate files (such as `package.json` or `index.js` if created by IDE defaults) and verify the repository remains strictly clean vanilla files.
+- [ ] **Task 7.2: Workspace File Cleanup**
+  - Remove any unneeded project boilerplate files (such as `index.js` if created by IDE defaults) and verify the repository remains strictly clean vanilla files.
+  - In `package.json`, remove the `dev`/`build` scripts that invoke `vite` — `vite` isn't a declared dependency and those scripts contradict the "no compilers" stack rule in `AGENTS.md`.
 
-- [ ] **Task 6.3: Internationalization & Localization Pass**
+- [ ] **Task 7.3: Internationalization & Localization Pass**
   - Extract all hardcoded user-facing UI strings across `index.html` and `app.js` into a centralized translation dictionary.
   - Implement language switching and localization readiness for questions, controls, navigation, and settings interface elements.
 
-- [x] **Task 6.4: Shared Test Harness & Helper Utilities**
+- [x] **Task 7.4: Shared Test Harness & Helper Utilities**
   - Extract repetitive JSDOM bootstrapping, IndexedDB mocking, matchMedia/serviceWorker polyfills, and helper functions into a centralized `tests/test-utils.js` harness.
   - Refactor all test suites (`drawer.test.js`, `graph.test.js`, `session_persistence.test.js`, `transitions.test.js`) to consume the shared harness, eliminating code duplication and WebStorm inspection warnings.

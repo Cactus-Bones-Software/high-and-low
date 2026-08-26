@@ -8,7 +8,7 @@ let domInstance;
 let windowInstance;
 let documentInstance;
 
-describe('Task 4.2: Handedness Setting & Non-Dominant Action Placement Tests', () => {
+describe('Task 5.2: Handedness Setting & Non-Dominant Action Placement Tests', () => {
     beforeEach(async () => {
         const environment = await setupTestDOM();
         domInstance = environment.dom;
