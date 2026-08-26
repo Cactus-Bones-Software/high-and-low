@@ -133,7 +133,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 
 `app.js` has grown to a single ~2,500-line file mixing storage, business logic, and DOM rendering in one global scope, which makes individual pieces hard to test in isolation (`tests/test-utils.js` currently has to eval the whole file into jsdom rather than importing discrete units) and makes large functions like `renderLineGraph` do too many unrelated things at once. This phase splits `app.js` into focused ES modules under `public/js/` — no bundler or compiler, just native `<script type="module">`, staying within the vanilla-only constraint in `AGENTS.md`. Each task below is scoped to a single concern — pull only the task you're working on into context rather than the whole phase.
 
-- [ ] **Task 4.1: Module scaffold + foundation layer**
+- [x] **Task 4.1: Module scaffold + foundation layer**
   - Create `public/js/` and extract `utils.js` (`escapeHTML`, `safeRAF`), `state.js` (the `STATE` singleton), `storage/db.js` (`initDatabase`, `getAll`, `put`, `getConfig`, `setConfig`, `deleteConfig`, `DB_NAME`, `DB_VERSION`), and `storage/session.js` (`saveActiveCheckin`, `clearActiveCheckin`, `restoreActiveCheckin`, `saveActiveView`, `getStoredActiveView`, related constants).
   - These have no dependencies on other planned modules, so this is the lowest-risk starting point.
 
