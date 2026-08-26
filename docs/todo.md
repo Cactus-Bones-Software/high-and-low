@@ -162,7 +162,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
   - Move `loadHistoryView`, `renderLineGraph`, `formatEntryDateTime`, `formatTickDate`, and `getTimeframeLabel` into `public/js/ui/history-graph.js`, importing from `storage/db.js`, `questions.js`, and `utils.js`.
   - Do not attempt to split `renderLineGraph` internally in this task — that is Task 4.13. This task only moves the file boundary.
 
-- [ ] **Task 4.10: Extract `ui/question-authoring.js`**
+- [x] **Task 4.10: Extract `ui/question-authoring.js`**
   - Move `setupQuestionAuthoring` into `public/js/ui/question-authoring.js`, importing from `questions.js` and `storage/db.js`.
 
 - [ ] **Task 4.11: Extract `ui/keyboard-navigation.js`**
