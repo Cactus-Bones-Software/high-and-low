@@ -2,9 +2,16 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { JSDOM } from 'jsdom';
+import { STATE } from '../public/js/state.js';
+import { initApp, resetAppInitialized } from '../public/js/main.js';
+import { DEFAULT_QUESTIONS, seedDefaults, createCustomQuestion } from '../public/js/questions.js';
+import { startNewCheckIn, finalizeCheckin, renderCurrentQuestion } from '../public/js/checkin.js';
+import { renderLineGraph, loadHistoryView } from '../public/js/ui/history-graph.js';
+import { navigateTo, setCurrentViewId } from '../public/js/ui/navigation.js';
+import { getAll, put, getConfig, setConfig, deleteConfig } from '../public/js/storage/db.js';
+import { applyStoredDisplay } from '../public/js/ui/settings-menu.js';
 
 const htmlContent = readFileSync(resolve(__dirname, '../public/index.html'), 'utf8');
-const appJsContent = readFileSync(resolve(__dirname, '../public/app.js'), 'utf8');
 
 /**
  * Checks whether an element is marked as inert either via attribute or property.
@@ -89,11 +96,48 @@ export async function setupTestDOM(customSessionStorage = {}) {
         });
     }
 
-    // Evaluate app.js directly in JSDOM window context
-    windowInstance.eval(appJsContent);
+    // Bind globals safely so imported modules execute against this active window/document instance
+    global.window = windowInstance;
+    global.document = documentInstance;
+    global.sessionStorage = windowInstance.sessionStorage;
+    global.localStorage = windowInstance.localStorage;
+    global.indexedDB = windowInstance.indexedDB;
+    global.IDBKeyRange = windowInstance.IDBKeyRange;
+    global.history = windowInstance.history;
+    global.PointerEvent = windowInstance.PointerEvent;
+    global.MouseEvent = windowInstance.MouseEvent;
+    global.Event = windowInstance.Event;
 
-    // Dispatch DOMContentLoaded on JSDOM window document
-    windowInstance.document.dispatchEvent(new windowInstance.Event('DOMContentLoaded', { bubbles: true, cancelable: true }));
+    // Reset singleton in-memory state
+    STATE.activeQuestions = [];
+    STATE.currentQuestionIndex = 0;
+    STATE.checkinAnswers = [];
+    STATE.checkinNote = null;
+    STATE.deviceMode = 'mouse';
+    STATE.historyVisibleQuestionIds = null;
+    STATE.historyTimeRange = 'all';
+    setCurrentViewId('tracker-canvas');
+
+    // Expose helpers directly on windowInstance
+    windowInstance['STATE'] = STATE;
+    windowInstance.startNewCheckIn = startNewCheckIn;
+    windowInstance.renderLineGraph = renderLineGraph;
+    windowInstance.loadHistoryView = loadHistoryView;
+    windowInstance.navigateTo = navigateTo;
+    windowInstance.finalizeCheckin = finalizeCheckin;
+    windowInstance.renderCurrentQuestion = renderCurrentQuestion;
+    windowInstance.createCustomQuestion = createCustomQuestion;
+    windowInstance.DEFAULT_QUESTIONS = DEFAULT_QUESTIONS;
+    windowInstance.seedDefaults = seedDefaults;
+    windowInstance.put = put;
+    windowInstance.getAll = getAll;
+    windowInstance.getConfig = getConfig;
+    windowInstance.setConfig = setConfig;
+    windowInstance.deleteConfig = deleteConfig;
+    windowInstance.applyStoredDisplay = applyStoredDisplay;
+
+    resetAppInitialized();
+    await initApp();
 
     // Wait deterministically for async initDatabase promise chain and initial render to complete
     await waitFor(() => Boolean(

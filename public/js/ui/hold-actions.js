@@ -5,6 +5,14 @@
 
 import { STATE } from '../state.js';
 import { finalizeCheckin } from '../checkin.js';
+import {
+    openNotesDialog,
+    closeNotesDialog,
+    saveNotesFromDialog,
+    closeImportDialog,
+    confirmImport,
+    closeNoticeDialog
+} from './dialogs.js';
 
 let holdTimer = null;
 let isExecutingAction = false;
