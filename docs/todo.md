@@ -168,7 +168,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 - [x] **Task 4.11: Extract `ui/keyboard-navigation.js`**
   - Move `setupKeyboardNavigation` into `public/js/ui/keyboard-navigation.js`, importing from `checkin.js` and `ui/navigation.js`.
 
-- [ ] **Task 4.12: Wire up `main.js` and retire `app.js`**
+- [x] **Task 4.12: Wire up `main.js` and retire `app.js`**
   - Create `public/js/main.js` containing `initApp` and the bootstrap sequence, importing from every module above.
   - Update `index.html` to load `<script src="js/main.js" type="module" defer></script>` in place of `<script src="app.js" defer></script>`, and delete `app.js` once all functions have been migrated.
   - Update the stale `main` field in `package.json` (currently `public/app.js`) to point at `public/js/main.js`.
