@@ -152,7 +152,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 - [x] **Task 4.6: Extract `ui/hold-actions.js`**
   - Move `setupHoldActions`, `resetHold`, `executeHoldAction`, and `updateHoldActionAriaLabels` into `public/js/ui/hold-actions.js`, importing from `state.js`.
 
-- [ ] **Task 4.7: Extract `ui/dialogs.js`**
+- [x] **Task 4.7: Extract `ui/dialogs.js`**
   - Move `showNoticeDialog`, `closeNoticeDialog`, `setupNoticeDialog`, `openImportDialog`, `closeImportDialog`, `confirmImport`, `setupImportDialog`, `openNotesDialog`, `closeNotesDialog`, `saveNotesFromDialog`, `setupNotesDialog`, and `updateNotesButtonLabel` into `public/js/ui/dialogs.js`, importing from `data-io.js`, `checkin.js`, and `utils.js`.
 
 - [ ] **Task 4.8: Extract `ui/settings-menu.js`**
