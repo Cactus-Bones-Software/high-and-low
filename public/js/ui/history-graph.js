@@ -142,7 +142,7 @@ export function getTimeframeLabel(rangeKey) {
 
 /**
  * Computes pure mathematical layout, timeframe windowing, coordinates, and scale mapping for the mood timeline graph.
- * This is a pure function with no DOM dependencies or side-effects, allowing direct headless unit testing.
+ * This is a pure function with no DOM dependencies or side effects, allowing direct headless unit testing.
  *
  * @param {Object} [options={}]
  * @param {Array<Object>} [options.entries]

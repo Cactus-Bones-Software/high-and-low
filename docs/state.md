@@ -107,7 +107,6 @@ export const STATE = {
 /
 ├── AGENTS.md                  # Development rules & documentation routing table
 ├── README.md                  # User-facing overview, motivation, donations & license
-├── metadata.json              # Platform application metadata
 ├── package.json               # Test script & development tooling configuration
 │
 ├── docs/

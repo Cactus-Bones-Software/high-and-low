@@ -187,7 +187,7 @@ export function createSampleCheckIn(overrides = {}) {
 }
 
 /**
- * Creates standard 3-question array for graph interaction testing.
+ * Creates a standard 3-question array for graph interaction testing.
  * @returns {Array<Record<string, unknown>>}
  */
 export function createSampleGraphQuestions() {
