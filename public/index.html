@@ -21,11 +21,13 @@
 <div class="viewport-wrapper" id="viewport-wrapper">
     <div class="app-container" id="app-container">
 
+        <!-- ================================================================= -->
+        <!-- NAVIGATION CONTROLS & DRAWER OVERLAY                              -->
+        <!-- ================================================================= -->
         <button id="button-menu" class="menu-toggle" type="button" aria-label="Open menu &amp; navigation" aria-expanded="false" aria-controls="side-drawer">
             <span></span><span></span><span></span>
         </button>
 
-        <!-- Slide-over Drawer Overlay & Panel -->
         <div id="drawer-overlay" class="drawer-overlay" aria-hidden="true"></div>
 
         <aside id="side-drawer" class="side-drawer" aria-label="Navigation Menu" inert>
@@ -58,6 +60,9 @@
             </div>
         </aside>
 
+        <!-- ================================================================= -->
+        <!-- VIEW: MOOD TRACKER (Primary Check-In Flow)                        -->
+        <!-- ================================================================= -->
         <main id="tracker-canvas" class="app-canvas view-active" aria-label="Mood Tracker Question Area">
 
             <header class="canvas-box header-box" id="header-box">
@@ -96,6 +101,9 @@
             </footer>
         </main>
 
+        <!-- ================================================================= -->
+        <!-- VIEW: SETTINGS & DISPLAY PREFERENCES                              -->
+        <!-- ================================================================= -->
         <section id="settings-canvas" class="app-canvas view-canvas view-hidden-right" role="region" aria-label="Application Settings" inert>
 
             <header class="canvas-box view-header-box">
@@ -139,6 +147,9 @@
             </section>
         </section>
 
+        <!-- ================================================================= -->
+        <!-- VIEW: QUESTIONS LIBRARY & AUTHORING                               -->
+        <!-- ================================================================= -->
         <section id="questions-canvas" class="app-canvas view-canvas view-hidden-right" role="region" aria-label="Custom Questions Library" inert>
 
             <header class="canvas-box view-header-box">
@@ -212,6 +223,9 @@
             </section>
         </section>
 
+        <!-- ================================================================= -->
+        <!-- VIEW: DATA MANAGEMENT & BACKUPS                                   -->
+        <!-- ================================================================= -->
         <section id="data-canvas" class="app-canvas view-canvas view-hidden-right" role="region" aria-label="Data Management" inert>
 
             <header class="canvas-box view-header-box">
@@ -233,6 +247,9 @@
             </section>
         </section>
 
+        <!-- ================================================================= -->
+        <!-- VIEW: HISTORY TIMELINE & GRAPH                                    -->
+        <!-- ================================================================= -->
         <section id="history-canvas" class="app-canvas view-canvas view-hidden-right" role="region" aria-label="History" inert>
 
             <header class="canvas-box view-header-box">
@@ -252,7 +269,11 @@
             </section>
         </section>
 
-        <!-- Pop-in  Note Modal Dialog -->
+        <!-- ================================================================= -->
+        <!-- MODALS & OVERLAYS                                                 -->
+        <!-- ================================================================= -->
+
+        <!-- Pop-in Note Modal Dialog -->
         <div id="notes-dialog-overlay" class="modal-overlay" inert>
             <div id="notes-dialog" class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="notes-dialog-title">
                 <header class="modal-header">
