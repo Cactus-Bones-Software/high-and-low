@@ -138,35 +138,64 @@ export function getTimeframeLabel(rangeKey) {
     }
 }
 
-export function renderLineGraph(container, { entries, allEntries, questions, visibleQuestionIds, timeRange } = {}) {
-    if (!container) return;
-
+/**
+ * Computes pure mathematical layout, timeframe windowing, coordinates, and scale mapping for the mood timeline graph.
+ * This is a pure function with no DOM dependencies or side-effects, allowing direct headless unit testing.
+ *
+ * @param {Object} [options={}]
+ * @param {Array<Object>} [options.entries]
+ * @param {Array<Object>} [options.allEntries]
+ * @param {Array<Object>} [options.questions]
+ * @param {Set<string>|Array<string>} [options.visibleQuestionIds]
+ * @param {string} [options.timeRange='all']
+ * @returns {Object} Layout object containing computed dimensions, scales, points, paths, and series data.
+ */
+export function computeGraphLayout({
+                                       entries,
+                                       allEntries,
+                                       questions = [],
+                                       visibleQuestionIds,
+                                       timeRange = 'all'
+                                   } = {}) {
     const rawAllEntries = Array.isArray(allEntries)
         ? allEntries
         : (Array.isArray(entries) ? entries : []);
 
+    const questionList = Array.isArray(questions) ? questions : [];
+    const currentTimeRange = timeRange || 'all';
+
+    let currentVisibleSet;
+    if (visibleQuestionIds instanceof Set) {
+        currentVisibleSet = new Set(visibleQuestionIds);
+    } else if (Array.isArray(visibleQuestionIds)) {
+        currentVisibleSet = new Set(visibleQuestionIds);
+    } else {
+        currentVisibleSet = new Set(questionList.map(question => question.id));
+    }
+
     if (!rawAllEntries || rawAllEntries.length === 0) {
-        container.innerHTML = `
-            <h3>Mood Timeline</h3>
-            <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 12px; line-height: 1.5; text-align: center;">
-                No recorded mood history yet.<br>Complete an entry in the Mood Tracker to view your history timeline.
-            </p>
-        `;
-        return;
+        return {
+            isEmpty: true,
+            reason: 'no-entries',
+            rawAllEntries: [],
+            filteredEntries: [],
+            questions: questionList,
+            visibleQuestionIds: currentVisibleSet,
+            timeRange: currentTimeRange
+        };
     }
 
-    if (!questions || questions.length === 0) {
-        container.innerHTML = `
-            <h3>Mood Timeline</h3>
-            <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 12px; line-height: 1.5; text-align: center;">
-                No active questions found for timeline rendering.
-            </p>
-        `;
-        return;
+    if (!questionList || questionList.length === 0) {
+        return {
+            isEmpty: true,
+            reason: 'no-questions',
+            rawAllEntries,
+            filteredEntries: [],
+            questions: [],
+            visibleQuestionIds: currentVisibleSet,
+            timeRange: currentTimeRange
+        };
     }
-
-    const currentTimeRange = timeRange || STATE.historyTimeRange || 'all';
-    STATE.historyTimeRange = currentTimeRange;
 
     // Filter entries according to active timeframe
     let filteredEntries = rawAllEntries;
@@ -191,19 +220,430 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
         });
     }
 
-    // Determine current visible question IDs Set
-    let currentVisibleSet;
-    if (visibleQuestionIds instanceof Set) {
-        currentVisibleSet = new Set(visibleQuestionIds);
-    } else if (Array.isArray(visibleQuestionIds)) {
-        currentVisibleSet = new Set(visibleQuestionIds);
-    } else if (STATE.historyVisibleQuestionIds instanceof Set) {
-        currentVisibleSet = new Set(STATE.historyVisibleQuestionIds);
-    } else {
-        currentVisibleSet = new Set(questions.map(question => question.id));
+    if (filteredEntries.length === 0) {
+        return {
+            isEmpty: false,
+            isTimeframeEmpty: true,
+            rawAllEntries,
+            filteredEntries: [],
+            questions: questionList,
+            visibleQuestionIds: currentVisibleSet,
+            timeRange: currentTimeRange
+        };
     }
 
+    const entryCount = filteredEntries.length;
+    const entryTimes = filteredEntries.map(entry => {
+        const time = new Date(entry.timestamp).getTime();
+        return isNaN(time) ? 0 : time;
+    });
+
+    let minTime = Infinity;
+    let maxTime = -Infinity;
+    for (let index = 0; index < entryTimes.length; index++) {
+        const time = entryTimes[index];
+        if (time < minTime) minTime = time;
+        if (time > maxTime) maxTime = time;
+    }
+    if (minTime === Infinity) minTime = 0;
+    if (maxTime === -Infinity) maxTime = 0;
+    const timeDuration = maxTime - minTime;
+
+    const minimumSpacingPerPoint = 48;
+    const paddingTop = 24;
+    const paddingBottom = 60;
+    const paddingLeft = 42;
+    const paddingRight = 24;
+
+    const calculatedWidth = entryCount > 1
+        ? Math.max(600, paddingLeft + paddingRight + (entryCount - 1) * minimumSpacingPerPoint)
+        : 600;
+    const width = calculatedWidth;
+    const height = 320;
+
+    const chartWidth = width - paddingLeft - paddingRight;
+    const chartHeight = height - paddingTop - paddingBottom;
+
+    function getY(score) {
+        if (score === null || score === undefined) return null;
+        const ratio = (score - 1) / 4;
+        return paddingTop + chartHeight * (1 - ratio);
+    }
+
+    const skipBaselineY = height - paddingBottom + 16;
+    const noteBaselineY = height - paddingBottom + 32;
+
+    function getX(index) {
+        if (entryCount === 1) return paddingLeft + chartWidth / 2;
+        if (timeDuration <= 0) return paddingLeft + (index / (entryCount - 1)) * chartWidth;
+        const ratio = (entryTimes[index] - minTime) / timeDuration;
+        return paddingLeft + ratio * chartWidth;
+    }
+
+    // Grid lines for scores 1-5
+    const gridLines = [];
+    for (let score = 1; score <= 5; score++) {
+        gridLines.push({
+            score,
+            y: getY(score),
+            label: String(score)
+        });
+    }
+
+    // Time-Scaled X-Axis Gridlines & Tick Labels
+    const xTicks = [];
+    if (entryCount === 1) {
+        const xPosition = paddingLeft + chartWidth / 2;
+        const dateString = formatTickDate(minTime, true);
+        xTicks.push({ x: xPosition, time: minTime, label: dateString });
+    } else if (timeDuration <= 0) {
+        filteredEntries.forEach((entry, entryIndex) => {
+            const xPosition = getX(entryIndex);
+            const dateString = formatTickDate(entryTimes[entryIndex], true);
+            xTicks.push({ x: xPosition, time: entryTimes[entryIndex], label: dateString });
+        });
+    } else {
+        const isShortRange = timeDuration <= 36 * 3600 * 1000;
+        const tickDensity = Math.max(3, Math.min(entryCount, Math.round(chartWidth / 90)));
+        for (let tickIndex = 0; tickIndex < tickDensity; tickIndex++) {
+            const tickTime = minTime + (tickIndex / (tickDensity - 1)) * timeDuration;
+            const xPosition = paddingLeft + (tickIndex / (tickDensity - 1)) * chartWidth;
+            const dateString = formatTickDate(tickTime, isShortRange);
+            xTicks.push({ x: xPosition, time: tickTime, label: dateString });
+        }
+    }
+
+    const series = [];
+    const allSkips = [];
+    const allPoints = [];
+
+    questionList.forEach((question, questionIndex) => {
+        const color = getCurveColor(question.curve, questionIndex);
+        const dashArray = getQuestionDashArray(questionIndex);
+        const questionTitle = question.shortLabel || question.text;
+        const isVisible = currentVisibleSet.has(question.id);
+        const isIsolated = currentVisibleSet.size === 1 && currentVisibleSet.has(question.id);
+
+        if (!isVisible) {
+            series.push({
+                question,
+                questionIndex,
+                color,
+                dashArray,
+                questionTitle,
+                isVisible: false,
+                isIsolated,
+                segments: [],
+                points: [],
+                skips: []
+            });
+            return;
+        }
+
+        const segments = [];
+        let currentSegment = [];
+        const questionSkips = [];
+        const questionPoints = [];
+
+        filteredEntries.forEach((entry, entryIndex) => {
+            let answer = null;
+            if (Array.isArray(entry.answers)) {
+                answer = entry.answers.find(answerItem => answerItem.questionId === question.id);
+            } else if (entry.answers && typeof entry.answers === 'object') {
+                const rawValue = entry.answers[question.id];
+                if (typeof rawValue === 'number') {
+                    answer = { questionId: question.id, score: rawValue, status: 'answered' };
+                } else if (rawValue && typeof rawValue === 'object') {
+                    answer = { questionId: question.id, ...rawValue };
+                }
+            }
+            const isAnswered = answer && answer.status === 'answered' && answer.score !== null &&
+                answer.score >= 1 && answer.score <= 5;
+            const isSkipped = answer && (answer.status === 'skipped' || answer.score === null);
+
+            if (isAnswered && answer) {
+                const x = getX(entryIndex);
+                const y = getY(answer.score);
+                const pointItem = {
+                    x,
+                    y,
+                    score: answer.score,
+                    entryIndex,
+                    timestamp: entry.timestamp,
+                    formattedDate: formatEntryDateTime(entry.timestamp),
+                    questionTitle,
+                    color
+                };
+                currentSegment.push(pointItem);
+                questionPoints.push(pointItem);
+                allPoints.push(pointItem);
+            } else {
+                if (currentSegment.length > 0) {
+                    segments.push(currentSegment);
+                    currentSegment = [];
+                }
+
+                if (isSkipped) {
+                    const rawXPosition = getX(entryIndex);
+                    const fannedXPosition = (entryCount === 1 || questionList.length === 1)
+                        ? rawXPosition
+                        : rawXPosition + (questionIndex - (questionList.length - 1) / 2) * 6;
+                    const dateString = formatEntryDateTime(entry.timestamp);
+                    const skipItem = {
+                        questionId: question.id,
+                        questionTitle,
+                        x: fannedXPosition,
+                        y: skipBaselineY,
+                        entryIndex,
+                        timestamp: entry.timestamp,
+                        formattedDate: dateString,
+                        color
+                    };
+                    questionSkips.push(skipItem);
+                    allSkips.push(skipItem);
+                }
+            }
+        });
+
+        if (currentSegment.length > 0) {
+            segments.push(currentSegment);
+        }
+
+        series.push({
+            question,
+            questionIndex,
+            color,
+            dashArray,
+            questionTitle,
+            isVisible: true,
+            isIsolated,
+            segments,
+            points: questionPoints,
+            skips: questionSkips
+        });
+    });
+
+    const notes = [];
+    filteredEntries.forEach((entry, entryIndex) => {
+        const hasNote = Boolean(entry.note && typeof entry.note === 'string' && entry.note.trim().length > 0);
+        if (!hasNote) return;
+
+        const noteXPosition = getX(entryIndex);
+        const formattedDateString = formatEntryDateTime(entry.timestamp);
+        const rawNoteText = entry.note.trim();
+
+        notes.push({
+            entryIndex,
+            x: noteXPosition,
+            y: noteBaselineY,
+            note: rawNoteText,
+            formattedDate: formattedDateString,
+            timestamp: entry.timestamp
+        });
+    });
+
+    return {
+        isEmpty: false,
+        isTimeframeEmpty: false,
+        rawAllEntries,
+        filteredEntries,
+        questions: questionList,
+        visibleQuestionIds: currentVisibleSet,
+        timeRange: currentTimeRange,
+        dimensions: {
+            width,
+            height,
+            chartWidth,
+            chartHeight,
+            paddingTop,
+            paddingBottom,
+            paddingLeft,
+            paddingRight,
+            calculatedWidth,
+            skipBaselineY,
+            noteBaselineY
+        },
+        timeBounds: {
+            minTime,
+            maxTime,
+            timeDuration
+        },
+        scales: {
+            getX,
+            getY
+        },
+        gridLines,
+        xTicks,
+        series,
+        notes,
+        allSkips,
+        allPoints
+    };
+}
+
+/**
+ * Renders the pure SVG string markup for the mood timeline from a computed layout object.
+ *
+ * @param {Object} layout The computed layout returned by computeGraphLayout()
+ * @returns {string} SVG markup string
+ */
+export function renderGraphSVG(layout) {
+    if (!layout || layout.isEmpty || layout.isTimeframeEmpty) {
+        return '';
+    }
+
+    const { dimensions, gridLines, xTicks, series, notes } = layout;
+    const {
+        width,
+        height,
+        paddingLeft,
+        paddingRight,
+        paddingTop,
+        paddingBottom,
+        calculatedWidth,
+        skipBaselineY,
+        noteBaselineY
+    } = dimensions;
+
+    // Grid lines for scores 1-5
+    let gridLinesHTML = '';
+    gridLines.forEach(gridLine => {
+        gridLinesHTML += `
+            <line x1="${paddingLeft}" y1="${gridLine.y}" x2="${width - paddingRight}" y2="${gridLine.y}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2,2" />
+            <text x="${paddingLeft - 8}" y="${gridLine.y + 4}" fill="var(--text-muted)" font-size="11" text-anchor="end" font-weight="600">${gridLine.score}</text>
+        `;
+    });
+
+    // Dedicated Skip Baseline Row on Y-Axis
+    gridLinesHTML += `
+        <line x1="${paddingLeft}" y1="${skipBaselineY}" x2="${width - paddingRight}" y2="${skipBaselineY}" stroke="var(--border-color)" stroke-width="0.8" stroke-dasharray="1,3" opacity="0.6" />
+        <text x="${paddingLeft - 8}" y="${skipBaselineY + 3.5}" fill="var(--text-muted)" font-size="9.5" text-anchor="end" font-style="italic">Skip</text>
+    `;
+
+    // Dedicated Note Baseline Row on Y-Axis
+    gridLinesHTML += `
+        <line x1="${paddingLeft}" y1="${noteBaselineY}" x2="${width - paddingRight}" y2="${noteBaselineY}" stroke="var(--border-color)" stroke-width="0.8" stroke-dasharray="1,3" opacity="0.6" />
+        <text x="${paddingLeft - 8}" y="${noteBaselineY + 3.5}" fill="var(--text-muted)" font-size="9.5" text-anchor="end" font-style="italic">Note</text>
+    `;
+
+    // Time-Scaled X-Axis Gridlines & Tick Labels
+    let xAxisHTML = '';
+    xTicks.forEach(tick => {
+        xAxisHTML += `
+            <line x1="${tick.x}" y1="${paddingTop}" x2="${tick.x}" y2="${height - paddingBottom}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2,2" opacity="0.35" />
+            <text x="${tick.x}" y="${height - 8}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${escapeHTML(tick.label)}</text>
+        `;
+    });
+
+    let linesHTML = '';
+    let skipsHTML = '';
+    let notesHTML = '';
+    let pointsHTML = '';
+
+    series.forEach(seriesItem => {
+        if (!seriesItem.isVisible) return;
+
+        const { color, dashArray, questionTitle, segments, points, skips } = seriesItem;
+        const dashAttribute = dashArray !== 'none' ? ` stroke-dasharray="${dashArray}"` : '';
+        const escapedQuestionTitle = escapeHTML(questionTitle);
+
+        // Draw line paths for each contiguous segment
+        segments.forEach(segment => {
+            if (segment.length >= 2) {
+                let pathData = `M ${segment[0].x} ${segment[0].y}`;
+                for (let segmentIndex = 1; segmentIndex < segment.length; segmentIndex++) {
+                    pathData += ` L ${segment[segmentIndex].x} ${segment[segmentIndex].y}`;
+                }
+                linesHTML += `<path d="${pathData}" fill="none" stroke="${color}" stroke-width="2.5"${dashAttribute} stroke-linejoin="round" stroke-linecap="round" />`;
+            }
+        });
+
+        // Draw data point circles with accessible tooltips
+        points.forEach(point => {
+            const escapedDate = escapeHTML(point.formattedDate);
+            pointsHTML += `
+                <circle cx="${point.x}" cy="${point.y}" r="4" fill="${color}" stroke="var(--box-bg)" stroke-width="1.5" aria-label="${escapedQuestionTitle}: Score ${point.score} (${escapedDate})">
+                    <title>${escapedQuestionTitle}: Score ${point.score}/5 (${escapedDate})</title>
+                </circle>
+            `;
+        });
+
+        // Draw skip markers
+        skips.forEach(skip => {
+            const escapedDate = escapeHTML(skip.formattedDate);
+            skipsHTML += `
+                <g class="skip-marker" aria-label="${escapedQuestionTitle}: Skipped (${escapedDate})">
+                    <title>${escapedQuestionTitle}: Skipped (${escapedDate})</title>
+                    <circle cx="${skip.x}" cy="${skip.y}" r="4.5" fill="var(--box-bg)" stroke="${color}" stroke-width="1.5" stroke-dasharray="2,2" />
+                    <line x1="${skip.x - 2.5}" y1="${skip.y - 2.5}" x2="${skip.x + 2.5}" y2="${skip.y + 2.5}" stroke="${color}" stroke-width="1.5" stroke-linecap="round" />
+                    <line x1="${skip.x + 2.5}" y1="${skip.y - 2.5}" x2="${skip.x - 2.5}" y2="${skip.y + 2.5}" stroke="${color}" stroke-width="1.5" stroke-linecap="round" />
+                </g>
+            `;
+        });
+    });
+
+    // Generate Notes indicator markers on the timeline (Task 3.9)
+    notes.forEach(noteItem => {
+        const escapedNoteText = escapeHTML(noteItem.note);
+        const escapedDate = escapeHTML(noteItem.formattedDate);
+        notesHTML += `
+            <g class="note-marker" role="button" tabindex="0" data-entry-index="${noteItem.entryIndex}" data-note="${escapedNoteText}" data-date="${escapedDate}" aria-label="Note (${escapedDate}): ${escapedNoteText}">
+                <title>Note (${escapedDate}): ${escapedNoteText}</title>
+                <rect class="note-marker-hitbox" x="${noteItem.x - 14}" y="${noteItem.y - 14}" width="28" height="28" fill="transparent" />
+                <rect class="note-marker-box" x="${noteItem.x - 7}" y="${noteItem.y - 7}" width="14" height="14" rx="3" fill="var(--button-default)" stroke="var(--border-color)" stroke-width="1.2" />
+                <path class="note-marker-icon" d="M ${noteItem.x - 3.5} ${noteItem.y - 3.5} h 7 M ${noteItem.x - 3.5} ${noteItem.y} h 7 M ${noteItem.x - 3.5} ${noteItem.y + 3.5} h 4.5" stroke="var(--text-bright)" stroke-width="1.2" stroke-linecap="round" />
+            </g>
+        `;
+    });
+
+    return `
+        <svg class="graph-svg" viewBox="0 0 ${width} ${height}" style="width: ${calculatedWidth > 600 ? calculatedWidth + 'px' : '100%'}; min-width: 100%; height: auto; max-height: 280px; overflow: visible;">
+            <g class="grid">${gridLinesHTML}</g>
+            <g class="x-axis">${xAxisHTML}</g>
+            <g class="lines">${linesHTML}</g>
+            <g class="skips">${skipsHTML}</g>
+            <g class="notes">${notesHTML}</g>
+            <g class="points">${pointsHTML}</g>
+        </svg>
+    `;
+}
+
+export function renderLineGraph(container, { entries, allEntries, questions, visibleQuestionIds, timeRange } = {}) {
+    if (!container) return;
+
+    const currentTimeRange = timeRange || STATE.historyTimeRange || 'all';
+    STATE.historyTimeRange = currentTimeRange;
+
+    const resolvedVisibleQuestionIds = visibleQuestionIds !== undefined
+        ? visibleQuestionIds
+        : STATE.historyVisibleQuestionIds;
+
+    const layout = computeGraphLayout({
+        entries,
+        allEntries,
+        questions,
+        visibleQuestionIds: resolvedVisibleQuestionIds,
+        timeRange: currentTimeRange
+    });
+
+    let currentVisibleSet = layout.visibleQuestionIds;
     STATE.historyVisibleQuestionIds = currentVisibleSet;
+
+    const rawAllEntries = layout.rawAllEntries;
+    const questionList = layout.questions;
+
+    if (layout.isEmpty) {
+        const emptyMessage = layout.reason === 'no-questions'
+            ? 'No active questions found for timeline rendering.'
+            : 'No recorded mood history yet.<br>Complete an entry in the Mood Tracker to view your history timeline.';
+        container.innerHTML = `
+            <h3>Mood Timeline</h3>
+            <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 12px; line-height: 1.5; text-align: center;">
+                ${emptyMessage}
+            </p>
+        `;
+        return;
+    }
 
     const timeframeRanges = [
         { key: '7d', label: '7D', ariaLabel: 'Last 7 days' },
@@ -240,7 +680,7 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
     `;
 
     let legendItemsHTML = '';
-    questions.forEach((question, questionIndex) => {
+    questionList.forEach((question, questionIndex) => {
         const color = getCurveColor(question.curve, questionIndex);
         const dashArray = getQuestionDashArray(questionIndex);
         const questionTitle = escapeHTML(question.shortLabel || question.text);
@@ -309,7 +749,7 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
                     renderLineGraph(container, {
                         entries: rawAllEntries,
                         allEntries: rawAllEntries,
-                        questions: questions,
+                        questions: questionList,
                         visibleQuestionIds: currentVisibleSet,
                         timeRange: selectedRange
                     });
@@ -320,13 +760,13 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
         const showAllButton = container.querySelector('#button-legend-show-all');
         if (showAllButton) {
             showAllButton.addEventListener('click', () => {
-                const allQuestionIds = questions.map(question => question.id);
+                const allQuestionIds = questionList.map(question => question.id);
                 currentVisibleSet = new Set(allQuestionIds);
                 STATE.historyVisibleQuestionIds = currentVisibleSet;
                 renderLineGraph(container, {
                     entries: rawAllEntries,
                     allEntries: rawAllEntries,
-                    questions: questions,
+                    questions: questionList,
                     visibleQuestionIds: currentVisibleSet,
                     timeRange: currentTimeRange
                 });
@@ -341,7 +781,7 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
                 renderLineGraph(container, {
                     entries: rawAllEntries,
                     allEntries: rawAllEntries,
-                    questions: questions,
+                    questions: questionList,
                     visibleQuestionIds: currentVisibleSet,
                     timeRange: currentTimeRange
                 });
@@ -349,7 +789,7 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
         }
     }
 
-    if (filteredEntries.length === 0) {
+    if (layout.isTimeframeEmpty) {
         container.innerHTML = `
             <div class="history-graph-wrapper">
                 <div class="graph-header-row" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 6px;">
@@ -369,227 +809,7 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
         return;
     }
 
-    const entryCount = filteredEntries.length;
-    const entryTimes = filteredEntries.map(entry => {
-        const time = new Date(entry.timestamp).getTime();
-        return isNaN(time) ? 0 : time;
-    });
-
-    let minTime = Infinity;
-    let maxTime = -Infinity;
-    for (let index = 0; index < entryTimes.length; index++) {
-        const time = entryTimes[index];
-        if (time < minTime) minTime = time;
-        if (time > maxTime) maxTime = time;
-    }
-    if (minTime === Infinity) minTime = 0;
-    if (maxTime === -Infinity) maxTime = 0;
-    const timeDuration = maxTime - minTime;
-
-    const minimumSpacingPerPoint = 48;
-    const paddingTop = 24;
-    const paddingBottom = 60;
-    const paddingLeft = 42;
-    const paddingRight = 24;
-
-    const calculatedWidth = entryCount > 1
-        ? Math.max(600, paddingLeft + paddingRight + (entryCount - 1) * minimumSpacingPerPoint)
-        : 600;
-    const width = calculatedWidth;
-    const height = 320;
-
-    const chartWidth = width - paddingLeft - paddingRight;
-    const chartHeight = height - paddingTop - paddingBottom;
-
-    function getY(score) {
-        if (score === null || score === undefined) return null;
-        const ratio = (score - 1) / 4;
-        return paddingTop + chartHeight * (1 - ratio);
-    }
-
-    const skipBaselineY = height - paddingBottom + 16;
-    const noteBaselineY = height - paddingBottom + 32;
-
-    function getX(index) {
-        if (entryCount === 1) return paddingLeft + chartWidth / 2;
-        if (timeDuration <= 0) return paddingLeft + (index / (entryCount - 1)) * chartWidth;
-        const ratio = (entryTimes[index] - minTime) / timeDuration;
-        return paddingLeft + ratio * chartWidth;
-    }
-
-    // Grid lines for scores 1-5
-    let gridLinesHTML = '';
-    for (let score = 1; score <= 5; score++) {
-        const y = getY(score);
-        gridLinesHTML += `
-            <line x1="${paddingLeft}" y1="${y}" x2="${width - paddingRight}" y2="${y}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2,2" />
-            <text x="${paddingLeft - 8}" y="${y + 4}" fill="var(--text-muted)" font-size="11" text-anchor="end" font-weight="600">${score}</text>
-        `;
-    }
-
-    // Dedicated Skip Baseline Row on Y-Axis
-    gridLinesHTML += `
-        <line x1="${paddingLeft}" y1="${skipBaselineY}" x2="${width - paddingRight}" y2="${skipBaselineY}" stroke="var(--border-color)" stroke-width="0.8" stroke-dasharray="1,3" opacity="0.6" />
-        <text x="${paddingLeft - 8}" y="${skipBaselineY + 3.5}" fill="var(--text-muted)" font-size="9.5" text-anchor="end" font-style="italic">Skip</text>
-    `;
-
-    // Dedicated Note Baseline Row on Y-Axis
-    gridLinesHTML += `
-        <line x1="${paddingLeft}" y1="${noteBaselineY}" x2="${width - paddingRight}" y2="${noteBaselineY}" stroke="var(--border-color)" stroke-width="0.8" stroke-dasharray="1,3" opacity="0.6" />
-        <text x="${paddingLeft - 8}" y="${noteBaselineY + 3.5}" fill="var(--text-muted)" font-size="9.5" text-anchor="end" font-style="italic">Note</text>
-    `;
-
-    // Time-Scaled X-Axis Gridlines & Tick Labels
-    let xAxisHTML = '';
-    if (entryCount === 1) {
-        const xPosition = paddingLeft + chartWidth / 2;
-        const dateString = formatTickDate(minTime, true);
-        xAxisHTML += `
-            <line x1="${xPosition}" y1="${paddingTop}" x2="${xPosition}" y2="${height - paddingBottom}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2,2" opacity="0.4" />
-            <text x="${xPosition}" y="${height - 8}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${dateString}</text>
-        `;
-    } else if (timeDuration <= 0) {
-        filteredEntries.forEach((entry, entryIndex) => {
-            const xPosition = getX(entryIndex);
-            const dateString = formatTickDate(entryTimes[entryIndex], true);
-            xAxisHTML += `
-                <line x1="${xPosition}" y1="${paddingTop}" x2="${xPosition}" y2="${height - paddingBottom}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2,2" opacity="0.4" />
-                <text x="${xPosition}" y="${height - 8}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${dateString}</text>
-            `;
-        });
-    } else {
-        const isShortRange = timeDuration <= 36 * 3600 * 1000;
-        const tickDensity = Math.max(3, Math.min(entryCount, Math.round(chartWidth / 90)));
-        for (let tickIndex = 0; tickIndex < tickDensity; tickIndex++) {
-            const tickTime = minTime + (tickIndex / (tickDensity - 1)) * timeDuration;
-            const xPosition = paddingLeft + (tickIndex / (tickDensity - 1)) * chartWidth;
-            const dateString = formatTickDate(tickTime, isShortRange);
-            xAxisHTML += `
-                <line x1="${xPosition}" y1="${paddingTop}" x2="${xPosition}" y2="${height - paddingBottom}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2,2" opacity="0.35" />
-                <text x="${xPosition}" y="${height - 8}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${dateString}</text>
-            `;
-        }
-    }
-
-    let linesHTML = '';
-    let skipsHTML = '';
-    let notesHTML = '';
-    let pointsHTML = '';
-
-    questions.forEach((question, questionIndex) => {
-        const color = getCurveColor(question.curve, questionIndex);
-        const dashArray = getQuestionDashArray(questionIndex);
-        const questionTitle = escapeHTML(question.shortLabel || question.text);
-        const dashAttr = dashArray !== 'none' ? ` stroke-dasharray="${dashArray}"` : '';
-        const isVisible = currentVisibleSet.has(question.id);
-
-        if (!isVisible) {
-            return;
-        }
-
-        // Separate contiguous segments of answered points
-        const segments = [];
-        let currentSegment = [];
-
-        filteredEntries.forEach((entry, entryIndex) => {
-            let answer = null;
-            if (Array.isArray(entry.answers)) {
-                answer = entry.answers.find(answerItem => answerItem.questionId === question.id);
-            } else if (entry.answers && typeof entry.answers === 'object') {
-                const rawValue = entry.answers[question.id];
-                if (typeof rawValue === 'number') {
-                    answer = { questionId: question.id, score: rawValue, status: 'answered' };
-                } else if (rawValue && typeof rawValue === 'object') {
-                    answer = { questionId: question.id, ...rawValue };
-                }
-            }
-            const isAnswered = answer && answer.status === 'answered' && answer.score !== null && answer.score >= 1 && answer.score <= 5;
-            const isSkipped = answer && (answer.status === 'skipped' || answer.score === null);
-
-            if (isAnswered && answer) {
-                const x = getX(entryIndex);
-                const y = getY(answer.score);
-                currentSegment.push({ x, y, score: answer.score, entryIndex: entryIndex, timestamp: entry.timestamp });
-            } else {
-                if (currentSegment.length > 0) {
-                    segments.push(currentSegment);
-                    currentSegment = [];
-                }
-
-                if (isSkipped) {
-                    const rawXPosition = getX(entryIndex);
-                    const fannedXPosition = (entryCount === 1 || questions.length === 1)
-                        ? rawXPosition
-                        : rawXPosition + (questionIndex - (questions.length - 1) / 2) * 6;
-                    const dateString = formatEntryDateTime(entry.timestamp);
-                    skipsHTML += `
-                        <g class="skip-marker" aria-label="${questionTitle}: Skipped (${dateString})">
-                            <title>${questionTitle}: Skipped (${dateString})</title>
-                            <circle cx="${fannedXPosition}" cy="${skipBaselineY}" r="4.5" fill="var(--box-bg)" stroke="${color}" stroke-width="1.5" stroke-dasharray="2,2" />
-                            <line x1="${fannedXPosition - 2.5}" y1="${skipBaselineY - 2.5}" x2="${fannedXPosition + 2.5}" y2="${skipBaselineY + 2.5}" stroke="${color}" stroke-width="1.5" stroke-linecap="round" />
-                            <line x1="${fannedXPosition + 2.5}" y1="${skipBaselineY - 2.5}" x2="${fannedXPosition - 2.5}" y2="${skipBaselineY + 2.5}" stroke="${color}" stroke-width="1.5" stroke-linecap="round" />
-                        </g>
-                    `;
-                }
-            }
-        });
-
-        if (currentSegment.length > 0) {
-            segments.push(currentSegment);
-        }
-
-        // Draw line paths for each contiguous segment (never across skips or absent gaps)
-        segments.forEach(segment => {
-            if (segment.length >= 2) {
-                let pathData = `M ${segment[0].x} ${segment[0].y}`;
-                for (let segmentIndex = 1; segmentIndex < segment.length; segmentIndex++) {
-                    pathData += ` L ${segment[segmentIndex].x} ${segment[segmentIndex].y}`;
-                }
-                linesHTML += `<path d="${pathData}" fill="none" stroke="${color}" stroke-width="2.5"${dashAttr} stroke-linejoin="round" stroke-linecap="round" />`;
-            }
-
-            // Draw data point circles with accessible tooltips
-            segment.forEach(point => {
-                const dateString = formatEntryDateTime(point.timestamp);
-                pointsHTML += `
-                    <circle cx="${point.x}" cy="${point.y}" r="4" fill="${color}" stroke="var(--box-bg)" stroke-width="1.5" aria-label="${questionTitle}: Score ${point.score} (${dateString})">
-                        <title>${questionTitle}: Score ${point.score}/5 (${dateString})</title>
-                    </circle>
-                `;
-            });
-        });
-    });
-
-    // Generate Notes indicator markers on the timeline (Task 3.9)
-    filteredEntries.forEach((entry, entryIndex) => {
-        const hasNote = Boolean(entry.note && typeof entry.note === 'string' && entry.note.trim().length > 0);
-        if (!hasNote) return;
-
-        const noteXPosition = getX(entryIndex);
-        const formattedDateString = formatEntryDateTime(entry.timestamp);
-        const rawNoteText = entry.note.trim();
-        const escapedNoteText = escapeHTML(rawNoteText);
-
-        notesHTML += `
-            <g class="note-marker" role="button" tabindex="0" data-entry-index="${entryIndex}" data-note="${escapedNoteText}" data-date="${escapeHTML(formattedDateString)}" aria-label="Note (${escapeHTML(formattedDateString)}): ${escapedNoteText}">
-                <title>Note (${escapeHTML(formattedDateString)}): ${escapedNoteText}</title>
-                <rect class="note-marker-hitbox" x="${noteXPosition - 14}" y="${noteBaselineY - 14}" width="28" height="28" fill="transparent" />
-                <rect class="note-marker-box" x="${noteXPosition - 7}" y="${noteBaselineY - 7}" width="14" height="14" rx="3" fill="var(--button-default)" stroke="var(--border-color)" stroke-width="1.2" />
-                <path class="note-marker-icon" d="M ${noteXPosition - 3.5} ${noteBaselineY - 3.5} h 7 M ${noteXPosition - 3.5} ${noteBaselineY} h 7 M ${noteXPosition - 3.5} ${noteBaselineY + 3.5} h 4.5" stroke="var(--text-bright)" stroke-width="1.2" stroke-linecap="round" />
-            </g>
-        `;
-    });
-
-    const svgHTML = `
-        <svg class="graph-svg" viewBox="0 0 ${width} ${height}" style="width: ${calculatedWidth > 600 ? calculatedWidth + 'px' : '100%'}; min-width: 100%; height: auto; max-height: 280px; overflow: visible;">
-            <g class="grid">${gridLinesHTML}</g>
-            <g class="x-axis">${xAxisHTML}</g>
-            <g class="lines">${linesHTML}</g>
-            <g class="skips">${skipsHTML}</g>
-            <g class="notes">${notesHTML}</g>
-            <g class="points">${pointsHTML}</g>
-        </svg>
-    `;
+    const svgHTML = renderGraphSVG(layout);
 
     container.innerHTML = `
         <div class="history-graph-wrapper">
@@ -634,7 +854,9 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
         function displayNoteDialog() {
             const entryIndexAttribute = noteMarkerElement.getAttribute('data-entry-index');
             const entryIndex = entryIndexAttribute !== null ? parseInt(entryIndexAttribute, 10) : -1;
-            const targetEntry = Number.isInteger(entryIndex) && filteredEntries && filteredEntries[entryIndex] ? filteredEntries[entryIndex] : null;
+            const targetEntry = Number.isInteger(entryIndex) && layout.filteredEntries && layout.filteredEntries[entryIndex]
+                ? layout.filteredEntries[entryIndex]
+                : null;
             const rawNoteContent = targetEntry && targetEntry.note
                 ? targetEntry.note.trim()
                 : (noteMarkerElement.dataset.note || noteMarkerElement.getAttribute('data-note') || '');
@@ -681,7 +903,7 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
         }
 
         function handleIsolateOrRestore(targetQuestionId) {
-            const allQuestionIds = questions.map(question => question.id);
+            const allQuestionIds = questionList.map(question => question.id);
             const isCurrentlyIsolated = currentVisibleSet.size === 1 && currentVisibleSet.has(targetQuestionId);
 
             if (isCurrentlyIsolated) {
@@ -699,7 +921,7 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
             renderLineGraph(container, {
                 entries: rawAllEntries,
                 allEntries: rawAllEntries,
-                questions: questions,
+                questions: questionList,
                 visibleQuestionIds: currentVisibleSet,
                 timeRange: currentTimeRange
             });
@@ -784,7 +1006,7 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
             renderLineGraph(container, {
                 entries: rawAllEntries,
                 allEntries: rawAllEntries,
-                questions: questions,
+                questions: questionList,
                 visibleQuestionIds: currentVisibleSet,
                 timeRange: currentTimeRange
             });

@@ -6,7 +6,7 @@ import { STATE } from '../public/js/state.js';
 import { initApp, resetAppInitialized } from '../public/js/main.js';
 import { DEFAULT_QUESTIONS, seedDefaults, createCustomQuestion } from '../public/js/questions.js';
 import { startNewCheckIn, finalizeCheckin, renderCurrentQuestion } from '../public/js/checkin.js';
-import { renderLineGraph, loadHistoryView } from '../public/js/ui/history-graph.js';
+import { renderLineGraph, loadHistoryView, computeGraphLayout, renderGraphSVG } from '../public/js/ui/history-graph.js';
 import { navigateTo, setCurrentViewId } from '../public/js/ui/navigation.js';
 import { getAll, put, getConfig, setConfig, deleteConfig } from '../public/js/storage/db.js';
 import { applyStoredDisplay } from '../public/js/ui/settings-menu.js';
@@ -122,6 +122,8 @@ export async function setupTestDOM(customSessionStorage = {}) {
     windowInstance['STATE'] = STATE;
     windowInstance.startNewCheckIn = startNewCheckIn;
     windowInstance.renderLineGraph = renderLineGraph;
+    windowInstance.computeGraphLayout = computeGraphLayout;
+    windowInstance.renderGraphSVG = renderGraphSVG;
     windowInstance.loadHistoryView = loadHistoryView;
     windowInstance.navigateTo = navigateTo;
     windowInstance.finalizeCheckin = finalizeCheckin;

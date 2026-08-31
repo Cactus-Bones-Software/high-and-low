@@ -645,4 +645,129 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         expect(defaultPrevented).toBe(true);
         expect(scrollContainer.scrollLeft).toBe(150);
     });
+
+    describe('computeGraphLayout pure layout computation (Task 4.13)', () => {
+        it('returns empty layout state when no entries or questions are provided', () => {
+            const emptyEntriesLayout = windowInstance.computeGraphLayout({
+                entries: [],
+                questions: [{ id: 'q1', text: 'Mood', shortLabel: 'Mood', curve: 'more-is-better' }]
+            });
+            expect(emptyEntriesLayout.isEmpty).toBe(true);
+            expect(emptyEntriesLayout.reason).toBe('no-entries');
+
+            const emptyQuestionsLayout = windowInstance.computeGraphLayout({
+                entries: [{
+                    timestamp: new Date().toISOString(),
+                    answers: [{ questionId: 'q1', score: 3, status: 'answered' }]
+                }],
+                questions: []
+            });
+            expect(emptyQuestionsLayout.isEmpty).toBe(true);
+            expect(emptyQuestionsLayout.reason).toBe('no-questions');
+        });
+
+        it('calculates timeframe window filtering and coordinate scaling without DOM', () => {
+            const now = Date.now();
+            const questions = [
+                { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' }
+            ];
+            const entries = [
+                {
+                    timestamp: new Date(now - 40 * 86400000).toISOString(),
+                    answers: [{ questionId: 'q1', score: 1, status: 'answered' }]
+                },
+                {
+                    timestamp: new Date(now - 20 * 86400000).toISOString(),
+                    answers: [{ questionId: 'q1', score: 2, status: 'answered' }]
+                },
+                {
+                    timestamp: new Date(now - 5 * 86400000).toISOString(),
+                    answers: [{ questionId: 'q1', score: 4, status: 'answered' }]
+                },
+                {
+                    timestamp: new Date(now).toISOString(),
+                    answers: [{ questionId: 'q1', score: 5, status: 'answered' }]
+                }
+            ];
+
+            // 7-day window layout
+            const sevenDayLayout = windowInstance.computeGraphLayout({
+                entries,
+                questions,
+                timeRange: '7d'
+            });
+            expect(sevenDayLayout.isEmpty).toBe(false);
+            expect(sevenDayLayout.filteredEntries.length).toBe(2);
+
+            // All-time window layout
+            const allTimeLayout = windowInstance.computeGraphLayout({
+                entries,
+                questions,
+                timeRange: 'all'
+            });
+            expect(allTimeLayout.filteredEntries.length).toBe(4);
+
+            // Verify coordinate calculations
+            // paddingTop = 24, paddingBottom = 60, height = 320 -> chartHeight = 236
+            // score 5 -> top (y = 24)
+            // score 1 -> bottom (y = 260)
+            // score 3 -> middle (y = 142)
+            expect(allTimeLayout.scales.getY(5)).toBe(24);
+            expect(allTimeLayout.scales.getY(1)).toBe(260);
+            expect(allTimeLayout.scales.getY(3)).toBe(142);
+
+            // Verify grid lines length
+            expect(allTimeLayout.gridLines.length).toBe(5);
+            expect(allTimeLayout.gridLines[0].score).toBe(1);
+            expect(allTimeLayout.gridLines[4].score).toBe(5);
+        });
+
+        it('separates line segments across skips and records note indicators accurately', () => {
+            const now = Date.now();
+            const questions = [
+                { id: 'q1', text: 'Overall Mood', shortLabel: 'Mood', curve: 'more-is-better' }
+            ];
+            const entries = [
+                {
+                    timestamp: new Date(now - 3 * 86400000).toISOString(),
+                    note: 'Felt energetic',
+                    answers: [{ questionId: 'q1', score: 4, status: 'answered' }]
+                },
+                {
+                    timestamp: new Date(now - 2 * 86400000).toISOString(),
+                    answers: [{ questionId: 'q1', score: null, status: 'skipped' }]
+                },
+                {
+                    timestamp: new Date(now - 86400000).toISOString(),
+                    note: 'Great day',
+                    answers: [{ questionId: 'q1', score: 5, status: 'answered' }]
+                },
+                {
+                    timestamp: new Date(now).toISOString(),
+                    answers: [{ questionId: 'q1', score: 4, status: 'answered' }]
+                }
+            ];
+
+            const layout = windowInstance.computeGraphLayout({ entries, questions });
+            expect(layout.series.length).toBe(1);
+
+            const q1Series = layout.series[0];
+            // Segment 1: [entry 0], Segment 2: [entry 2, entry 3]
+            expect(q1Series.segments.length).toBe(2);
+            expect(q1Series.segments[0].length).toBe(1);
+            expect(q1Series.segments[1].length).toBe(2);
+
+            // Skip marker
+            expect(q1Series.skips.length).toBe(1);
+            expect(q1Series.skips[0].questionId).toBe('q1');
+            expect(q1Series.skips[0].entryIndex).toBe(1);
+
+            // Notes list
+            expect(layout.notes.length).toBe(2);
+            expect(layout.notes[0].note).toBe('Felt energetic');
+            expect(layout.notes[0].entryIndex).toBe(0);
+            expect(layout.notes[1].note).toBe('Great day');
+            expect(layout.notes[1].entryIndex).toBe(2);
+        });
+    });
 });

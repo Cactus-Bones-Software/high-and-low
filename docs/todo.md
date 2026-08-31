@@ -131,14 +131,14 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 
 ### Phase 4: Architectural Concerns & Code Modularization
 
-`app.js` has grown to a single ~2,500-line file mixing storage, business logic, and DOM rendering in one global scope, 
-which makes individual pieces hard to test in isolation. (`tests/test-utils.js` currently has to eval the whole file 
-into jsdom rather than importing discrete units) It also makes large functions like `renderLineGraph` do too many 
+`app.js` has grown to a single ~2,500-line file mixing storage, business logic, and DOM rendering in one global scope,
+which makes individual pieces hard to test in isolation. (`tests/test-utils.js` currently has to eval the whole file
+into jsdom rather than importing discrete units) It also makes large functions like `renderLineGraph` do too many
 unrelated things at once. This phase splits `app.js`into focused ES modules under `public/js/` — no bundler or compiler,
 just native `<script type="module">`, staying within the vanilla-only constraint in `AGENTS.md`.
 
 - [x] **Task 4.1: Module scaffold + foundation layer**
-  - Create `public/js/` and extract `utils.js` (`escapeHTML`, `safeRAF`), `state.js` (the `STATE` singleton), 
+  - Create `public/js/` and extract `utils.js` (`escapeHTML`, `safeRAF`), `state.js` (the `STATE` singleton),
   - `storage/db.js` (`initDatabase`, `getAll`, `put`, `getConfig`, `setConfig`, `deleteConfig`, `DB_NAME`, `DB_VERSION`), and `storage/session.js` (`saveActiveCheckin`, `clearActiveCheckin`, `restoreActiveCheckin`, `saveActiveView`, `getStoredActiveView`, related constants).
   - These have no dependencies on other planned modules, so this is the lowest-risk starting point.
 
@@ -180,7 +180,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - Update `tests/test-utils.js` and all test suites to import directly from the new module files instead of evaluating raw file text into jsdom.
   - Run the full suite (`npm test` / `npx vitest run`) and confirm all existing tests pass unmodified in behavior before marking this task complete.
 
-- [ ] **Task 4.13: Split `renderLineGraph` into pure layout + render functions**
+- [x] **Task 4.13: Split `renderLineGraph` into pure layout + render functions**
   - Within `ui/history-graph.js`, extract a pure `computeGraphLayout()` function (data filtering, timeframe windowing, scale/coordinate math — no DOM access) out of the current `renderLineGraph`, leaving `renderLineGraph`/a new `renderGraphSVG()` responsible only for DOM/SVG string output.
   - This unlocks direct unit testing of the graph math in `tests/graph.test.js` without a jsdom container.
 
