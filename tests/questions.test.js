@@ -132,4 +132,41 @@ describe('Question Schema & Default Tags Tests (Task 5.1)', () => {
         const racingAfter = allQuestionsAfter.find(q => q.id === 'q_racing');
         expect(racingAfter.tags).toEqual(['Cognitive', 'Pacing']);
     });
+
+    it('6. HTML escaping discipline: buildScoreButtonsHTML escapes malicious label strings in innerHTML', () => {
+        // This is malicious HTML, WebStorm. It's going to be malformed, for good reason.
+        // noinspection HtmlRequiredAltAttribute,HtmlUnknownTarget,HtmlDeprecatedAttribute
+        const maliciousQuestion = {
+            id: 'q_test_xss',
+            curve: 'middle-is-best',
+            minLabel: '<img src=x onerror=alert(1)> "Min & Low"',
+            maxLabel: '<script>alert(2)</script> & "High"',
+            midLabel: '<b>Balanced & Safe</b>'
+        };
+        const buttonsHTML = windowInstance.buildScoreButtonsHTML(maliciousQuestion);
+        // Ditto for this stuff too.
+        // noinspection HtmlRequiredAltAttribute,HtmlUnknownTarget,HtmlDeprecatedAttribute
+        expect(buttonsHTML).not.toContain('<img src=x onerror=alert(1)>');
+        expect(buttonsHTML).not.toContain('<script>');
+        expect(buttonsHTML).toContain('&lt;img src=x onerror=alert(1)&gt;');
+        expect(buttonsHTML).toContain('&lt;script&gt;alert(2)&lt;/script&gt;');
+        expect(buttonsHTML).toContain('&amp; &quot;High&quot;');
+        expect(buttonsHTML).toContain('&lt;b&gt;Balanced &amp; Safe&lt;/b&gt;');
+    });
+
+    it('7. HTML escaping discipline: escapeHTML and html template helper sanitize interpolated expressions', () => {
+        const { escapeHTML, html, rawHTML } = windowInstance;
+
+        expect(escapeHTML(null)).toBe('');
+        expect(escapeHTML(undefined)).toBe('');
+        expect(escapeHTML(0)).toBe('0');
+        expect(escapeHTML('Tom & Jerry <cartoon> "classic"')).toBe('Tom &amp; Jerry &lt;cartoon&gt; &quot;classic&quot;');
+
+        const unsafeUserText = '<script>bad()</script>';
+        const safeMarkup = rawHTML('<span class="safe">Safe</span>');
+        const rendered = html`<div class="test">${unsafeUserText} - ${safeMarkup}</div>`;
+
+        expect(rendered).toContain('&lt;script&gt;bad()&lt;/script&gt;');
+        expect(rendered).toContain('<span class="safe">Safe</span>');
+    });
 });

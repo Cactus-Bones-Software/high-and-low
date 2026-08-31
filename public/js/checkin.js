@@ -7,21 +7,25 @@ import { STATE } from './state.js';
 import { getDatabase, put } from './storage/db.js';
 import { saveActiveCheckin, clearActiveCheckin } from './storage/session.js';
 import { loadActiveQuestions } from './questions.js';
-import { safeRAF } from './utils.js';
+import { safeRAF, escapeHTML } from './utils.js';
 
 export function buildScoreButtonsHTML(question) {
+    if (!question) return '';
     let buttonsHTML = '';
     for (let score = 5; score >= 1; score--) {
-        let contextLabel = '';
-        if (score === 5) contextLabel = question.maxLabel || '';
-        else if (score === 1) contextLabel = question.minLabel || '';
-        else if (score === 3 && question.curve === 'middle-is-best') contextLabel = question.midLabel || '';
+        let rawContextLabel = '';
+        if (score === 5) rawContextLabel = question.maxLabel || '';
+        else if (score === 1) rawContextLabel = question.minLabel || '';
+        else if (score === 3 && question.curve === 'middle-is-best') rawContextLabel = question.midLabel || '';
 
-        const fullAriaLabel = `Score ${score} out of 5${contextLabel ? ': ' + contextLabel : ''}`;
+        const fullAriaLabel = `Score ${score} out of 5${rawContextLabel ? ': ' + rawContextLabel : ''}`;
+        const escapedAriaLabel = escapeHTML(fullAriaLabel);
+        const escapedContextLabel = escapeHTML(rawContextLabel);
+
         buttonsHTML += `
-      <button type="button" class="score-button" data-score="${score}" aria-label="${fullAriaLabel}">
+      <button type="button" class="score-button" data-score="${score}" aria-label="${escapedAriaLabel}">
         <span class="num" aria-hidden="true">${score}</span>
-        <span class="label-desc">${contextLabel}</span>
+        <span class="label-desc">${escapedContextLabel}</span>
       </button>
     `;
     }

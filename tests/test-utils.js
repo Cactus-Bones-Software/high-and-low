@@ -5,11 +5,12 @@ import { JSDOM } from 'jsdom';
 import { STATE } from '../public/js/state.js';
 import { initApp, resetAppInitialized } from '../public/js/main.js';
 import { DEFAULT_QUESTIONS, seedDefaults, createCustomQuestion } from '../public/js/questions.js';
-import { startNewCheckIn, finalizeCheckin, renderCurrentQuestion } from '../public/js/checkin.js';
+import { startNewCheckIn, finalizeCheckin, renderCurrentQuestion, buildScoreButtonsHTML } from '../public/js/checkin.js';
 import { renderLineGraph, loadHistoryView, computeGraphLayout, renderGraphSVG } from '../public/js/ui/history-graph.js';
 import { navigateTo, setCurrentViewId } from '../public/js/ui/navigation.js';
 import { getAll, put, getConfig, setConfig, deleteConfig } from '../public/js/storage/db.js';
 import { applyStoredDisplay } from '../public/js/ui/settings-menu.js';
+import { escapeHTML, html, rawHTML } from '../public/js/utils.js';
 
 const htmlContent = readFileSync(resolve(__dirname, '../public/index.html'), 'utf8');
 
@@ -128,6 +129,10 @@ export async function setupTestDOM(customSessionStorage = {}) {
     windowInstance.navigateTo = navigateTo;
     windowInstance.finalizeCheckin = finalizeCheckin;
     windowInstance.renderCurrentQuestion = renderCurrentQuestion;
+    windowInstance.buildScoreButtonsHTML = buildScoreButtonsHTML;
+    windowInstance.escapeHTML = escapeHTML;
+    windowInstance.html = html;
+    windowInstance.rawHTML = rawHTML;
     windowInstance.createCustomQuestion = createCustomQuestion;
     windowInstance.DEFAULT_QUESTIONS = DEFAULT_QUESTIONS;
     windowInstance.seedDefaults = seedDefaults;

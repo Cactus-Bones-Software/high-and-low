@@ -82,8 +82,8 @@ Current Version: `3`
 
 ### Active Check-in Session (`sessionStorage`)
 * **Keys**:
-    * `high_and_low_active_checkin`: `{ currentQuestionIndex: number, checkinAnswers: Array<Answer>, checkinNote: string | null, updatedAt: number }`
-    * `high_and_low_active_view`: `{ viewId: string, updatedAt: number }`
+  * `high_and_low_active_checkin`: `{ currentQuestionIndex: number, checkinAnswers: Array<Answer>, checkinNote: string | null, updatedAt: number }`
+  * `high_and_low_active_view`: `{ viewId: string, updatedAt: number }`
 * **TTL**: 30 minutes of inactivity (`SESSION_EXPIRY_MS = 1800000`). Stale sessions are purged on initialization.
 
 ### Global In-Memory Singleton (`STATE` in `public/js/state.js`)
@@ -123,7 +123,7 @@ export const STATE = {
 │   └── js/
 │       ├── main.js            # Entry point: app initialization, event delegation, service worker
 │       ├── state.js           # STATE singleton object definition
-│       ├── utils.js           # Pure utility helpers (escapeHTML, safeRAF)
+│       ├── utils.js           # Pure utility helpers (escapeHTML, html tagged template, safeRAF)
 │       ├── questions.js       # Default question definitions, FNV-1a hashing, curve color helpers
 │       ├── checkin.js         # Check-in card rendering, score submission, completion workflows
 │       ├── data-io.js         # JSON export/import engines (Wipe & Replace, Smart Merge)

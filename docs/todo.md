@@ -184,7 +184,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - Within `ui/history-graph.js`, extract a pure `computeGraphLayout()` function (data filtering, timeframe windowing, scale/coordinate math — no DOM access) out of the current `renderLineGraph`, leaving `renderLineGraph`/a new `renderGraphSVG()` responsible only for DOM/SVG string output.
   - This unlocks direct unit testing of the graph math in `tests/graph.test.js` without a jsdom container.
 
-- [ ] **Task 4.14: Centralize HTML-escaping discipline**
+- [x] **Task 4.14: Centralize HTML-escaping discipline**
   - `buildScoreButtonsHTML()`'s `contextLabel` (sourced from a custom question's user-authored `minLabel`/`maxLabel`/`midLabel` fields) is currently inserted into `innerHTML` unescaped, in both the check-in button rendering and the live question-authoring preview — unlike the legend and note-marker code in the history graph, which already calls `escapeHTML()` consistently.
   - Audit every `innerHTML` assignment across the newly split modules and route any interpolated user-authored text (question text, short labels, min/max/mid labels, tags, notes) through `escapeHTML()`. Consider a single small template helper so future render code can't skip it by accident.
 
