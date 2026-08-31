@@ -188,7 +188,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - `buildScoreButtonsHTML()`'s `contextLabel` (sourced from a custom question's user-authored `minLabel`/`maxLabel`/`midLabel` fields) is currently inserted into `innerHTML` unescaped, in both the check-in button rendering and the live question-authoring preview — unlike the legend and note-marker code in the history graph, which already calls `escapeHTML()` consistently.
   - Audit every `innerHTML` assignment across the newly split modules and route any interpolated user-authored text (question text, short labels, min/max/mid labels, tags, notes) through `escapeHTML()`. Consider a single small template helper so future render code can't skip it by accident.
 
-- [ ] **Task 4.15: Audit silent error handling**
+- [x] **Task 4.15: Audit silent error handling**
   - Several `catch (_) {}` blocks (around `sessionStorage` reads/writes in check-in/session persistence, pointer-capture calls in hold actions, and `navigator.vibrate`) currently swallow errors with no logging or user-facing signal.
   - Add at minimum a `console.warn` at each swallow point with enough context to debug a user-reported issue, without changing the current fallback behavior (these should stay non-blocking for the user).
 

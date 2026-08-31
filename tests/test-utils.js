@@ -9,6 +9,7 @@ import { startNewCheckIn, finalizeCheckin, renderCurrentQuestion, buildScoreButt
 import { renderLineGraph, loadHistoryView, computeGraphLayout, renderGraphSVG } from '../public/js/ui/history-graph.js';
 import { navigateTo, setCurrentViewId } from '../public/js/ui/navigation.js';
 import { getAll, put, getConfig, setConfig, deleteConfig } from '../public/js/storage/db.js';
+import { saveActiveCheckin, clearActiveCheckin, restoreActiveCheckin, saveActiveView, getStoredActiveView } from '../public/js/storage/session.js';
 import { applyStoredDisplay } from '../public/js/ui/settings-menu.js';
 import { escapeHTML, html, rawHTML } from '../public/js/utils.js';
 
@@ -130,6 +131,11 @@ export async function setupTestDOM(customSessionStorage = {}) {
     windowInstance.finalizeCheckin = finalizeCheckin;
     windowInstance.renderCurrentQuestion = renderCurrentQuestion;
     windowInstance.buildScoreButtonsHTML = buildScoreButtonsHTML;
+    windowInstance.saveActiveCheckin = saveActiveCheckin;
+    windowInstance.clearActiveCheckin = clearActiveCheckin;
+    windowInstance.restoreActiveCheckin = restoreActiveCheckin;
+    windowInstance.saveActiveView = saveActiveView;
+    windowInstance.getStoredActiveView = getStoredActiveView;
     windowInstance.escapeHTML = escapeHTML;
     windowInstance.html = html;
     windowInstance.rawHTML = rawHTML;

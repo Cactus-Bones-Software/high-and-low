@@ -22,7 +22,7 @@ import { safeRAF } from './utils.js';
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js').catch(error => {
-            console.log('SW registration failed:', error);
+            console.warn('Service worker registration failed:', error);
         });
     });
 }

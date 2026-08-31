@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { setupTestDOM, sleep, createSampleCheckIn } from './test-utils.js';
 
 let domInstance;
@@ -110,5 +110,55 @@ describe('Check-in and View State Persistence (Theme Switch & Reload Resilience)
         expect(windowInstance.STATE.checkinAnswers.length).toBe(0);
         expect(windowInstance.STATE.checkinNote).toBeNull();
         expect(windowInstance.sessionStorage.getItem('high_and_low_active_checkin')).toBeNull();
+    });
+
+    it('logs console warnings without crashing when sessionStorage operations fail', async () => {
+        await initializeTestEnvironment();
+
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+        // Mock Storage.prototype.setItem to throw (e.g. quota exceeded or security restriction)
+        const setItemSpy = vi.spyOn(windowInstance.Storage.prototype, 'setItem').mockImplementation(() => {
+            throw new Error('QuotaExceededError');
+        });
+
+        // Test saveActiveCheckin handles error gracefully
+        expect(() => windowInstance.saveActiveCheckin()).not.toThrow();
+        expect(warnSpy).toHaveBeenCalledWith(
+            'Failed to save active check-in state to sessionStorage:',
+            expect.any(Error)
+        );
+
+        // Test saveActiveView handles error gracefully
+        warnSpy.mockClear();
+        expect(() => windowInstance.saveActiveView('settings-canvas')).not.toThrow();
+        expect(warnSpy).toHaveBeenCalledWith(
+            'Failed to save active view state to sessionStorage:',
+            expect.any(Error)
+        );
+
+        setItemSpy.mockRestore();
+
+        // Mock Storage.prototype.getItem to throw
+        const getItemSpy = vi.spyOn(windowInstance.Storage.prototype, 'getItem').mockImplementation(() => {
+            throw new Error('SecurityError');
+        });
+
+        warnSpy.mockClear();
+        expect(() => windowInstance.restoreActiveCheckin()).not.toThrow();
+        expect(warnSpy).toHaveBeenCalledWith(
+            'Failed to restore active check-in state from sessionStorage:',
+            expect.any(Error)
+        );
+
+        warnSpy.mockClear();
+        expect(windowInstance.getStoredActiveView()).toBeNull();
+        expect(warnSpy).toHaveBeenCalledWith(
+            'Failed to retrieve active view state from sessionStorage:',
+            expect.any(Error)
+        );
+
+        getItemSpy.mockRestore();
+        warnSpy.mockRestore();
     });
 });

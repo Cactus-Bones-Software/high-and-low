@@ -114,7 +114,9 @@ export function setupSettingsAndMenu() {
         await setConfig('holdDelay', isHoldDelayEnabled ? 'enabled' : 'disabled');
         try {
             localStorage.setItem('holdDelay', isHoldDelayEnabled ? 'enabled' : 'disabled');
-        } catch (error) {}
+        } catch (error) {
+            console.warn('Failed to persist holdDelay setting to localStorage:', error);
+        }
         if (holdDelaySelect) holdDelaySelect.value = isHoldDelayEnabled ? 'enabled' : 'disabled';
     };
 
@@ -129,7 +131,9 @@ export function setupSettingsAndMenu() {
         await setConfig('debug-bounds', isEnabled ? 'on' : 'off');
         try {
             localStorage.setItem('debug-bounds', isEnabled ? 'on' : 'off');
-        } catch (error) {}
+        } catch (error) {
+            console.warn('Failed to persist debug-bounds setting to localStorage:', error);
+        }
         console.log(`[Layout Rig Outlines] ${isEnabled ? 'Enabled' : 'Disabled'}`);
         return isEnabled;
     };
@@ -148,7 +152,9 @@ export function setupSettingsAndMenu() {
         document.body.setAttribute('data-menu-side', handednessValue);
         try {
             localStorage.setItem('handedness', handednessValue);
-        } catch (error) {}
+        } catch (error) {
+            console.warn('Failed to persist handedness setting to localStorage:', error);
+        }
         await setConfig('handedness', handednessValue);
         if (handednessSelect) handednessSelect.value = handednessValue;
         safeRAF(() => {
@@ -268,7 +274,11 @@ export async function applyStoredDisplay() {
     }
 
     let localHoldDelay = null;
-    try { localHoldDelay = localStorage.getItem('holdDelay'); } catch (error) {}
+    try {
+        localHoldDelay = localStorage.getItem('holdDelay');
+    } catch (error) {
+        console.warn('Failed to read holdDelay setting from localStorage:', error);
+    }
     const finalHoldDelay = holdDelay || localHoldDelay || 'enabled';
     const isHoldDelayEnabled = (finalHoldDelay !== 'disabled');
     setIsHoldDelayEnabled(isHoldDelayEnabled);
@@ -282,7 +292,9 @@ export async function applyStoredDisplay() {
     try {
         localHandedness = localStorage.getItem('handedness');
         localLegacyMenuSide = localStorage.getItem('menuSide');
-    } catch (error) {}
+    } catch (error) {
+        console.warn('Failed to read handedness setting from localStorage:', error);
+    }
     const finalHandedness = handedness || legacyMenuSide || localHandedness || localLegacyMenuSide || 'right';
     document.body.setAttribute('data-handedness', finalHandedness);
     document.body.setAttribute('data-menu-side', finalHandedness);
@@ -291,12 +303,18 @@ export async function applyStoredDisplay() {
     }
     try {
         localStorage.setItem('handedness', finalHandedness);
-    } catch (error) {}
+    } catch (error) {
+        console.warn('Failed to initialize handedness setting in localStorage:', error);
+    }
     const handednessSelect = document.getElementById('handedness-select');
     if (handednessSelect) handednessSelect.value = finalHandedness;
 
     // Ensure debug options/outlines are off on page load
     document.body.setAttribute('data-debug-bounds', 'false');
     await setConfig('debug-bounds', 'off');
-    try { localStorage.setItem('debug-bounds', 'off'); } catch (error) {}
+    try {
+        localStorage.setItem('debug-bounds', 'off');
+    } catch (error) {
+        console.warn('Failed to initialize debug-bounds setting in localStorage:', error);
+    }
 }

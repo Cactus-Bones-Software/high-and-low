@@ -19,13 +19,17 @@ export function saveActiveCheckin() {
             updatedAt: Date.now()
         };
         sessionStorage.setItem(CHECKIN_STORAGE_KEY, JSON.stringify(payload));
-    } catch (_) {}
+    } catch (error) {
+        console.warn('Failed to save active check-in state to sessionStorage:', error);
+    }
 }
 
 export function clearActiveCheckin() {
     try {
         sessionStorage.removeItem(CHECKIN_STORAGE_KEY);
-    } catch (_) {}
+    } catch (error) {
+        console.warn('Failed to clear active check-in state from sessionStorage:', error);
+    }
 }
 
 export function restoreActiveCheckin() {
@@ -33,7 +37,8 @@ export function restoreActiveCheckin() {
         const rawCheckin = sessionStorage.getItem(CHECKIN_STORAGE_KEY);
         if (!rawCheckin) return false;
         const parsedCheckin = JSON.parse(rawCheckin);
-        if (parsedCheckin && typeof parsedCheckin.currentQuestionIndex === 'number' && Array.isArray(parsedCheckin.checkinAnswers)) {
+        if (parsedCheckin && typeof parsedCheckin.currentQuestionIndex === 'number' &&
+            Array.isArray(parsedCheckin.checkinAnswers)) {
             // Expire if inactive for > 30 minutes
             if (typeof parsedCheckin.updatedAt === 'number') {
                 const elapsedMilliseconds = Date.now() - parsedCheckin.updatedAt;
@@ -47,20 +52,25 @@ export function restoreActiveCheckin() {
             STATE.checkinNote = parsedCheckin.checkinNote || null;
             return true;
         }
-    } catch (_) {}
+    } catch (error) {
+        console.warn('Failed to restore active check-in state from sessionStorage:', error);
+    }
     return false;
 }
 
 export function saveActiveView(viewId) {
     try {
         sessionStorage.setItem(VIEW_STORAGE_KEY, viewId);
-    } catch (_) {}
+    } catch (error) {
+        console.warn('Failed to save active view state to sessionStorage:', error);
+    }
 }
 
 export function getStoredActiveView() {
     try {
         return sessionStorage.getItem(VIEW_STORAGE_KEY);
-    } catch (_) {
+    } catch (error) {
+        console.warn('Failed to retrieve active view state from sessionStorage:', error);
         return null;
     }
 }

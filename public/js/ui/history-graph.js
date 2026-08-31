@@ -104,6 +104,7 @@ export function formatEntryDateTime(isoString) {
         const formattedMinute = minutes < 10 ? `0${minutes}` : minutes;
         return `${month}/${day}/${year}, ${formattedHour}:${formattedMinute} ${ampm}`;
     } catch (error) {
+        console.warn('Failed to format entry date time:', error);
         return isoString;
     }
 }
@@ -124,6 +125,7 @@ export function formatTickDate(timeMilliseconds, isShortRange) {
         }
         return `${month}/${day}`;
     } catch (error) {
+        console.warn('Failed to format tick date:', error);
         return '';
     }
 }
@@ -916,7 +918,11 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
 
             STATE.historyVisibleQuestionIds = currentVisibleSet;
             if (navigator.vibrate) {
-                try { navigator.vibrate(40); } catch (_) {}
+                try {
+                    navigator.vibrate(40);
+                } catch (error) {
+                    console.warn('Failed to trigger haptic vibration:', error);
+                }
             }
             renderLineGraph(container, {
                 entries: rawAllEntries,

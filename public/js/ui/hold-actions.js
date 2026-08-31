@@ -56,25 +56,37 @@ export function setupHoldActions() {
         if (window.PointerEvent) {
             button.addEventListener('pointerdown', (event) => {
                 if (event.button !== undefined && event.button !== 0) return;
-                try {
-                    button.setPointerCapture(event.pointerId);
-                } catch (_) {}
+                if (typeof button.setPointerCapture === 'function') {
+                    try {
+                        button.setPointerCapture(event.pointerId);
+                    } catch (error) {
+                        console.warn('Failed to set pointer capture on hold action button:', error);
+                    }
+                }
                 if (isHoldDelayEnabled) startHold();
             });
             button.addEventListener('pointerup', (event) => {
-                try {
-                    if (button.hasPointerCapture && button.hasPointerCapture(event.pointerId)) {
-                        button.releasePointerCapture(event.pointerId);
+                if (typeof button.releasePointerCapture === 'function') {
+                    try {
+                        if (typeof button.hasPointerCapture !== 'function' || button.hasPointerCapture(event.pointerId)) {
+                            button.releasePointerCapture(event.pointerId);
+                        }
+                    } catch (error) {
+                        console.warn('Failed to release pointer capture on pointerup:', error);
                     }
-                } catch (_) {}
+                }
                 if (isHoldDelayEnabled) cancelHold();
             });
             button.addEventListener('pointercancel', (event) => {
-                try {
-                    if (button.hasPointerCapture && button.hasPointerCapture(event.pointerId)) {
-                        button.releasePointerCapture(event.pointerId);
+                if (typeof button.releasePointerCapture === 'function') {
+                    try {
+                        if (typeof button.hasPointerCapture !== 'function' || button.hasPointerCapture(event.pointerId)) {
+                            button.releasePointerCapture(event.pointerId);
+                        }
+                    } catch (error) {
+                        console.warn('Failed to release pointer capture on pointercancel:', error);
                     }
-                } catch (_) {}
+                }
                 if (isHoldDelayEnabled) cancelHold();
             });
             button.addEventListener('pointerleave', () => {
