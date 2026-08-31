@@ -1,8 +1,8 @@
 {
   "name": "high-and-low",
   "version": "1.0.0",
-  "description": "",
-  "main": "public/app.js",
+  "description": "A local-first, low-friction mood tracking web application built strictly with vanilla HTML, CSS, and JavaScript.",
+  "main": "public/js/main.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -16,6 +16,7 @@
   "devDependencies": {
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^30.0.1",
+    "vite": "^8.2.2",
     "vitest": "^4.1.11"
   }
 }

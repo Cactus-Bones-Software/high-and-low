@@ -12,16 +12,16 @@
   - Implement millisecond-level exact matching on incoming log timestamps during merge operations to skip identical duplicates while appending unique historical logs without key collisions.
 
 - [x] **Task 1.3: "Testing only" banner**
-  - Implement a bright yellow banner with bold black text that informs any user that the version they are looking at is for testing only, and should not be used for psychiatric purposes.
+  - Implement a bright yellow banner with bold black text that informs any user that the version they are looking at is for testing only and should not be used for psychiatric purposes.
   - Ensure that the banner is easily hidden from the user via changing a single line of CSS.
-  - Place the CSS 'testing switch' at the top of `style.css` and signpost it for easy finding by a web-master or developer.
+  - Place the CSS 'testing switch' at the top of `style.css` and signpost it for easy finding by a webmaster or developer.
 
 ---
 
 ### Phase 2: User Interface & Accessibility Refinements
 - [x] **Task 2.1: Dynamic System Theme Listener**
   - Extend the theme switcher in `app.js` and `style.css` to listen for system-level dark/light mode preference changes (`window.matchMedia('(prefers-color-scheme: dark)')`).
-  - Ensure theme transitions seamlessly when `data-theme="system"` is set without losing border visibility or color contrast.
+  - Ensure the theme transitions seamlessly when `data-theme="system"` is set without losing border visibility or color contrast.
 
 - [x] **Task 2.2: Keyboard & Screen Reader Accessibility Pass**
   - Audit `index.html` to ensure all 1–5 scale buttons, hold actions, and utility triggers have proper `aria-label`, `role="button"`, and tabindex attributes.
@@ -53,7 +53,7 @@
 
 - [x] **Task 2.9: Desktop & Landscape Layout Refinement**
   - Refine non-tracker view layouts on desktop and landscape tablet orientations to use a clean vertical hierarchy with compact top header bars above scrollable content panels.
-  - Decouple view header typography and layout styling from tracker question presentation.
+  - Decouple view header typography and layout styling from the tracker question presentation.
 
 - [x] **Task 2.10: Seamless View Transitions (Eliminate Screen Blanking)**
   - Fix transition orchestration between views so outgoing and incoming screens slide/crossfade smoothly without blanking or flashing an empty canvas in between.
@@ -62,8 +62,8 @@
 
 - [x] **Task 2.11: Suppress Transitions on Initial Load & Page Refreshes**
   - Prevent view and question transition animations from firing during cold loads, theme reloads, or quick browser refreshes.
-  - Ensure transitions only trigger on explicit user-initiated navigation events (e.g. drawer link clicks, question submissions, back buttons).
-  - Write automated tests to verify that restoring active view or session state on load immediately applies classes without triggering unwanted entry animations.
+  - Ensure transitions only trigger on explicit user-initiated navigation events (e.g., drawer link clicks, question submissions, back buttons).
+  - Write automated tests to verify that restoring the active view or session state on a load immediately applies classes without triggering unwanted entry animations.
 
 - [x] **Task 2.12: Unified Terminology & UI Copy Alignment**
   - Audit and harmonize all user-facing messages, completion screens, dialog prompts, button labels, and screen-reader announcements across `index.html` and `app.js`.
@@ -72,7 +72,7 @@
 
 - [x] **Task 2.13: Drawer "Restart Check-In" Action**
   - Add a "Restart Check-In" / "Start Over" action within the navigation side drawer to allow users to reset their in-progress check-in back to Question 1 without cluttering the main tracker canvas.
-  - Clear active check-in storage, reset state to Question 1, update tracker view, and close the drawer cleanly.
+  - Clear active check-in storage, reset the state to Question 1, update the tracker view, and close the drawer cleanly.
 
 ---
 
@@ -81,7 +81,7 @@
 Patients and psychiatrists need a way to actually read the collected data back, not just record it. This phase adds a line-graph analytics view behind the navigation drawer. Each task below is scoped to a single concern — pull only the task you're working on into context rather than the whole phase.
 
 - [x] **Task 3.1: Question schema — add `shortLabel`**
-  - Add a `shortLabel` field (2-3 words) to the question object, separate from the full `text`. Hardcode a `shortLabel` for each of the 7 `DEFAULT_QUESTIONS` in `app.js`.
+  - Add a `shortLabel` field (2–3 words) to the question object, separate from the full `text`. Hardcode a `shortLabel` for each of the 7 `DEFAULT_QUESTIONS` in `app.js`.
   - Add a "Short label" input to the custom-question authoring form in `index.html`/`app.js`, required alongside the existing text field. Surface it in the live preview.
   - This is a pure data-layer task — no chart or graph code here.
 
@@ -95,13 +95,13 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 
 - [x] **Task 3.4: Skipped-vs-absent gap handling in the graph**
   - A `status:"skipped"` record (`score:null`) must render as a visible break in that question's line for that day.
-  - A day with no record at all (question wasn't in the active set / didn't exist yet) must also render as a gap, but must be visually distinguishable from a skip if feasible
+  - A day with no record at all (question wasn't in the active set / didn't exist yet) must also render as a gap, but must be visually distinguishable from a skip.
     - A psychiatrist needs to be able to tell "chose not to answer" from "wasn't asked."
 
 - [x] **Task 3.4b: Intra-day & multi-log timeline scaling + continuous zero-reload check-in flow**
   - Continuous chronological X-axis timeline scaling proportional to elapsed time between check-ins (`(t - t_min) / (t_max - t_min)`), properly rendering multiple check-ins recorded on the same day and irregular multi-day intervals.
   - Adaptive X-axis tick labels and tooltips surfacing hour/minute timestamps for intraday records and clean date labels for multi-day spans.
-  - Seamless in-app check-in reset workflow ("Record Another Check-In" on completion screen and automatic reset on returning to Mood Tracker) without requiring page reloads or full PWA restarts.
+  - Seamless in-app check-in reset workflow ("Record Another Check-In" on the completion screen and automatic reset on returning to Mood Tracker) without requiring page reloads or full PWA restarts.
 
 - [x] **Task 3.5: Colorblind-safe line differentiation**
   - Give each question's line a distinct stroke-dasharray pattern in addition to its color, so no two active lines rely on color alone to be told apart.
@@ -111,7 +111,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
   - Tapping a row toggles that question's line visibility on the graph.
 
 - [x] **Task 3.7: Legend — long-press to isolate/restore**
-  - Holding a legend row (~400-500ms, shorter than the existing 1500ms hold-actions since this isn't a destructive action) isolates the graph to that question alone, hiding all others.
+  - Holding a legend row (~400–500 ms, shorter than the existing 1500 ms hold-actions since this isn't a destructive action) isolates the graph to that question alone, hiding all others.
   - Holding the same row again while it's the sole active line restores all questions.
 
 - [x] **Task 3.8: Legend — accessible isolate alternative + quick actions**
@@ -131,10 +131,15 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 
 ### Phase 4: Architectural Concerns & Code Modularization
 
-`app.js` has grown to a single ~2,500-line file mixing storage, business logic, and DOM rendering in one global scope, which makes individual pieces hard to test in isolation (`tests/test-utils.js` currently has to eval the whole file into jsdom rather than importing discrete units) and makes large functions like `renderLineGraph` do too many unrelated things at once. This phase splits `app.js` into focused ES modules under `public/js/` — no bundler or compiler, just native `<script type="module">`, staying within the vanilla-only constraint in `AGENTS.md`. Each task below is scoped to a single concern — pull only the task you're working on into context rather than the whole phase.
+`app.js` has grown to a single ~2,500-line file mixing storage, business logic, and DOM rendering in one global scope, 
+which makes individual pieces hard to test in isolation. (`tests/test-utils.js` currently has to eval the whole file 
+into jsdom rather than importing discrete units) It also makes large functions like `renderLineGraph` do too many 
+unrelated things at once. This phase splits `app.js`into focused ES modules under `public/js/` — no bundler or compiler,
+just native `<script type="module">`, staying within the vanilla-only constraint in `AGENTS.md`.
 
 - [x] **Task 4.1: Module scaffold + foundation layer**
-  - Create `public/js/` and extract `utils.js` (`escapeHTML`, `safeRAF`), `state.js` (the `STATE` singleton), `storage/db.js` (`initDatabase`, `getAll`, `put`, `getConfig`, `setConfig`, `deleteConfig`, `DB_NAME`, `DB_VERSION`), and `storage/session.js` (`saveActiveCheckin`, `clearActiveCheckin`, `restoreActiveCheckin`, `saveActiveView`, `getStoredActiveView`, related constants).
+  - Create `public/js/` and extract `utils.js` (`escapeHTML`, `safeRAF`), `state.js` (the `STATE` singleton), 
+  - `storage/db.js` (`initDatabase`, `getAll`, `put`, `getConfig`, `setConfig`, `deleteConfig`, `DB_NAME`, `DB_VERSION`), and `storage/session.js` (`saveActiveCheckin`, `clearActiveCheckin`, `restoreActiveCheckin`, `saveActiveView`, `getStoredActiveView`, related constants).
   - These have no dependencies on other planned modules, so this is the lowest-risk starting point.
 
 - [x] **Task 4.2: Extract `questions.js`**
@@ -184,7 +189,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
   - Audit every `innerHTML` assignment across the newly split modules and route any interpolated user-authored text (question text, short labels, min/max/mid labels, tags, notes) through `escapeHTML()`. Consider a single small template helper so future render code can't skip it by accident.
 
 - [ ] **Task 4.15: Audit silent error handling**
-  - Several `catch (_) {}` blocks (around `sessionStorage` reads/writes in checkin/session persistence, pointer-capture calls in hold actions, and `navigator.vibrate`) currently swallow errors with no logging or user-facing signal.
+  - Several `catch (_) {}` blocks (around `sessionStorage` reads/writes in check-in/session persistence, pointer-capture calls in hold actions, and `navigator.vibrate`) currently swallow errors with no logging or user-facing signal.
   - Add at minimum a `console.warn` at each swallow point with enough context to debug a user-reported issue, without changing the current fallback behavior (these should stay non-blocking for the user).
 
 ---
@@ -193,21 +198,21 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 
 - [x] **Task 5.1: Database Schema & Default Question Tags**
   - Add `tags` (array of strings, e.g., `["Energy", "Somatic"]`, `["Mood", "Affect"]`) to the question object schema in IndexedDB.
-  - Populate default tags for the 7 built-in questions during seeding.
+  - Populate default tags for the seven built-in questions during seeding.
 
 - [x] **Task 5.2: Setting Alignment — Handedness (`handedness`)**
   - Update settings label/key to `handedness` (`right` default / `left`).
   - Dominant hand dictates menu drawer position (`right` or `left`), and non-dominant hand dictates edit button placement on cards to prevent accidental taps during single-handed use.
 
 - [ ] **Task 5.3: Custom Question Dialog — Tags Field**
-  - Add a comma-separated or pill-based Tags input field to the custom question form in `index.html` and wire it into `app.js` save handlers.
+  - Add a comma-separated or pill-based Tags input field to the custom question form in `index.html` and wire it into `public/js/ui/question-authoring.js` save handlers.
 
 - [ ] **Task 5.4: Questions View — Search & Layout Structure**
-  - Build the searchable Questions view in `index.html`/`app.js` featuring a search bar that filters questions by title, short label, or tags in real-time.
+  - Build the searchable Questions view in `index.html` and `public/js/ui/question-authoring.js` featuring a search bar that filters questions by title, short label, or tags in real-time.
   - Split the view into two clear visual card sections: **Active in Tracker** (top) and **Question Library Catalog** (bottom).
 
 - [ ] **Task 5.5: Active Tracker Cards & Reordering Handles**
-  - Render active tracker question cards with prominent question text at top, tags below, reordering handles/controls (move up / move down or drag handle) to adjust tracker sequence
+  - Render active tracker question cards with prominent question text at top, tags below, reordering handles/controls (move up / move down or drag handles) to adjust the tracker sequence
   - Add an "In Tracker" toggle switch to remove a question into the catalog.
 
 - [ ] **Task 5.6: Library Catalog Cards & Non-Dominant Edit Actions**
@@ -220,19 +225,19 @@ Patients and psychiatrists need a way to actually read the collected data back, 
   - Include soft-archive / restore capabilities for custom questions.
 
 - [ ] **Task 5.8: Yes/No Question Type Schema & Authoring**
-  - Extend question schema to support response types (`responseType: "scale" | "boolean"` or `curve: "boolean"`).
-  - Add response type selector (5-Point Scale vs. Yes/No) to the custom question authoring & editing dialogs in `index.html` and wire it into `app.js`.
+  - Extend the question schema in `public/js/questions.js` to support response types (`responseType: "scale" | "boolean"` or `curve: "boolean"`).
+  - Add response type selector (5-Point Scale vs. Yes/No) to the custom question authoring & editing dialogs in `index.html` and wire it into `public/js/ui/question-authoring.js`.
 
 - [ ] **Task 5.9: Yes/No Question Tracker UI & Graph Analytics**
-  - Update `renderCurrentQuestion` in `app.js` to render a clean 2-button (Yes / No) input deck when `responseType: "boolean"`.
-  - Map Yes/No responses to binary score values (or boolean flags) that render accurately on the History line-graph without disrupting standard 1–5 scale questions.
+  - Update `renderCurrentQuestion` in `public/js/checkin.js` to render a clean 2-button (Yes / No) input deck when `responseType: "boolean"`.
+  - Map Yes/No responses to binary score values (or boolean flags) that render accurately in `public/js/ui/history-graph.js` without disrupting standard 1–5 scale questions.
 
 ---
 
 ### Phase 6: Offline Capabilities & PWA Readiness
 - [ ] **Task 6.1: Service Worker Implementation**
-  - Create a lightweight vanilla service worker (`sw.js`) to cache static assets (`index.html`, `style.css`, `app.js`, `manifest.json`).
-  - Register the service worker inside `app.js` to enable 100% offline functionality.
+  - Create a lightweight vanilla service worker (`sw.js`) to cache static assets (`index.html`, `style.css`, `js/*.js`, `manifest.json`).
+  - Verify and test service worker registration in `public/js/main.js` to enable 100% offline functionality.
 
 - [ ] **Task 6.2: Web App Manifest Verification**
   - Verify and complete `manifest.json` with correct relative paths, high-resolution app icons, theme colors (`#121212`), and `display: "standalone"` parameters.
@@ -241,14 +246,14 @@ Patients and psychiatrists need a way to actually read the collected data back, 
 
 ### Phase 7: Documentation & Final Cleanup
 - [ ] **Task 7.1: Code Base JSDoc & Architectural Comments**
-  - Perform a complete documentation pass on `app.js`, adding JSDoc comments to all core functions (`initDatabase`, `renderCurrentQuestion`, `exportAllDataAndConfig`, `handleFileImport`).
+  - Perform a complete documentation pass across all modular ES files in `public/js/` (`storage/db.js`, `checkin.js`, `data-io.js`, `questions.js`, `ui/*.js`), adding JSDoc comments to all core functions (`initDatabase`, `renderCurrentQuestion`, `exportAllDataAndConfig`, `handleFileImport`).
 
 - [ ] **Task 7.2: Workspace File Cleanup**
   - Remove any unneeded project boilerplate files (such as `index.js` if created by IDE defaults) and verify the repository remains strictly clean vanilla files.
-  - In `package.json`, remove the `dev`/`build` scripts that invoke `vite` — `vite` isn't a declared dependency and those scripts contradict the "no compilers" stack rule in `AGENTS.md`.
+  - In `package.json`, remove the `dev`/`build` scripts that invoke `vite` — `vite` isn't a declared dependency, and those scripts contradict the "no compilers" stack rule in `AGENTS.md`.
 
 - [ ] **Task 7.3: Internationalization & Localization Pass**
-  - Extract all hardcoded user-facing UI strings across `index.html` and `app.js` into a centralized translation dictionary.
+  - Extract all hardcoded user-facing UI strings across `index.html` and `public/js/` modules into a centralized translation dictionary.
   - Implement language switching and localization readiness for questions, controls, navigation, and settings interface elements.
 
 - [x] **Task 7.4: Shared Test Harness & Helper Utilities**
