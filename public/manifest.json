@@ -1,7 +1,7 @@
 {
   "name": "High & Low",
   "short_name": "High & Low",
-  "description": "A local-first, zero-friction privacy mood tracking web app for individuals with mood disorders.",
+  "description": "A private, low-effort mood tracking web app for individuals with mood disorders.",
   "start_url": "/index.html",
   "display": "standalone",
   "orientation": "portrait",
