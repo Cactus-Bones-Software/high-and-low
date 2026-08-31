@@ -14,7 +14,7 @@ import { setupHoldActions } from './ui/hold-actions.js';
 import { setupNoticeDialog, openImportDialog, setupImportDialog, setupNotesDialog, updateNotesButtonLabel } from './ui/dialogs.js';
 import { setupSettingsAndMenu, setupCanvasBackButtons, applyStoredDisplay } from './ui/settings-menu.js';
 import { renderLineGraph, loadHistoryView } from './ui/history-graph.js';
-import { setupQuestionAuthoring } from './ui/question-authoring.js';
+import { setupQuestionAuthoring, loadQuestionsView } from './ui/question-authoring.js';
 import { setupKeyboardNavigation } from './ui/keyboard-navigation.js';
 import { safeRAF } from './utils.js';
 
@@ -107,6 +107,7 @@ export function initApp() {
                 window.startNewCheckIn = startNewCheckIn;
                 window.renderLineGraph = renderLineGraph;
                 window.loadHistoryView = loadHistoryView;
+                window.loadQuestionsView = loadQuestionsView;
                 window.navigateTo = navigateTo;
                 window.finalizeCheckin = finalizeCheckin;
                 window.renderCurrentQuestion = renderCurrentQuestion;

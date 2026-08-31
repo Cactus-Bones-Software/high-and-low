@@ -13,6 +13,7 @@ import {
     confirmImport,
     closeNoticeDialog
 } from './dialogs.js';
+import { cancelQuestionAuthoring, saveQuestionFromAuthoring } from './question-authoring.js';
 
 let holdTimer = null;
 let isExecutingAction = false;
@@ -31,7 +32,7 @@ export function setupHoldActions() {
         let holdFinished = false;
 
         const startHold = () => {
-            if (!isHoldDelayEnabled) return;
+            if (!isHoldDelayEnabled || button.disabled) return;
             holdFinished = false;
             button.classList.add('is-holding');
             clearTimeout(holdTimer);
@@ -208,6 +209,20 @@ export function executeHoldAction(id) {
             closeNoticeDialog();
         } else if (typeof window !== 'undefined' && typeof window.closeNoticeDialog === 'function') {
             window.closeNoticeDialog();
+        }
+    } else if (id === 'button-cancel-question') {
+        if (typeof cancelQuestionAuthoring === 'function') {
+            cancelQuestionAuthoring();
+        } else if (typeof window !== 'undefined' && typeof window.cancelQuestionAuthoring === 'function') {
+            window.cancelQuestionAuthoring();
+        }
+    } else if (id === 'button-save-question') {
+        const saveQuestionButton = document.getElementById('button-save-question');
+        if (saveQuestionButton && saveQuestionButton.disabled) return;
+        if (typeof saveQuestionFromAuthoring === 'function') {
+            void saveQuestionFromAuthoring();
+        } else if (typeof window !== 'undefined' && typeof window.saveQuestionFromAuthoring === 'function') {
+            void window.saveQuestionFromAuthoring();
         }
     }
 }

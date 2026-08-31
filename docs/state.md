@@ -136,7 +136,7 @@ export const STATE = {
 │           ├── history-graph.js # SVG mood timeline, continuous time scaling, filter legend
 │           ├── hold-actions.js # 1.5s touch hold-to-confirm barrier engine
 │           ├── keyboard-navigation.js # 1-5 keys, arrows, Enter/Space keyboard bindings
-│           └── question-authoring.js  # Custom question authoring form and live card preview
+│           └── question-authoring.js  # Questions library view, search, cards, and custom question modal
 │
 └── tests/                     # Automated Vitest test suites
     ├── test-utils.js          # JSDOM, IndexedDB, and environment test harness

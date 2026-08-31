@@ -160,80 +160,34 @@
                 <h1 class="view-title">Questions Library &amp; Authoring</h1>
             </header>
 
-            <section class="canvas-box view-content-box menu-box" id="panel-questions">
-                <h3>Custom Questions</h3>
-                <div class="button-grid">
-                    <button type="button" id="button-add-question" class="utility-button" aria-expanded="false"
-                            aria-controls="question-form">Add a Question
-                    </button>
+            <section class="canvas-box view-content-box menu-box questions-view-content" id="panel-questions">
+                <div class="questions-search-row">
+                    <label for="questions-search-input" class="sr-only">Search questions</label>
+                    <input type="search" id="questions-search-input" class="form-input questions-search-input"
+                           placeholder="Search by text, label, or tag…" autocomplete="off" enterkeyhint="search">
                 </div>
 
-                <form id="question-form" class="question-form" hidden>
-                    <div class="form-field">
-                        <label for="q-text">Question <span class="required-marker" aria-hidden="true">*</span></label>
-                        <textarea id="q-text" class="form-input" rows="2" placeholder="e.g. How rested do you feel?"
-                                  required>
-                        </textarea>
-                    </div>
+                <section class="questions-section" aria-labelledby="questions-active-heading">
+                    <h3 id="questions-active-heading">Active in Tracker</h3>
+                    <ul id="questions-active-list" class="question-card-list"></ul>
+                    <p id="questions-active-empty" class="questions-empty-state" hidden>
+                        No active questions match your search.
+                    </p>
+                </section>
 
-                    <div class="form-field">
-                        <label for="q-short-label">Short label <span class="required-marker" aria-hidden="true">*</span>
-                            <span class="optional-hint">(for charts &amp; lists)</span></label>
-                        <input type="text" id="q-short-label" class="form-input" placeholder="e.g. Sleep Quality" required>
-                    </div>
-
-                    <div class="form-field">
-                        <label for="q-tags">Tags <span class="optional-hint">(comma-separated, optional)</span></label>
-                        <input type="text" id="q-tags" class="form-input" placeholder="e.g. Sleep, Energy, Somatic"
-                               autocomplete="off">
-                        <p class="form-hint">Use short category labels to make questions easier to find later.</p>
-                    </div>
-
-                    <div class="form-field">
-                        <label for="q-curve">Scale direction <span class="required-marker" aria-hidden="true">*</span></label>
-                        <select id="q-curve">
-                            <option value="more-is-better" selected>Higher is better</option>
-                            <option value="less-is-better">Lower is better</option>
-                            <option value="middle-is-best">Middle is best</option>
-                        </select>
-                    </div>
-
-                    <div class="form-field">
-                        <label for="q-max-label">Top label <span class="optional-hint">(optional)</span></label>
-                        <input type="text" id="q-max-label" class="form-input" placeholder="e.g. Fully Charged">
-                    </div>
-
-                    <div class="form-field" id="field-mid-label" hidden>
-                        <label for="q-mid-label">Middle label <span class="optional-hint">(optional)</span></label>
-                        <input type="text" id="q-mid-label" class="form-input" placeholder="e.g. Stable &amp; Even">
-                    </div>
-
-                    <div class="form-field">
-                        <label for="q-min-label">Bottom label <span class="optional-hint">(optional)</span></label>
-                        <input type="text" id="q-min-label" class="form-input" placeholder="e.g. Depleted">
-                    </div>
-
-                    <p class="form-hint">Leave a label blank, and that button simply shows its number.</p>
-
-                    <div class="form-field">
-                        <span class="preview-caption" id="preview-caption-text">Preview</span>
-                        <div class="preview-title-box" id="preview-title-box" style="margin-top: 6px; font-weight: 600; font-size: 0.95rem; color: var(--text-bright); text-align: center;"></div>
-                        <section class="input-box question-preview" id="question-preview" data-curve="more-is-better" aria-labelledby="preview-caption-text">
-                            <div class="button-stack" id="question-preview-stack"></div>
-                        </section>
-                    </div>
-
-                    <label class="checkbox-row" for="q-add-to-set">
-                        <input type="checkbox" id="q-add-to-set">
-                        <span>Add to my daily set now</span>
-                    </label>
-
-                    <div class="button-grid">
-                        <button type="button" id="button-cancel-question" class="utility-button">Cancel</button>
-                        <button type="submit" id="button-save-question" class="utility-button" disabled>Save Question</button>
-                    </div>
-                </form>
+                <section class="questions-section" aria-labelledby="questions-catalog-heading">
+                    <h3 id="questions-catalog-heading">Question Library Catalog</h3>
+                    <ul id="questions-catalog-list" class="question-card-list"></ul>
+                    <p id="questions-catalog-empty" class="questions-empty-state" hidden>
+                        No catalog questions match your search.
+                    </p>
+                </section>
             </section>
+
+            <button type="button" id="button-add-question" class="questions-fab"
+                    aria-label="Add a custom question" title="Add a custom question">
+                <span class="questions-fab-icon" aria-hidden="true">+</span>
+            </button>
         </section>
 
         <!-- ================================================================= -->
@@ -285,6 +239,94 @@
         <!-- ================================================================= -->
         <!-- MODALS & OVERLAYS                                                 -->
         <!-- ================================================================= -->
+
+        <!-- Pop-in Custom Question Authoring Modal Dialog -->
+        <div id="question-authoring-dialog-overlay" class="modal-overlay" inert aria-hidden="true">
+            <div id="question-authoring-dialog" class="modal-dialog modal-dialog-scrollable" role="dialog"
+                 aria-modal="true" aria-labelledby="question-authoring-dialog-title">
+                <header class="modal-header">
+                    <h2 id="question-authoring-dialog-title" class="modal-title">Add Custom Question</h2>
+                    <p class="modal-subtitle">Create a new question for your library and optional daily tracker.</p>
+                </header>
+                <div class="modal-body modal-body-scroll">
+                    <form id="question-form" class="question-form">
+                        <div class="form-field">
+                            <label for="q-text">Question <span class="required-marker" aria-hidden="true">*</span></label>
+                            <textarea id="q-text" class="form-input" rows="2" placeholder="e.g. How rested do you feel?"
+                                      required></textarea>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="q-short-label">Short label <span class="required-marker" aria-hidden="true">*</span>
+                                <span class="optional-hint">(for charts &amp; lists)</span></label>
+                            <input type="text" id="q-short-label" class="form-input" placeholder="e.g. Sleep Quality" required>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="q-tags">Tags <span class="optional-hint">(comma-separated, optional)</span></label>
+                            <input type="text" id="q-tags" class="form-input" placeholder="e.g. Sleep, Energy, Somatic"
+                                   autocomplete="off">
+                            <p class="form-hint">Use short category tags to make questions easier to find later.</p>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="q-curve">Scale direction <span class="required-marker" aria-hidden="true">*</span></label>
+                            <select id="q-curve">
+                                <option value="more-is-better" selected>Higher is better</option>
+                                <option value="less-is-better">Lower is better</option>
+                                <option value="middle-is-best">Middle is best</option>
+                            </select>
+                        </div>
+
+                        <div class="form-field">
+                            <label for="q-max-label">Top label <span class="optional-hint">(optional)</span></label>
+                            <input type="text" id="q-max-label" class="form-input" placeholder="e.g. Fully Charged">
+                        </div>
+
+                        <div class="form-field" id="field-mid-label" hidden>
+                            <label for="q-mid-label">Middle label <span class="optional-hint">(optional)</span></label>
+                            <input type="text" id="q-mid-label" class="form-input" placeholder="e.g. Stable &amp; Even">
+                        </div>
+
+                        <div class="form-field">
+                            <label for="q-min-label">Bottom label <span class="optional-hint">(optional)</span></label>
+                            <input type="text" id="q-min-label" class="form-input" placeholder="e.g. Depleted">
+                        </div>
+
+                        <p class="form-hint">Leave a label blank, and that button simply shows its number.</p>
+
+                        <div class="form-field">
+                            <span class="preview-caption" id="preview-caption-text">Preview</span>
+                            <div class="preview-title-box" id="preview-title-box"></div>
+                            <section class="input-box question-preview" id="question-preview" data-curve="more-is-better"
+                                     aria-labelledby="preview-caption-text">
+                                <div class="button-stack" id="question-preview-stack"></div>
+                            </section>
+                        </div>
+
+                        <label class="checkbox-row" for="q-add-to-set">
+                            <input type="checkbox" id="q-add-to-set">
+                            <span>Add to my daily set now</span>
+                        </label>
+
+                        <div class="button-grid question-form-actions">
+                            <button type="button" id="button-cancel-question"
+                                    class="control-button hold-action modal-button"
+                                    aria-label="Cancel question (Press or Hold)">
+                                <span class="hold-indicator" aria-hidden="true"></span>
+                                <span class="button-label">Cancel</span>
+                            </button>
+                            <button type="button" id="button-save-question"
+                                    class="control-button hold-action modal-button modal-button-primary" disabled
+                                    aria-label="Save question (Press or Hold)">
+                                <span class="hold-indicator" aria-hidden="true"></span>
+                                <span class="button-label">Save Question</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
 
         <!-- Pop-in Note Modal Dialog -->
         <div id="notes-dialog-overlay" class="modal-overlay" inert>

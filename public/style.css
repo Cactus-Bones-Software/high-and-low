@@ -573,6 +573,30 @@ body.drawer-open .app-canvas.view-active {
     gap: 16px;
 }
 
+/* Minimal scrollbars for vertical view panels and horizontal graph timeline */
+.view-content-box,
+.graph-scroll-container {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+
+.view-content-box::-webkit-scrollbar,
+.graph-scroll-container::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.view-content-box::-webkit-scrollbar-track,
+.graph-scroll-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.view-content-box::-webkit-scrollbar-thumb,
+.graph-scroll-container::-webkit-scrollbar-thumb {
+    background-color: var(--border-color);
+    border-radius: 3px;
+}
+
 .footer-box {
     flex: 0 0 auto;
     flex-direction: row;
@@ -1074,6 +1098,186 @@ select, .utility-button, .form-input {
     height: 18px;
 }
 
+.preview-title-box {
+    margin-top: 6px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-bright);
+    text-align: center;
+}
+
+/* ==========================================================================
+7a. QUESTIONS LIBRARY VIEW — SEARCH, CARDS & FAB (TASK 5.4)
+========================================================================== */
+
+.questions-view-content {
+    padding-bottom: 88px;
+}
+
+.questions-search-row {
+    width: 100%;
+}
+
+.questions-search-input {
+    font-size: 1rem;
+}
+
+.questions-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.questions-section h3 {
+    margin-bottom: 0;
+}
+
+.question-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.question-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid var(--border-color);
+    background-color: var(--button-default);
+}
+
+.question-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.question-card-text {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-bright);
+    line-height: 1.35;
+    flex: 1;
+}
+
+.question-card-short-label {
+    margin: 0;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.question-card-badge {
+    flex-shrink: 0;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.question-card-badge-builtin {
+    background-color: rgba(0, 122, 255, 0.16);
+    color: #5ac8fa;
+}
+
+.question-card-badge-custom {
+    background-color: rgba(175, 82, 222, 0.16);
+    color: #bf5af2;
+}
+
+body[data-theme="light"] .question-card-badge-builtin {
+    color: #007aff;
+}
+
+body[data-theme="light"] .question-card-badge-custom {
+    color: #af52de;
+}
+
+.question-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.question-tag-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+}
+
+.questions-empty-state {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.questions-fab {
+    position: absolute;
+    right: 36px;
+    bottom: 36px;
+    width: 56px;
+    height: 56px;
+    border: none;
+    border-radius: 50%;
+    background-color: #007aff;
+    color: #ffffff;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+    transition: transform 150ms var(--transition-curve), background-color 150ms var(--transition-curve);
+}
+
+.questions-fab-icon {
+    font-size: 1.8rem;
+    line-height: 1;
+    font-weight: 300;
+}
+
+@media (hover: hover) {
+    .questions-fab:hover {
+        transform: scale(1.05);
+        background-color: #0a84ff;
+    }
+}
+
+.questions-fab:focus-visible {
+    outline: 3px solid #ffffff;
+    outline-offset: 2px;
+}
+
+.modal-dialog-scrollable {
+    max-height: calc(100% - 32px);
+    overflow: hidden;
+}
+
+.modal-body-scroll {
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    padding-right: 2px;
+}
+
 /* ==========================================================================
 7b. GRAPH & TIMELINE LEGEND & CONTROLS (TASK 3.6 - 3.10)
 ========================================================================== */
@@ -1158,21 +1362,6 @@ select, .utility-button, .form-input {
     position: relative;
     border-radius: 8px;
     outline: none;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border-color) transparent;
-}
-
-.graph-scroll-container::-webkit-scrollbar {
-    height: 6px;
-}
-
-.graph-scroll-container::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.graph-scroll-container::-webkit-scrollbar-thumb {
-    background-color: var(--border-color);
-    border-radius: 3px;
 }
 
 .graph-scroll-container:focus-visible {

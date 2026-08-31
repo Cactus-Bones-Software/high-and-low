@@ -6,6 +6,8 @@
 import { STATE } from '../state.js';
 import { saveActiveView } from '../storage/session.js';
 import { safeRAF } from '../utils.js';
+import { loadHistoryView } from './history-graph.js';
+import { loadQuestionsView } from './question-authoring.js';
 
 let currentViewId = 'tracker-canvas';
 
@@ -44,15 +46,15 @@ export function navigateTo(targetViewId, options = {}) {
     if (!targetCanvas) return;
 
     if (targetViewId === 'history-canvas') {
-        if (typeof loadHistoryView === 'function') {
-            void loadHistoryView().catch(error => {
-                console.error('Failed to load history view:', error);
-            });
-        } else if (typeof window !== 'undefined' && typeof window.loadHistoryView === 'function') {
-            void window.loadHistoryView().catch(error => {
-                console.error('Failed to load history view:', error);
-            });
-        }
+        void loadHistoryView().catch(error => {
+            console.error('Failed to load history view:', error);
+        });
+    }
+
+    if (targetViewId === 'questions-canvas') {
+        void loadQuestionsView().catch(error => {
+            console.error('Failed to load questions view:', error);
+        });
     }
 
     if (targetViewId === 'tracker-canvas') {

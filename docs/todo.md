@@ -207,9 +207,22 @@ just native `<script type="module">`, staying within the vanilla-only constraint
 - [x] **Task 5.3: Custom Question Dialog — Tags Field**
   - Add a comma-separated or pill-based Tags input field to the custom question form in `index.html` and wire it into `public/js/ui/question-authoring.js` save handlers.
 
-- [ ] **Task 5.4: Questions View — Search & Layout Structure**
-  - Build the searchable Questions view in `index.html` and `public/js/ui/question-authoring.js` featuring a search bar that filters questions by title, short label, or tags in real-time.
-  - Split the view into two clear visual card sections: **Active in Tracker** (top) and **Question Library Catalog** (bottom).
+- [x] **Task 5.4: Questions View — Search, Layout Structure & Add Question Modal**
+  - Build the searchable Questions view in `index.html` and `public/js/ui/question-authoring.js`, featuring a search bar that filters questions by full question text, short label, or tags in real time.
+  - Split the Questions view into two clear visual card sections:
+    - **Active in Tracker** at the top, showing currently active non-archived questions in tracker order.
+    - **Question Library Catalog** below, showing inactive non-archived questions.
+  - Render read-only question cards for both sections with prominent question text, short label, built-in/custom status, and visible tag chips. Do not add tracker toggles, reordering controls, edit buttons, or archive controls in this task.
+  - Replace the inline/bottom-of-list custom question form with a floating action button inside the Questions view.
+  - Move the custom question authoring form into an accessible modal dialog opened by the floating action button.
+  - Ensure the add-question modal:
+    - Uses the existing modal overlay visual pattern.
+    - Has `role="dialog"`, `aria-modal="true"`, and an accessible title.
+    - Moves focus into the first field when opened.
+    - Closes on Cancel and Escape.
+    - Returns focus to the floating action button when closed.
+    - Resets the form when opened or after a successful save.
+  - After saving a custom question, refresh the searchable card lists immediately, close the modal, and show the existing success/restored/duplicate notice flow.
 
 - [ ] **Task 5.5: Active Tracker Cards & Reordering Handles**
   - Render active tracker question cards with prominent question text at top, tags below, reordering handles/controls (move up / move down or drag handles) to adjust the tracker sequence
