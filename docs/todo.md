@@ -204,7 +204,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - Update settings label/key to `handedness` (`right` default / `left`).
   - Dominant hand dictates menu drawer position (`right` or `left`), and non-dominant hand dictates edit button placement on cards to prevent accidental taps during single-handed use.
 
-- [ ] **Task 5.3: Custom Question Dialog — Tags Field**
+- [x] **Task 5.3: Custom Question Dialog — Tags Field**
   - Add a comma-separated or pill-based Tags input field to the custom question form in `index.html` and wire it into `public/js/ui/question-authoring.js` save handlers.
 
 - [ ] **Task 5.4: Questions View — Search & Layout Structure**

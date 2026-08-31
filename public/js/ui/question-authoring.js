@@ -12,6 +12,7 @@ export function setupQuestionAuthoring() {
     const form = document.getElementById('question-form');
     const textInput = document.getElementById('q-text');
     const shortLabelInput = document.getElementById('q-short-label');
+    const tagsInput = document.getElementById('q-tags');
     const curveInput = document.getElementById('q-curve');
     const maxInput = document.getElementById('q-max-label');
     const midField = document.getElementById('field-mid-label');
@@ -24,7 +25,8 @@ export function setupQuestionAuthoring() {
     const saveButton = document.getElementById('button-save-question');
     const cancelButton = document.getElementById('button-cancel-question');
 
-    if (!toggleButton || !form || !textInput || !curveInput || !maxInput || !midField || !midInput || !minInput || !preview || !previewStack || !saveButton || !cancelButton) {
+    if (!toggleButton || !form || !textInput || !curveInput || !maxInput || !midField || !midInput || !minInput ||
+        !preview || !previewStack || !saveButton || !cancelButton) {
         return;
     }
 
@@ -100,6 +102,7 @@ export function setupQuestionAuthoring() {
             const outcome = await createCustomQuestion({
                 text: textInput.value,
                 shortLabel: shortLabelInput ? shortLabelInput.value : '',
+                tags: tagsInput ? tagsInput.value : '',
                 curve: curveInput.value,
                 minLabel: minInput.value,
                 maxLabel: maxInput.value,

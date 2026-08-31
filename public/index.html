@@ -150,7 +150,8 @@
         <!-- ================================================================= -->
         <!-- VIEW: QUESTIONS LIBRARY & AUTHORING                               -->
         <!-- ================================================================= -->
-        <section id="questions-canvas" class="app-canvas view-canvas view-hidden-right" role="region" aria-label="Custom Questions Library" inert>
+        <section id="questions-canvas" class="app-canvas view-canvas view-hidden-right" role="region"
+                 aria-label="Questions Library" inert>
 
             <header class="canvas-box view-header-box">
                 <button type="button" class="canvas-back-button" data-close-view aria-label="Back to Mood Tracker">
@@ -162,18 +163,30 @@
             <section class="canvas-box view-content-box menu-box" id="panel-questions">
                 <h3>Custom Questions</h3>
                 <div class="button-grid">
-                    <button type="button" id="button-add-question" class="utility-button" aria-expanded="false" aria-controls="question-form">Add a Question</button>
+                    <button type="button" id="button-add-question" class="utility-button" aria-expanded="false"
+                            aria-controls="question-form">Add a Question
+                    </button>
                 </div>
 
                 <form id="question-form" class="question-form" hidden>
                     <div class="form-field">
                         <label for="q-text">Question <span class="required-marker" aria-hidden="true">*</span></label>
-                        <textarea id="q-text" class="form-input" rows="2" placeholder="e.g. How rested do you feel?" required></textarea>
+                        <textarea id="q-text" class="form-input" rows="2" placeholder="e.g. How rested do you feel?"
+                                  required>
+                        </textarea>
                     </div>
 
                     <div class="form-field">
-                        <label for="q-short-label">Short label <span class="required-marker" aria-hidden="true">*</span> <span class="optional-hint">(for charts &amp; lists)</span></label>
+                        <label for="q-short-label">Short label <span class="required-marker" aria-hidden="true">*</span>
+                            <span class="optional-hint">(for charts &amp; lists)</span></label>
                         <input type="text" id="q-short-label" class="form-input" placeholder="e.g. Sleep Quality" required>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="q-tags">Tags <span class="optional-hint">(comma-separated, optional)</span></label>
+                        <input type="text" id="q-tags" class="form-input" placeholder="e.g. Sleep, Energy, Somatic"
+                               autocomplete="off">
+                        <p class="form-hint">Use short category labels to make questions easier to find later.</p>
                     </div>
 
                     <div class="form-field">
