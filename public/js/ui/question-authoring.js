@@ -167,7 +167,6 @@ export function setupQuestionAuthoring() {
         overlay.removeAttribute('inert');
         overlay.setAttribute('aria-hidden', 'false');
         overlay.classList.add('is-open');
-        textInput.focus({ preventScroll: true });
         setTimeout(() => textInput.focus({ preventScroll: true }), 60);
     }
 

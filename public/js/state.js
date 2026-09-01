@@ -10,7 +10,5 @@ export const STATE = {
     checkinNote: null,
     deviceMode: 'mouse',
     historyVisibleQuestionIds: null,
-    historyTimeRange: 'all',
-    historyZoomScale: 1,
-    historyScrollLeft: 0
+    historyTimeRange: 'all'
 };

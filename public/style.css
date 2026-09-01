@@ -1279,7 +1279,7 @@ body[data-theme="light"] .question-card-badge-custom {
 }
 
 /* ==========================================================================
-7b. GRAPH & TIMELINE LEGEND & CONTROLS (TASK 3.6 - 3.11)
+7b. GRAPH & TIMELINE LEGEND & CONTROLS (TASK 3.6 - 3.10)
 ========================================================================== */
 .history-graph-wrapper {
     width: 100%;
@@ -1294,14 +1294,6 @@ body[data-theme="light"] .question-card-badge-custom {
     margin-bottom: 6px;
     width: 100%;
     box-sizing: border-box;
-    flex-wrap: wrap;
-}
-
-.graph-header-controls {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 8px;
     flex-wrap: wrap;
 }
 
@@ -1362,67 +1354,6 @@ body[data-theme="light"] .question-card-badge-custom {
     border-color: var(--border-color);
 }
 
-.graph-zoom-toolbar {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px;
-    background-color: var(--box-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-}
-
-.graph-zoom-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    min-height: 28px;
-    padding: 0 10px;
-    border-radius: 5px;
-    border: 1px solid transparent;
-    background-color: transparent;
-    color: var(--text-bright);
-    font-size: 1.1rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background-color 150ms var(--transition-curve), border-color 150ms var(--transition-curve), color 150ms var(--transition-curve);
-}
-
-.graph-zoom-button:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-    pointer-events: none;
-}
-
-.graph-zoom-button.graph-zoom-button-reset {
-    min-width: 72px;
-    padding: 0 10px;
-    font-size: 0.75rem;
-    letter-spacing: 0.01em;
-}
-
-.graph-zoom-button:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 2px var(--focus-ring);
-}
-
-@media (hover: hover) {
-    .graph-zoom-button:not(:disabled):hover {
-        background-color: var(--button-default);
-        border-color: var(--border-color);
-    }
-}
-
-.graph-zoom-value {
-    min-width: 38px;
-    padding: 0 4px;
-    text-align: center;
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: var(--text-muted);
-}
-
 .graph-scroll-container {
     width: 100%;
     overflow-x: auto;
@@ -1431,14 +1362,6 @@ body[data-theme="light"] .question-card-badge-custom {
     position: relative;
     border-radius: 8px;
     outline: none;
-}
-
-.graph-scroll-content {
-    width: max-content;
-    min-width: 100%;
-    box-sizing: border-box;
-    padding-left: max(0px, calc(10vw - 42px));
-    padding-right: 10vw;
 }
 
 .graph-scroll-container:focus-visible {
@@ -1462,23 +1385,6 @@ body[data-contrast="high"] .graph-timeframe-button.is-active {
     background-color: var(--text-bright);
     color: var(--box-bg);
     border-color: var(--text-bright);
-}
-
-body[data-contrast="high"] .graph-zoom-toolbar {
-    border: 2px solid var(--text-bright);
-}
-
-body[data-contrast="high"] .graph-zoom-button {
-    border-color: transparent;
-    color: var(--text-bright);
-}
-
-body[data-contrast="high"] .graph-zoom-button:not(:disabled):hover {
-    border-color: var(--text-bright);
-}
-
-body[data-contrast="high"] .graph-zoom-button:disabled {
-    opacity: 0.3;
 }
 
 .legend-quick-actions {
