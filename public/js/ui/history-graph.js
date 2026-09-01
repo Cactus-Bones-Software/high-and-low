@@ -5,30 +5,13 @@
 
 import { STATE } from '../state.js';
 import { getAll, getConfig } from '../storage/db.js';
-import { DEFAULT_ACTIVE_SET } from '../questions.js';
+import { DEFAULT_ACTIVE_SET, getCurveColor, getQuestionDashArray } from '../questions.js';
 import { escapeHTML } from '../utils.js';
 import { showNoticeDialog } from './dialogs.js';
 
-export function getCurveColor(curve, index) {
-    if (curve === 'more-is-better') return '#34c759';
-    if (curve === 'less-is-better') return '#ff3b30';
-    if (curve === 'middle-is-best') return '#007aff';
-    const fallbackPalette = ['#34c759', '#ff3b30', '#007aff', '#af52de', '#ff9500', '#5ac8fa'];
-    return fallbackPalette[index % fallbackPalette.length];
-}
-
-export const QUESTION_DASH_PATTERNS = [
-    'none',          // 0: Solid line
-    '6,4',           // 1: Medium dashes
-    '2,3',           // 2: Dotted
-    '8,3,2,3',       // 3: Dash-dot
-    '12,4',          // 4: Long dashes
-    '6,3,2,3,2,3',   // 5: Dash-dot-dot
-    '10,3,4,3'       // 6: Long-dash short-dash
-];
-
-export function getQuestionDashArray(index) {
-    return QUESTION_DASH_PATTERNS[index % QUESTION_DASH_PATTERNS.length];
+export function formatZoomValue(zoomScale) {
+    const formatted = Number(zoomScale).toFixed(2).replace(/0+$/, '');
+    return formatted.endsWith('.') ? `${formatted}0` : formatted;
 }
 
 export async function loadHistoryView() {
@@ -150,6 +133,8 @@ export function getTimeframeLabel(rangeKey) {
  * @param {Array<Object>} [options.questions]
  * @param {Set<string>|Array<string>} [options.visibleQuestionIds]
  * @param {string} [options.timeRange='all']
+ * @param {number} [options.minimumSpacingPerPoint=48]
+ * @param {number} [options.zoomScale=1]
  * @returns {Object} Layout object containing computed dimensions, scales, points, paths, and series data.
  */
 export function computeGraphLayout({
@@ -157,7 +142,9 @@ export function computeGraphLayout({
                                        allEntries,
                                        questions = [],
                                        visibleQuestionIds,
-                                       timeRange = 'all'
+                                       timeRange = 'all',
+                                       minimumSpacingPerPoint = 48,
+                                       zoomScale = 1
                                    } = {}) {
     const rawAllEntries = Array.isArray(allEntries)
         ? allEntries
@@ -165,6 +152,10 @@ export function computeGraphLayout({
 
     const questionList = Array.isArray(questions) ? questions : [];
     const currentTimeRange = timeRange || 'all';
+    const resolvedMinimumSpacing = Number.isFinite(Number(minimumSpacingPerPoint))
+        ? Number(minimumSpacingPerPoint)
+        : 48;
+    const resolvedZoomScale = Number.isFinite(Number(zoomScale)) ? Number(zoomScale) : 1;
 
     let currentVisibleSet;
     if (visibleQuestionIds instanceof Set) {
@@ -251,15 +242,15 @@ export function computeGraphLayout({
     if (maxTime === -Infinity) maxTime = 0;
     const timeDuration = maxTime - minTime;
 
-    const minimumSpacingPerPoint = 48;
+    const pointSpacing = resolvedMinimumSpacing * resolvedZoomScale;
     const paddingTop = 24;
     const paddingBottom = 60;
     const paddingLeft = 42;
-    const paddingRight = 24;
+    const paddingRight = 0;
 
     const calculatedWidth = entryCount > 1
-        ? Math.max(600, paddingLeft + paddingRight + (entryCount - 1) * minimumSpacingPerPoint)
-        : 600;
+        ? paddingLeft + paddingRight + (entryCount - 1) * pointSpacing
+        : paddingLeft + paddingRight + pointSpacing;
     const width = calculatedWidth;
     const height = 320;
 
@@ -452,6 +443,8 @@ export function computeGraphLayout({
         questions: questionList,
         visibleQuestionIds: currentVisibleSet,
         timeRange: currentTimeRange,
+        zoomScale: resolvedZoomScale,
+        minimumSpacingPerPoint: resolvedMinimumSpacing,
         dimensions: {
             width,
             height,
@@ -471,8 +464,8 @@ export function computeGraphLayout({
             timeDuration
         },
         scales: {
-            getX,
-            getY
+            getY,
+            pointSpacing
         },
         gridLines,
         xTicks,
@@ -502,7 +495,6 @@ export function renderGraphSVG(layout) {
         paddingRight,
         paddingTop,
         paddingBottom,
-        calculatedWidth,
         skipBaselineY,
         noteBaselineY
     } = dimensions;
@@ -599,7 +591,7 @@ export function renderGraphSVG(layout) {
     });
 
     return `
-        <svg class="graph-svg" viewBox="0 0 ${width} ${height}" style="width: ${calculatedWidth > 600 ? calculatedWidth + 'px' : '100%'}; min-width: 100%; height: auto; max-height: 280px; overflow: visible;">
+        <svg class="graph-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
             <g class="grid">${gridLinesHTML}</g>
             <g class="x-axis">${xAxisHTML}</g>
             <g class="lines">${linesHTML}</g>
@@ -610,11 +602,17 @@ export function renderGraphSVG(layout) {
     `;
 }
 
-export function renderLineGraph(container, { entries, allEntries, questions, visibleQuestionIds, timeRange } = {}) {
+export function renderLineGraph(container, { entries, allEntries, questions, visibleQuestionIds, timeRange, zoomScale } = {}) {
     if (!container) return;
+
+    const previousScrollContainer = container.querySelector('.graph-scroll-container');
+    const hadPreviousTimeline = Boolean(previousScrollContainer);
 
     const currentTimeRange = timeRange || STATE.historyTimeRange || 'all';
     STATE.historyTimeRange = currentTimeRange;
+    const currentZoomScale = Number.isFinite(Number(zoomScale)) ? Number(zoomScale) :
+        (Number.isFinite(Number(STATE.historyZoomScale)) ? Number(STATE.historyZoomScale) : 1);
+    STATE.historyZoomScale = currentZoomScale;
 
     const resolvedVisibleQuestionIds = visibleQuestionIds !== undefined
         ? visibleQuestionIds
@@ -625,7 +623,8 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
         allEntries,
         questions,
         visibleQuestionIds: resolvedVisibleQuestionIds,
-        timeRange: currentTimeRange
+        timeRange: currentTimeRange,
+        zoomScale: currentZoomScale
     });
 
     let currentVisibleSet = layout.visibleQuestionIds;
@@ -668,6 +667,21 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
             <div class="graph-timeframe-buttons" role="radiogroup" aria-label="Select date range">
                 ${timeframeButtonsHTML}
             </div>
+        </div>
+    `;
+
+    const isZoomOutDisabled = currentZoomScale <= 0.5;
+    const isZoomInDisabled = currentZoomScale >= 3;
+    const isZoomResetDisabled = Math.abs(currentZoomScale - 1) < 0.01;
+    const zoomToolbarHTML = `
+        <div class="graph-zoom-toolbar" role="toolbar" aria-label="Timeline zoom controls">
+            <button type="button" id="button-graph-zoom-out" class="graph-zoom-button"
+                    data-zoom-action="zoom-out" aria-label="Zoom out timeline"${isZoomOutDisabled ? ' disabled' : ''}>−</button>
+            <button type="button" id="button-graph-zoom-reset" class="graph-zoom-button graph-zoom-button-reset"
+                    data-zoom-action="reset" aria-label="Reset timeline zoom"${isZoomResetDisabled ? ' disabled' : ''}>Reset</button>
+            <button type="button" id="button-graph-zoom-in" class="graph-zoom-button"
+                    data-zoom-action="zoom-in" aria-label="Zoom in timeline"${isZoomInDisabled ? ' disabled' : ''}>+</button>
+            <span class="graph-zoom-value" aria-live="polite">${formatZoomValue(currentZoomScale)}×</span>
         </div>
     `;
 
@@ -753,9 +767,38 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
                         allEntries: rawAllEntries,
                         questions: questionList,
                         visibleQuestionIds: currentVisibleSet,
-                        timeRange: selectedRange
+                        timeRange: selectedRange,
+                        zoomScale: STATE.historyZoomScale
                     });
                 }
+            });
+        });
+
+        container.querySelectorAll('.graph-zoom-button').forEach(zoomButton => {
+            zoomButton.addEventListener('click', () => {
+                const scrollContainer = container.querySelector('.graph-scroll-container');
+                const previousScrollLeft = scrollContainer ? scrollContainer.scrollLeft : 0;
+                const viewportWidth = scrollContainer ? scrollContainer.clientWidth : 0;
+                const zoomAction = zoomButton.dataset.zoomAction;
+                let nextZoomScale = currentZoomScale;
+                if (zoomAction === 'zoom-in') nextZoomScale = Math.min(3, currentZoomScale + 0.25);
+                if (zoomAction === 'zoom-out') nextZoomScale = Math.max(0.5, currentZoomScale - 0.25);
+                if (zoomAction === 'reset') nextZoomScale = 1;
+                nextZoomScale = Math.round(nextZoomScale * 100) / 100;
+                if (nextZoomScale === currentZoomScale) return;
+
+                const zoomRatio = nextZoomScale / currentZoomScale;
+                const oldCenter = previousScrollLeft + viewportWidth / 2;
+                const targetScrollLeft = oldCenter * zoomRatio - viewportWidth / 2;
+                STATE.historyScrollLeft = Math.max(0, targetScrollLeft);
+                renderLineGraph(container, {
+                    entries: rawAllEntries,
+                    allEntries: rawAllEntries,
+                    questions: questionList,
+                    visibleQuestionIds: currentVisibleSet,
+                    timeRange: currentTimeRange,
+                    zoomScale: nextZoomScale
+                });
             });
         });
 
@@ -770,7 +813,8 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
                     allEntries: rawAllEntries,
                     questions: questionList,
                     visibleQuestionIds: currentVisibleSet,
-                    timeRange: currentTimeRange
+                    timeRange: currentTimeRange,
+                    zoomScale: currentZoomScale
                 });
             });
         }
@@ -785,7 +829,8 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
                     allEntries: rawAllEntries,
                     questions: questionList,
                     visibleQuestionIds: currentVisibleSet,
-                    timeRange: currentTimeRange
+                    timeRange: currentTimeRange,
+                    zoomScale: currentZoomScale
                 });
             });
         }
@@ -796,7 +841,7 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
             <div class="history-graph-wrapper">
                 <div class="graph-header-row" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 6px;">
                     <h3 style="margin: 0;">Mood Timeline</h3>
-                    ${timeframeToolbarHTML}
+                    <div class="graph-header-controls">${timeframeToolbarHTML}${zoomToolbarHTML}</div>
                 </div>
                 <div style="padding: 32px 16px; text-align: center; color: var(--text-muted); font-size: 0.92rem; background: var(--box-bg); border: 1px solid var(--border-color); border-radius: 8px; margin: 12px 0;">
                     No check-ins found in the selected timeframe (${getTimeframeLabel(currentTimeRange)}).<br>
@@ -817,10 +862,10 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
         <div class="history-graph-wrapper">
             <div class="graph-header-row" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 6px;">
                 <h3 style="margin: 0;">Mood Timeline</h3>
-                ${timeframeToolbarHTML}
+                <div class="graph-header-controls">${timeframeToolbarHTML}${zoomToolbarHTML}</div>
             </div>
             <div class="graph-scroll-container" tabindex="0" role="region" aria-label="Interactive mood timeline chart, scroll horizontally to view earlier dates">
-                ${svgHTML}
+                <div class="graph-scroll-content">${svgHTML}</div>
             </div>
             ${quickActionsHTML}
             ${legendHTML}
@@ -828,12 +873,14 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
         </div>
     `;
 
-    // Auto-scroll timeline to recent entries on render
     const scrollContainerElement = container.querySelector('.graph-scroll-container');
     if (scrollContainerElement) {
-        if (scrollContainerElement.scrollWidth > scrollContainerElement.clientWidth) {
-            scrollContainerElement.scrollLeft = scrollContainerElement.scrollWidth;
-        }
+        const maximumScroll = Math.max(0, scrollContainerElement.scrollWidth - scrollContainerElement.clientWidth);
+        const targetScroll = hadPreviousTimeline && Number.isFinite(Number(STATE.historyScrollLeft))
+            ? STATE.historyScrollLeft
+            : maximumScroll;
+        scrollContainerElement.scrollLeft = Math.min(Math.max(0, targetScroll), maximumScroll);
+        STATE.historyScrollLeft = scrollContainerElement.scrollLeft;
 
         // Map mouse wheel delta to horizontal scrolling when cursor is over the timeline
         scrollContainerElement.addEventListener('wheel', (event) => {
@@ -843,7 +890,12 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
             // If the user is scrolling vertically with the mouse wheel, translate to horizontal scroll
             if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
                 event.preventDefault();
-                scrollContainerElement.scrollLeft += event.deltaY;
+                const maximumScroll = scrollContainerElement.scrollWidth - scrollContainerElement.clientWidth;
+                scrollContainerElement.scrollLeft = Math.max(0, Math.min(
+                    scrollContainerElement.scrollLeft + event.deltaY,
+                    maximumScroll
+                ));
+                STATE.historyScrollLeft = scrollContainerElement.scrollLeft;
             }
         }, { passive: false });
     }

@@ -48,6 +48,33 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         expect(container.textContent).toContain('No recorded mood history yet');
     });
 
+    it('renders accessible zoom controls and changes horizontal graph spacing', () => {
+        const container = documentInstance.createElement('div');
+        const questions = [{ id: 'q1', text: 'Energy level', shortLabel: 'Energy', curve: 'more-is-better' }];
+        const entries = [
+            { timestamp: '2026-08-10T10:00:00.000Z', answers: [{ questionId: 'q1', score: 3, status: 'answered' }] },
+            { timestamp: '2026-08-11T10:00:00.000Z', answers: [{ questionId: 'q1', score: 4, status: 'answered' }] }
+        ];
+
+        windowInstance.renderLineGraph(container, { entries, questions });
+        const zoomInButton = container.querySelector('#button-graph-zoom-in');
+        const resetButton = container.querySelector('#button-graph-zoom-reset');
+        const zoomValue = container.querySelector('.graph-zoom-value');
+        const getWidth = () => Number(container.querySelector('svg').getAttribute('viewBox').split(' ')[2]);
+
+        expect(zoomInButton.getAttribute('aria-label')).toBe('Zoom in timeline');
+        expect(resetButton.getAttribute('aria-label')).toBe('Reset timeline zoom');
+        expect(zoomValue.textContent).toBe('1.0×');
+        expect(resetButton.disabled).toBe(true);
+
+        const initialWidth = getWidth();
+        zoomInButton.click();
+
+        expect(zoomValue.textContent).toBe('1.25×');
+        expect(resetButton.disabled).toBe(false);
+        expect(getWidth()).toBeGreaterThan(initialWidth);
+    });
+
     it('distinguishes answered points, skipped gaps with markers, and absent gaps without markers', () => {
         const container = documentInstance.createElement('div');
         const questions = [

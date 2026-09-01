@@ -1303,6 +1303,63 @@ body[data-theme="light"] .question-card-badge-custom {
     gap: 6px;
 }
 
+.graph-header-controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.graph-zoom-toolbar {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px;
+    background-color: var(--box-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.graph-zoom-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    min-height: 32px;
+    padding: 0 10px;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    background-color: transparent;
+    color: var(--text-bright);
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.graph-zoom-button-reset {
+    min-width: 64px;
+    font-size: 0.75rem;
+}
+
+.graph-zoom-button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.graph-zoom-button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.graph-zoom-value {
+    min-width: 38px;
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
 .graph-timeframe-title {
     font-size: 0.78rem;
     font-weight: 600;
@@ -1364,12 +1421,19 @@ body[data-theme="light"] .question-card-badge-custom {
     outline: none;
 }
 
+.graph-scroll-content {
+    width: max-content;
+    min-width: 100%;
+}
+
 .graph-scroll-container:focus-visible {
     box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .graph-svg {
     display: block;
+    height: auto;
+    max-height: 280px;
     overflow: visible;
 }
 
@@ -1385,6 +1449,10 @@ body[data-contrast="high"] .graph-timeframe-button.is-active {
     background-color: var(--text-bright);
     color: var(--box-bg);
     border-color: var(--text-bright);
+}
+
+body[data-contrast="high"] .graph-zoom-toolbar {
+    border: 2px solid var(--text-bright);
 }
 
 .legend-quick-actions {

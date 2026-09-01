@@ -127,6 +127,13 @@ Patients and psychiatrists need a way to actually read the collected data back, 
   - Implement a smooth, touch-friendly horizontal scroll container (`overflow-x: auto`) for dense timelines with a dynamic SVG width based on entry count, ensuring data points and note markers maintain comfortable touch target spacing.
   - Keep the graph accessible with scroll indicators, keyboard navigation, and sticky/frozen Y-axis indicators.
 
+- [x] **Task 3.11: Timeline zoom controls**
+  - Add a compact zoom toolbar beside the existing timeframe controls with three buttons: `−` (zoom out), a
+    reset-to-default-scale control, and `+` (zoom in).
+  - Zoom adjusts horizontal point spacing in `computeGraphLayout()` without changing the active timeframe or filters.
+  - Preserve the user's current horizontal scroll anchor when zooming.
+  - Use large, keyboard-reachable buttons with clear aria-labels.
+
 ---
 
 ### Phase 4: Architectural Concerns & Code Modularization

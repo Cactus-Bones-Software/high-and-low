@@ -118,6 +118,8 @@ export async function setupTestDOM(customSessionStorage = {}) {
     STATE.deviceMode = 'mouse';
     STATE.historyVisibleQuestionIds = null;
     STATE.historyTimeRange = 'all';
+    STATE.historyZoomScale = 1;
+    STATE.historyScrollLeft = 0;
     setCurrentViewId('tracker-canvas');
 
     // Expose helpers directly on windowInstance
