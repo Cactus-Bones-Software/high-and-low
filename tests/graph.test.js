@@ -353,6 +353,29 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         expectGraphLegendAndLines(container, [true, true, true], 3);
     });
 
+    it('preserves timeline scroll position when using Show all or Clear all', () => {
+        const container = documentInstance.createElement('div');
+        const questions = createSampleGraphQuestions();
+        const logs = createSampleTwoDayLogs();
+
+        windowInstance.renderLineGraph(container, { entries: logs, questions });
+
+        const scrollContainer = container.querySelector('.graph-scroll-container');
+        expect(scrollContainer).toBeTruthy();
+
+        Object.defineProperty(scrollContainer, 'scrollWidth', { value: 1200, configurable: true });
+        Object.defineProperty(scrollContainer, 'clientWidth', { value: 400, configurable: true });
+        scrollContainer.scrollLeft = 250;
+
+        container.querySelector('#button-legend-clear-all').click();
+        const scrollAfterClear = container.querySelector('.graph-scroll-container');
+        expect(scrollAfterClear.scrollLeft).toBe(250);
+
+        container.querySelector('#button-legend-show-all').click();
+        const scrollAfterShow = container.querySelector('.graph-scroll-container');
+        expect(scrollAfterShow.scrollLeft).toBe(250);
+    });
+
     it('renders note indicators on timeline and opens note modal with content on tap or keyboard interaction (Task 3.9)', async () => {
         const container = documentInstance.getElementById('panel-history');
         const questions = [
@@ -542,6 +565,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         expect(scrollContainer).toBeTruthy();
         expect(scrollContainer.getAttribute('role')).toBe('region');
         expect(scrollContainer.getAttribute('tabindex')).toBe('0');
+        expect(container.querySelector('.graph-scroll-content')).toBeTruthy();
 
         // 2. Verify SVG width expands dynamically to provide comfortable point spacing (minimum 48px per point)
         const svgElement = container.querySelector('svg.graph-svg');
@@ -549,9 +573,177 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         const viewBox = svgElement.getAttribute('viewBox');
         expect(viewBox).toBeTruthy();
         const [, , width] = viewBox.split(' ').map(Number);
-        // With 25 entries: 42 + 24 + 24 * 48 = 1218px
+        // With 25 entries: 42 + 24 * 48 = 1194px; viewport deadspace is CSS-owned.
         expect(width).toBeGreaterThan(600);
-        expect(width).toBe(42 + 24 + 24 * 48);
+        expect(width).toBe(42 + 24 * 48);
+    });
+
+    it('renders zoom toolbar with accessible zoom in, zoom out, and reset buttons (Task 3.11)', () => {
+        const container = documentInstance.createElement('div');
+        const questions = createSampleGraphQuestions();
+        const logs = createSampleTwoDayLogs();
+
+        windowInstance.renderLineGraph(container, { entries: logs, questions });
+
+        const zoomToolbar = container.querySelector('.graph-zoom-toolbar');
+        expect(zoomToolbar).toBeTruthy();
+        expect(zoomToolbar.getAttribute('role')).toBe('toolbar');
+        expect(zoomToolbar.getAttribute('aria-label')).toBe('Timeline zoom controls');
+
+        const zoomOutBtn = container.querySelector('#button-graph-zoom-out');
+        const resetBtn = container.querySelector('#button-graph-zoom-reset');
+        const zoomInBtn = container.querySelector('#button-graph-zoom-in');
+        const zoomValue = container.querySelector('.graph-zoom-value');
+
+        expect(zoomOutBtn).toBeTruthy();
+        expect(zoomOutBtn.getAttribute('aria-label')).toBe('Zoom out timeline');
+        expect(zoomOutBtn.disabled).toBe(false);
+
+        expect(resetBtn).toBeTruthy();
+        expect(resetBtn.getAttribute('aria-label')).toBe('Reset timeline zoom');
+        // Reset button is disabled at default 1.0x scale
+        expect(resetBtn.disabled).toBe(true);
+
+        expect(zoomInBtn).toBeTruthy();
+        expect(zoomInBtn.getAttribute('aria-label')).toBe('Zoom in timeline');
+        expect(zoomInBtn.disabled).toBe(false);
+
+        expect(zoomValue).toBeTruthy();
+        expect(zoomValue.getAttribute('aria-live')).toBe('polite');
+        expect(zoomValue.textContent).toBe('1.0×');
+    });
+
+    it('dynamically adjusts horizontal point spacing and SVG width on zoom, with button disabled bounds (Task 3.11)', () => {
+        const container = documentInstance.createElement('div');
+        const questions = [
+            { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' }
+        ];
+
+        // 5 entries spaced 1 day apart
+        const now = Date.now();
+        const logs = [];
+        for (let i = 0; i < 5; i++) {
+            logs.push({
+                timestamp: new Date(now - (4 - i) * 86400000).toISOString(),
+                answers: [{ questionId: 'q1', score: (i % 5) + 1, status: 'answered' }]
+            });
+        }
+
+        windowInstance.renderLineGraph(container, { entries: logs, questions });
+
+        const getSvgWidth = () => {
+            const svg = container.querySelector('svg.graph-svg');
+            const [, , width] = svg.getAttribute('viewBox').split(' ').map(Number);
+            return width;
+        };
+
+        const initialWidth = getSvgWidth();
+        // Base width for 5 entries: 42 + 4 * 48 = 234px
+        expect(initialWidth).toBe(234);
+
+        const zoomInBtn = container.querySelector('#button-graph-zoom-in');
+        const zoomOutBtn = container.querySelector('#button-graph-zoom-out');
+        const resetBtn = container.querySelector('#button-graph-zoom-reset');
+        const zoomValue = container.querySelector('.graph-zoom-value');
+
+        // Zoom In to 1.25x
+        zoomInBtn.click();
+        expect(zoomValue.textContent).toBe('1.25×');
+        expect(resetBtn.disabled).toBe(false);
+        const width125 = getSvgWidth();
+        // 42 + 4 * (48 * 1.25) = 42 + 4 * 60 = 282px
+        expect(width125).toBe(282);
+        expect(width125).toBeGreaterThan(initialWidth);
+
+        // Zoom In repeatedly to max scale (3.0x)
+        // From 1.25x -> 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0 (7 more clicks)
+        for (let click = 0; click < 7; click++) {
+            zoomInBtn.click();
+        }
+        expect(zoomValue.textContent).toBe('3.0×');
+        expect(zoomInBtn.disabled).toBe(true);
+        expect(zoomOutBtn.disabled).toBe(false);
+        const width300 = getSvgWidth();
+        // 42 + 4 * (48 * 3.0) = 42 + 4 * 144 = 618px
+        expect(width300).toBe(618);
+
+        // Reset to default 1.0x scale
+        resetBtn.click();
+        expect(zoomValue.textContent).toBe('1.0×');
+        expect(resetBtn.disabled).toBe(true);
+        expect(zoomInBtn.disabled).toBe(false);
+        expect(getSvgWidth()).toBe(initialWidth);
+
+        // Zoom Out repeatedly to min scale (0.5x)
+        // 1.0x -> 0.75x -> 0.5x (2 clicks)
+        zoomOutBtn.click();
+        expect(zoomValue.textContent).toBe('0.75×');
+        expect(resetBtn.disabled).toBe(false);
+
+        zoomOutBtn.click();
+        expect(zoomValue.textContent).toBe('0.5×');
+        expect(zoomOutBtn.disabled).toBe(true);
+        expect(zoomInBtn.disabled).toBe(false);
+        const width050 = getSvgWidth();
+        // 42 + 4 * (48 * 0.5) = 42 + 4 * 24 = 138px
+        expect(width050).toBe(138);
+        expect(width050).toBeLessThan(initialWidth);
+    });
+
+    it('repositions graph points across the full zoomed width instead of leaving them clustered at the old scale', () => {
+        const container = documentInstance.createElement('div');
+        const questions = [
+            { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' }
+        ];
+        const now = Date.now();
+        const logs = [];
+        for (let entryIndex = 0; entryIndex < 5; entryIndex++) {
+            logs.push({
+                timestamp: new Date(now - (4 - entryIndex) * 86400000).toISOString(),
+                answers: [{ questionId: 'q1', score: (entryIndex % 5) + 1, status: 'answered' }]
+            });
+        }
+
+        windowInstance.renderLineGraph(container, { entries: logs, questions });
+
+        const getLastPointX = () => {
+            const points = container.querySelectorAll('svg g.points circle');
+            return Number(points[points.length - 1].getAttribute('cx'));
+        };
+
+        expect(getLastPointX()).toBe(234);
+
+        container.querySelector('#button-graph-zoom-in').click();
+
+        // At 1.25x, the last point must move to the new chart edge:
+        // width = 42 + 4 * 60 = 282, so the last point is at the SVG edge.
+        expect(getLastPointX()).toBe(282);
+    });
+
+    it('preserves horizontal viewport center anchor when zooming (Task 3.11)', () => {
+        const container = documentInstance.createElement('div');
+        const questions = createSampleGraphQuestions();
+        const logs = createSampleTwoDayLogs();
+
+        windowInstance.renderLineGraph(container, { entries: logs, questions });
+
+        const scrollContainer = container.querySelector('.graph-scroll-container');
+        expect(scrollContainer).toBeTruthy();
+
+        // Simulate layout dimensions
+        Object.defineProperty(scrollContainer, 'scrollWidth', { value: 1200, configurable: true });
+        Object.defineProperty(scrollContainer, 'clientWidth', { value: 400, configurable: true });
+        scrollContainer.scrollLeft = 200;
+
+        // Old center in content coords = scrollLeft + clientWidth / 2 = 200 + 200 = 400
+        // Zooming from 1.0x to 1.25x -> ratio = 1.25
+        // New center in content coords = 400 * 1.25 = 500
+        // Target scrollLeft = 500 - 200 = 300
+        const zoomInBtn = container.querySelector('#button-graph-zoom-in');
+        zoomInBtn.click();
+
+        const updatedScrollContainer = container.querySelector('.graph-scroll-container');
+        expect(updatedScrollContainer.scrollLeft).toBe(300);
     });
 
     it('includes all answered questions from entries in addition to active questions when loading history view', async () => {
@@ -720,6 +912,27 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             expect(allTimeLayout.gridLines.length).toBe(5);
             expect(allTimeLayout.gridLines[0].score).toBe(1);
             expect(allTimeLayout.gridLines[4].score).toBe(5);
+        });
+
+        it('supports zoomScale parameter in computeGraphLayout (Task 3.11)', () => {
+            const now = Date.now();
+            const questions = [
+                { id: 'q1', text: 'Overall Mood', shortLabel: 'Mood', curve: 'more-is-better' }
+            ];
+            const entries = [
+                { timestamp: new Date(now - 2 * 86400000).toISOString(), answers: [{ questionId: 'q1', score: 3, status: 'answered' }] },
+                { timestamp: new Date(now - 86400000).toISOString(), answers: [{ questionId: 'q1', score: 4, status: 'answered' }] },
+                { timestamp: new Date(now).toISOString(), answers: [{ questionId: 'q1', score: 5, status: 'answered' }] }
+            ];
+
+            const defaultLayout = windowInstance.computeGraphLayout({ entries, questions, zoomScale: 1.0 });
+            const zoomedLayout = windowInstance.computeGraphLayout({ entries, questions, zoomScale: 2.0 });
+
+            // Default: 42 + 2 * 48 = 138
+            expect(defaultLayout.width).toBe(138);
+            // Zoomed (2x): 42 + 2 * (48 * 2.0) = 234
+            expect(zoomedLayout.width).toBe(234);
+            expect(zoomedLayout.scales.pointSpacing).toBe(96);
         });
 
         it('separates line segments across skips and records note indicators accurately', () => {

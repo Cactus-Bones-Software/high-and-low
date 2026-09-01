@@ -15,7 +15,7 @@
   "private": true,
   "devDependencies": {
     "fake-indexeddb": "^6.2.5",
-    "jsdom": "^30.0.1",
+    "jsdom": "^25.0.1",
     "vitest": "^4.1.11"
   }
 }

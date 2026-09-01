@@ -89,6 +89,51 @@ export async function setupTestDOM(customSessionStorage = {}) {
         clearTimeout(identifier);
     };
 
+    // Polyfill scrollLeft / scrollTop on Element prototype in JSDOM environment
+    const scrollStore = new WeakMap();
+    Object.defineProperty(windowInstance.Element.prototype, 'scrollLeft', {
+        get() {
+            return scrollStore.get(this)?.left || 0;
+        },
+        set(value) {
+            const current = scrollStore.get(this) || { left: 0, top: 0 };
+            current.left = Number(value) || 0;
+            scrollStore.set(this, current);
+        },
+        configurable: true
+    });
+
+    Object.defineProperty(windowInstance.Element.prototype, 'scrollTop', {
+        get() {
+            return scrollStore.get(this)?.top || 0;
+        },
+        set(value) {
+            const current = scrollStore.get(this) || { left: 0, top: 0 };
+            current.top = Number(value) || 0;
+            scrollStore.set(this, current);
+        },
+        configurable: true
+    });
+
+    // Polyfill PointerEvent if missing in JSDOM
+    if (!windowInstance.PointerEvent) {
+        windowInstance.PointerEvent = class PointerEvent extends windowInstance.MouseEvent {
+            constructor(type, params = {}) {
+                super(type, params);
+                this.pointerId = params.pointerId || 0;
+                this.width = params.width || 1;
+                this.height = params.height || 1;
+                this.pressure = params.pressure || 0;
+                this.tangentialPressure = params.tangentialPressure || 0;
+                this.tiltX = params.tiltX || 0;
+                this.tiltY = params.tiltY || 0;
+                this.twist = params.twist || 0;
+                this.pointerType = params.pointerType || '';
+                this.isPrimary = params.isPrimary || false;
+            }
+        };
+    }
+
     // Polyfill navigator.serviceWorker
     if (!windowInstance.navigator.serviceWorker) {
         Object.defineProperty(windowInstance.navigator, 'serviceWorker', {
@@ -118,6 +163,8 @@ export async function setupTestDOM(customSessionStorage = {}) {
     STATE.deviceMode = 'mouse';
     STATE.historyVisibleQuestionIds = null;
     STATE.historyTimeRange = 'all';
+    STATE.historyZoomScale = 1;
+    STATE.historyScrollLeft = 0;
     setCurrentViewId('tracker-canvas');
 
     // Expose helpers directly on windowInstance
