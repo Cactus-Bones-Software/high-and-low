@@ -1133,6 +1133,13 @@ select, .utility-button, .form-input {
     margin-bottom: 0;
 }
 
+.questions-divider {
+    width: 100%;
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 6px 0;
+}
+
 .question-card-list {
     display: flex;
     flex-direction: column;
@@ -1196,6 +1203,14 @@ select, .utility-button, .form-input {
     color: #bf5af2;
 }
 
+.question-card-status-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
 body[data-theme="light"] .question-card-badge-builtin {
     color: #007aff;
 }
@@ -1220,6 +1235,218 @@ body[data-theme="light"] .question-card-badge-custom {
     color: var(--text-primary);
     background-color: var(--bg-color);
     border: 1px solid var(--border-color);
+}
+
+/* Card action row and reordering controls (Task 5.5) */
+.question-card-actions {
+    margin-top: 6px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+}
+
+.question-reorder-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.question-reorder-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-color);
+    color: var(--text-bright);
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 150ms var(--transition-curve), transform 100ms ease, opacity 150ms ease;
+    user-select: none;
+}
+
+.question-reorder-button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+@media (hover: hover) {
+    .question-reorder-button:not(:disabled):hover {
+        background-color: var(--border-color);
+    }
+}
+
+.question-reorder-button:not(:disabled):active {
+    transform: scale(0.94);
+}
+
+.question-reorder-button:focus-visible {
+    outline: 2px solid #007aff;
+    outline-offset: 2px;
+}
+
+/* Draggable reordering handle (Task 5.5) */
+.card-actions-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 25%;
+    flex: 0 0 25%;
+}
+
+.question-drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 30px;
+    padding: 4px 6px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-color);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: background-color 150ms var(--transition-curve), border-color 150ms var(--transition-curve), transform 100ms ease;
+}
+
+@media (hover: hover) {
+    .question-drag-handle:hover {
+        background-color: var(--border-color);
+        border-color: var(--text-muted);
+    }
+}
+
+.question-drag-handle:active,
+.question-drag-handle.is-grabbing,
+.question-drag-handle[aria-grabbed="true"] {
+    cursor: grabbing;
+    background-color: var(--border-color);
+    transform: scale(0.96);
+}
+
+.question-drag-handle:focus-visible {
+    outline: 2px solid #007aff;
+    outline-offset: 2px;
+}
+
+.drag-handle-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    width: 100%;
+    pointer-events: none;
+}
+
+.drag-handle-line {
+    display: block;
+    width: 50%;
+    max-width: 28px;
+    height: 2px;
+    border-radius: 1px;
+    background-color: var(--text-muted);
+    opacity: 0.65;
+    transition: opacity 150ms ease, background-color 150ms ease;
+    pointer-events: none;
+}
+
+.question-drag-handle:hover .drag-handle-line,
+.question-drag-handle:focus-visible .drag-handle-line {
+    opacity: 1;
+    background-color: var(--text-bright);
+}
+
+/* Question card drag-and-drop feedback states */
+.question-card-active.is-dragging {
+    opacity: 0.4;
+    border-style: dashed;
+    border-color: #007aff;
+}
+
+.question-card-active.drag-over-top {
+    border-top: 2px solid #007aff;
+}
+
+.question-card-active.drag-over-bottom {
+    border-bottom: 2px solid #007aff;
+}
+
+/* "In Tracker" Toggle Switch (Task 5.5) */
+.question-tracker-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-color);
+    color: var(--text-bright);
+    cursor: pointer;
+    transition: background-color 150ms var(--transition-curve), border-color 150ms var(--transition-curve);
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+    .question-tracker-toggle:hover {
+        background-color: var(--button-default);
+        border-color: var(--text-muted);
+    }
+}
+
+.question-tracker-toggle:focus-visible {
+    outline: 2px solid #007aff;
+    outline-offset: 2px;
+}
+
+.question-tracker-toggle .toggle-track {
+    position: relative;
+    display: inline-block;
+    width: 38px;
+    height: 22px;
+    border-radius: 999px;
+    background-color: rgba(120, 120, 128, 0.32);
+    transition: background-color 200ms cubic-bezier(0.2, 0.8, 0.4, 1);
+    flex-shrink: 0;
+}
+
+.question-tracker-toggle .toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    transition: transform 200ms cubic-bezier(0.2, 0.8, 0.4, 1);
+}
+
+.question-tracker-toggle.is-active .toggle-track,
+.question-tracker-toggle[aria-checked="true"] .toggle-track {
+    background-color: #34c759;
+}
+
+.question-tracker-toggle.is-active .toggle-thumb,
+.question-tracker-toggle[aria-checked="true"] .toggle-thumb {
+    transform: translateX(16px);
+}
+
+body[data-theme="dark"] .question-tracker-toggle.is-active .toggle-track,
+body[data-theme="dark"] .question-tracker-toggle[aria-checked="true"] .toggle-track {
+    background-color: #30d158;
+}
+
+body[data-theme="light"] .question-tracker-toggle.is-active .toggle-track,
+body[data-theme="light"] .question-tracker-toggle[aria-checked="true"] .toggle-track {
+    background-color: #34c759;
 }
 
 .questions-empty-state {
@@ -2299,26 +2526,35 @@ body:not([data-handedness]) .card-action-edit {
     margin-left: 0;
 }
 
+.card-actions-center {
+    order: 2;
+    flex: 0 0 25%;
+    width: 25%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 body[data-handedness="right"] .card-actions-dominant,
 body:not([data-handedness]) .card-actions-dominant,
 body[data-handedness="right"] .card-action-toggle,
 body:not([data-handedness]) .card-action-toggle {
-    order: 2;
+    order: 3;
     margin-left: auto;
     margin-right: 0;
 }
 
 /* Left-handed: non-dominant actions (e.g. edit) on right, dominant actions (e.g. toggle switch) on left */
-body[data-handedness="left"] .card-actions-non-dominant,
-body[data-handedness="left"] .card-action-edit {
-    order: 2;
-    margin-left: auto;
-    margin-right: 0;
-}
-
 body[data-handedness="left"] .card-actions-dominant,
 body[data-handedness="left"] .card-action-toggle {
     order: 1;
     margin-right: auto;
     margin-left: 0;
+}
+
+body[data-handedness="left"] .card-actions-non-dominant,
+body[data-handedness="left"] .card-action-edit {
+    order: 3;
+    margin-left: auto;
+    margin-right: 0;
 }

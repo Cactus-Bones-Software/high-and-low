@@ -231,14 +231,14 @@ just native `<script type="module">`, staying within the vanilla-only constraint
     - Resets the form when opened or after a successful save.
   - After saving a custom question, refresh the searchable card lists immediately, close the modal, and show the existing success/restored/duplicate notice flow.
 
-- [ ] **Task 5.5: Active Tracker Cards & Reordering Handles**
+- [x] **Task 5.5: Active Tracker Cards & Reordering Handles**
   - Render active tracker question cards with prominent question text at top, tags below, reordering handles/controls (move up / move down or drag handles) to adjust the tracker sequence
   - Add an "In Tracker" toggle switch to remove a question into the catalog.
+  - Include an "Add to Tracker" toggle switch on each card to activate questions into the tracker.
 
 - [ ] **Task 5.6: Library Catalog Cards & Non-Dominant Edit Actions**
   - Render inactive built-in and custom question cards in the library catalog.
   - Position "Edit" buttons on the non-dominant side (based on `handedness` setting).
-  - Include an "Add to Tracker" toggle switch on each card to activate questions into the tracker.
 
 - [ ] **Task 5.7: Question Editing & Archiving Workflow**
   - Enable editing of existing custom questions (updating text, short label, tags, curve, and endpoint labels) while maintaining the immutable `id`.

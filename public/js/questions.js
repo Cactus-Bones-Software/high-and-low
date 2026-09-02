@@ -4,7 +4,7 @@
  */
 
 import { STATE } from './state.js';
-import { getAll, put, getConfig, setConfig, getDatabase } from './storage/db.js';
+import { getAll, getConfig, setConfig, getDatabase } from './storage/db.js';
 
 // Bump this whenever new entries are added to DEFAULT_QUESTIONS so that existing
 // installations pick up the new built-ins on next load (see seedDefaults) without
@@ -27,7 +27,7 @@ export const DEFAULT_QUESTIONS = [
 // Daily set established on first run (ids into the 'questions' store).
 export const DEFAULT_ACTIVE_SET = ['q_energy', 'q_sadness', 'q_irritability', 'q_overall'];
 
-// Collapse leading/trailing and internal whitespace so trivially-different
+// Collapse leading/trailing and internal whitespace so trivially different
 // wordings resolve to the same content-addressed id.
 export function normalizeQuestionText(text) {
     return text.trim().replace(/\s+/g, ' ');
@@ -114,6 +114,55 @@ export async function loadActiveQuestions() {
     const questionsById = new Map(allQuestions.map(question => [question.id, question]));
     const set = Array.isArray(activeSet) ? activeSet : DEFAULT_ACTIVE_SET;
     STATE.activeQuestions = set.map(id => questionsById.get(id)).filter(question => question && !question.archived);
+}
+
+// Reorder the active question set to match an explicit array of question ids.
+export async function reorderActiveQuestions(orderedQuestionIds) {
+    if (!Array.isArray(orderedQuestionIds)) return false;
+    await setConfig('activeQuestionSet', orderedQuestionIds);
+    await loadActiveQuestions();
+    return true;
+}
+
+// Reorder an active question up or down within the active set sequence.
+export async function moveActiveQuestion(questionId, direction) {
+    const activeSet = await getConfig('activeQuestionSet');
+    const set = Array.isArray(activeSet) ? [...activeSet] : [...DEFAULT_ACTIVE_SET];
+    const currentIndex = set.indexOf(questionId);
+    if (currentIndex === -1) return false;
+
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= set.length) return false;
+
+    const [movedQuestionId] = set.splice(currentIndex, 1);
+    set.splice(targetIndex, 0, movedQuestionId);
+
+    await setConfig('activeQuestionSet', set);
+    await loadActiveQuestions();
+    return true;
+}
+
+// Remove an active question from the tracker into the catalog.
+export async function removeQuestionFromTracker(questionId) {
+    const activeSet = await getConfig('activeQuestionSet');
+    const set = Array.isArray(activeSet) ? [...activeSet] : [...DEFAULT_ACTIVE_SET];
+    const updatedQuestionSet = set.filter(id => id !== questionId);
+
+    await setConfig('activeQuestionSet', updatedQuestionSet);
+    await loadActiveQuestions();
+    return true;
+}
+
+// Add an inactive question from the catalog into the active tracker.
+export async function addQuestionToTracker(questionId) {
+    const activeSet = await getConfig('activeQuestionSet');
+    const set = Array.isArray(activeSet) ? [...activeSet] : [...DEFAULT_ACTIVE_SET];
+    if (!set.includes(questionId)) {
+        set.push(questionId);
+        await setConfig('activeQuestionSet', set);
+        await loadActiveQuestions();
+    }
+    return true;
 }
 
 // Persist a user-authored question.

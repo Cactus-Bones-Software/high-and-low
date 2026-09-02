@@ -4,7 +4,15 @@ import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { JSDOM } from 'jsdom';
 import { STATE } from '../public/js/state.js';
 import { initApp, resetAppInitialized } from '../public/js/main.js';
-import { DEFAULT_QUESTIONS, seedDefaults, createCustomQuestion } from '../public/js/questions.js';
+import {
+    DEFAULT_QUESTIONS,
+    seedDefaults,
+    createCustomQuestion,
+    moveActiveQuestion,
+    removeQuestionFromTracker,
+    addQuestionToTracker
+} from '../public/js/questions.js';
+import { loadQuestionsView, buildActiveQuestionCardHTML } from '../public/js/ui/question-authoring.js';
 import { startNewCheckIn, finalizeCheckin, renderCurrentQuestion, buildScoreButtonsHTML } from '../public/js/checkin.js';
 import { renderLineGraph, loadHistoryView, computeGraphLayout, renderGraphSVG } from '../public/js/ui/history-graph.js';
 import { navigateTo, setCurrentViewId } from '../public/js/ui/navigation.js';
@@ -142,6 +150,11 @@ export async function setupTestDOM(customSessionStorage = {}) {
     windowInstance.html = html;
     windowInstance.rawHTML = rawHTML;
     windowInstance.createCustomQuestion = createCustomQuestion;
+    windowInstance.moveActiveQuestion = moveActiveQuestion;
+    windowInstance.removeQuestionFromTracker = removeQuestionFromTracker;
+    windowInstance.addQuestionToTracker = addQuestionToTracker;
+    windowInstance.loadQuestionsView = loadQuestionsView;
+    windowInstance.buildActiveQuestionCardHTML = buildActiveQuestionCardHTML;
     windowInstance.DEFAULT_QUESTIONS = DEFAULT_QUESTIONS;
     windowInstance.seedDefaults = seedDefaults;
     windowInstance.put = put;

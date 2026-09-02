@@ -246,7 +246,7 @@ export function computeGraphLayout({
     const paddingTop = 24;
     const paddingBottom = 60;
     const paddingLeft = 42;
-    const paddingRight = 0;
+    const paddingRight = 24;
 
     const calculatedWidth = entryCount > 1
         ? paddingLeft + paddingRight + (entryCount - 1) * pointSpacing
@@ -791,6 +791,16 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
                 const oldCenter = previousScrollLeft + viewportWidth / 2;
                 const targetScrollLeft = oldCenter * zoomRatio - viewportWidth / 2;
                 STATE.historyScrollLeft = Math.max(0, targetScrollLeft);
+
+                const currentZoomValueElement = container.querySelector('.graph-zoom-value');
+                if (currentZoomValueElement) {
+                    currentZoomValueElement.textContent = `${formatZoomValue(nextZoomScale)}×`;
+                }
+                const currentResetButton = container.querySelector('#button-graph-zoom-reset');
+                if (currentResetButton) {
+                    currentResetButton.disabled = Math.abs(nextZoomScale - 1) < 0.01;
+                }
+
                 renderLineGraph(container, {
                     entries: rawAllEntries,
                     allEntries: rawAllEntries,
