@@ -615,7 +615,7 @@ export function setupQuestionAuthoring() {
             } else {
                 showNoticeDialog(
                     'Question Exists',
-                    'You already have an active question with this text in your library.',
+                    'You already have an active question with this text in your catalog.',
                     addQuestionButton
                 );
             }

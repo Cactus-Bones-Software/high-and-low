@@ -236,8 +236,8 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - Add an "In Tracker" toggle switch to remove a question into the catalog.
   - Include an "Add to Tracker" toggle switch on each card to activate questions into the tracker.
 
-- [ ] **Task 5.6: Library Catalog Cards & Non-Dominant Edit Actions**
-  - Render inactive built-in and custom question cards in the library catalog.
+- [ ] **Task 5.6: Catalog Cards & Non-Dominant Edit Actions**
+  - Render inactive built-in and custom question cards in the catalog.
   - Position "Edit" buttons on the non-dominant side (based on `handedness` setting).
 
 - [ ] **Task 5.7: Question Editing & Archiving Workflow**
