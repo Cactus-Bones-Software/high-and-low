@@ -136,7 +136,7 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
         expect(isElementInert(trackerCanvas)).toBe(true);
         expect(historyNavigationButton.classList.contains('active')).toBe(true);
 
-        // Step B: Navigate to Questions Library (questions-canvas)
+        // Step B: Navigate to Questions Catalog (questions-canvas)
         menuButton.click(); // Open drawer
         const questionsNavigationButton = documentInstance.querySelector('.drawer-nav-button[data-target="questions-canvas"]');
         questionsNavigationButton.click();

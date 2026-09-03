@@ -1,6 +1,6 @@
 /**
  * HIGH & LOW - QUESTION AUTHORING UI
- * Questions library view, search, read-only cards, and custom question modal authoring.
+ * Questions catalog view, search, read-only cards, and custom question modal authoring.
  */
 
 import {
