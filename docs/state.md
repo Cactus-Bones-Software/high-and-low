@@ -121,6 +121,12 @@ export const STATE = {
 │   ├── index.html             # Single-page HTML canvas structure and modal dialogs
 │   ├── style.css              # Consolidated stylesheet (tokens, themes, components, layouts)
 │   ├── manifest.json          # PWA web application manifest
+│   ├── favicon.ico            # Desktop favicon
+│   ├── apple-touch-icon.png   # iOS home screen icon
+│   ├── pwa-192x192.png        # Standard PWA application icon (192x192)
+│   ├── pwa-512x512.png        # High-res PWA application icon (512x512)
+│   ├── pwa-maskable-512x512.png # Maskable adaptive icon (512x512)
+│   ├── icons/                 # Legacy icon compatibility directory (icon-192.png, icon-512.png)
 │   └── js/
 │       ├── main.js            # Entry point: app initialization, event delegation, service worker
 │       ├── state.js           # STATE singleton object definition
