@@ -32,7 +32,7 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
         expect(questionMatchesSearch(sampleQuestion, '')).toBe(true);
     });
 
-    it('2. partitionQuestionsForView splits active tracker order from inactive catalog', () => {
+    it('2. partitionQuestionsForView splits active tracker order and lists all questions in catalog', () => {
         const allQuestions = [
             { id: 'q_energy', text: 'Energy', shortLabel: 'Energy', builtIn: true, archived: false, tags: ['Energy'] },
             { id: 'q_sadness', text: 'Sadness', shortLabel: 'Sadness', builtIn: true, archived: false, tags: ['Mood'] },
@@ -44,7 +44,12 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
         const { activeQuestions, catalogQuestions } = partitionQuestionsForView(allQuestions, activeSetIds, '');
 
         expect(activeQuestions.map(question => question.id)).toEqual(['q_sadness', 'q_energy']);
-        expect(catalogQuestions.map(question => question.id)).toEqual(['c_custom', 'q_worth']);
+        expect(catalogQuestions.map(question => question.id)).toEqual([
+            'c_custom',
+            'q_energy',
+            'q_sadness',
+            'q_worth'
+        ]);
     });
 
     it('3. Navigating to questions view renders active cards and catalog cards', async () => {
@@ -62,10 +67,10 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
         expect(activeList.innerHTML).not.toContain('&lt;span class="question-tag-chip"');
         expect(activeList.querySelector('.question-drag-handle')).toBeTruthy();
         expect(activeList.querySelector('.question-reorder-button')).toBeTruthy();
-        expect(activeList.querySelector('input[role="switch"]')).toBeTruthy();
+        expect(activeList.querySelector('button[role="switch"]')).toBeTruthy();
         expect(catalogList.querySelector('.question-drag-handle')).toBeFalsy();
         expect(catalogList.querySelector('.question-reorder-button')).toBeFalsy();
-        expect(catalogList.querySelector('input[role="switch"]')).toBeTruthy();
+        expect(catalogList.querySelector('button[role="switch"]')).toBeTruthy();
     });
 
     it('4. Search input filters both sections in real time', async () => {
@@ -99,13 +104,14 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
         await waitFor(() => overlay.classList.contains('is-open'));
 
         expect(overlay.getAttribute('aria-hidden')).toBe('false');
-        expect(document.activeElement).toBe(textInput);
+        await waitFor(() => documentInstance.activeElement === textInput);
+        expect(documentInstance.activeElement).toBe(textInput);
 
         overlay.dispatchEvent(new windowInstance.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-        await waitFor(() => !overlay.classList.contains('is-open'));
+        await waitFor(() => !overlay.classList.contains('is-open') && documentInstance.activeElement === addButton);
 
         expect(overlay.getAttribute('aria-hidden')).toBe('true');
-        expect(document.activeElement).toBe(addButton);
+        expect(documentInstance.activeElement).toBe(addButton);
     });
 
     it('6. Saving a custom question refreshes lists and closes the modal', async () => {
@@ -151,7 +157,7 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
 
         const firstCard = documentInstance.querySelector('#questions-active-list .question-card');
         const firstQuestionId = firstCard.dataset.questionId;
-        firstCard.querySelector('[data-question-action="move-down"]').click();
+        firstCard.querySelector('button[data-action="move-down"]').click();
 
         await waitFor(async () => {
             const activeSetIds = await windowInstance.getConfig('activeQuestionSet');
@@ -170,9 +176,8 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
 
         const activeCard = documentInstance.querySelector('#questions-active-list .question-card');
         const questionId = activeCard.dataset.questionId;
-        const trackerToggle = activeCard.querySelector('input[role="switch"]');
-        trackerToggle.checked = false;
-        trackerToggle.dispatchEvent(new windowInstance.Event('change', { bubbles: true }));
+        const trackerToggle = activeCard.querySelector('.question-tracker-toggle');
+        trackerToggle.click();
 
         await waitFor(async () => {
             const activeSetIds = await windowInstance.getConfig('activeQuestionSet');
@@ -183,6 +188,7 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
             `#questions-catalog-list [data-question-id="${questionId}"]`
         );
         expect(catalogCard).toBeTruthy();
+        expect(catalogCard.querySelector('.question-tracker-toggle').getAttribute('aria-checked')).toBe('false');
         expect(windowInstance.STATE.activeQuestions.some(question => question.id === questionId)).toBe(false);
     });
 
@@ -191,11 +197,10 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
         await waitFor(() => documentInstance.querySelectorAll('#questions-catalog-list .question-card').length === 7);
 
         const inactiveCard = [...documentInstance.querySelectorAll('#questions-catalog-list .question-card')]
-            .find(card => !card.querySelector('input[role="switch"]').checked);
+            .find(card => card.querySelector('.question-tracker-toggle')?.getAttribute('aria-checked') === 'false');
         const questionId = inactiveCard.dataset.questionId;
-        const trackerToggle = inactiveCard.querySelector('input[role="switch"]');
-        trackerToggle.checked = true;
-        trackerToggle.dispatchEvent(new windowInstance.Event('change', { bubbles: true }));
+        const trackerToggle = inactiveCard.querySelector('.question-tracker-toggle');
+        trackerToggle.click();
 
         await waitFor(async () => {
             const activeSetIds = await windowInstance.getConfig('activeQuestionSet');
