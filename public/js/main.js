@@ -24,7 +24,7 @@ import { safeRAF } from './utils.js';
  */
 export function registerServiceWorker() {
     if (typeof window !== 'undefined' && window.navigator && 'serviceWorker' in window.navigator) {
-        return window.navigator.serviceWorker.register('/sw.js').catch(error => {
+        return window.navigator.serviceWorker.register('sw.js').catch(error => {
             console.warn('Service worker registration failed:', error);
         });
     }

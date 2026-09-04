@@ -32,12 +32,12 @@ describe('Phase 6: Offline Capabilities & Service Worker (Task 6.1 & 6.2)', () =
         let registeredPath = null;
         windowInstance.navigator.serviceWorker.register = vi.fn().mockImplementation((swScriptPath) => {
             registeredPath = swScriptPath;
-            return Promise.resolve({ scope: '/' });
+            return Promise.resolve({ scope: './' });
         });
 
         await windowInstance.registerServiceWorker();
 
-        expect(registeredPath).toBe('/sw.js');
+        expect(registeredPath).toBe('sw.js');
     });
 
     it('3. Web App Manifest exists with required PWA standalone parameters and icons', () => {
@@ -53,8 +53,8 @@ describe('Phase 6: Offline Capabilities & Service Worker (Task 6.1 & 6.2)', () =
         expect(manifest.icons.length).toBeGreaterThanOrEqual(2);
 
         const iconSources = manifest.icons.map(icon => icon.src);
-        expect(iconSources).toContain('/pwa-192x192.png');
-        expect(iconSources).toContain('/pwa-512x512.png');
+        expect(iconSources).toContain('pwa-192x192.png');
+        expect(iconSources).toContain('pwa-512x512.png');
     });
 
     it('4. index.html links to manifest, favicon, and mobile meta headers', () => {

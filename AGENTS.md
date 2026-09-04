@@ -36,3 +36,6 @@
     `e`/`evt` (use `event`), `doc`/`win` (use `document`/`window`), etc.
   - Always prefer clear, fully spelled out descriptive variable and parameter names (e.g. `menuButton`,
     `targetElement`, `progressElement`, `event`, `callback`, `options`).
+- **Relative Path Convention (Sub-Path & IDE Preview Compatibility)**:
+  - All asset references in all files MUST use relative paths (e.g., `style.css`, `pwa-192x192.png`, `sw.js`, `./index.html`) rather than
+    absolute domain-root slashes (`/style.css`, `/pwa-192x192.png`, `/sw.js`).
