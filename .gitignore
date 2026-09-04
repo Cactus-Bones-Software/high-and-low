@@ -1,4 +1,6 @@
 # JetBrains IDE settings (machine-specific)
 .idea/
 .aider*
-/opencode.json
+.opencode.json
+.package-lock.json
+

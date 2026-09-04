@@ -4,7 +4,8 @@
   "description": "A local-first, low-friction mood tracking web application built strictly with vanilla HTML, CSS, and JavaScript.",
   "main": "public/js/main.js",
   "scripts": {
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint": "biome lint"
   },
   "repository": {
     "type": "git",
@@ -12,6 +13,7 @@
   },
   "private": true,
   "devDependencies": {
+    "@biomejs/biome": "^2.5.12",
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^30.0.1",
     "vitest": "^4.1.11"
