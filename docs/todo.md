@@ -234,11 +234,11 @@ just native `<script type="module">`, staying within the vanilla-only constraint
 - [x] **Task 5.5: Active Tracker Cards & Reordering Handles**
   - Render active tracker question cards with prominent question text at top, tags below, reordering handles/controls (move up / move down or drag handles) to adjust the tracker sequence
   - Add an "In Tracker" toggle switch to remove a question into the catalog.
-  - Include an "Add to Tracker" toggle switch on each card to activate questions into the tracker.
 
 - [ ] **Task 5.6: Catalog Cards & Non-Dominant Edit Actions**
-  - Render inactive built-in and custom question cards in the catalog.
+  - Render inactive built-in and custom question cards in the library catalog.
   - Position "Edit" buttons on the non-dominant side (based on `handedness` setting).
+  - Include an "Add to Tracker" toggle switch on each card to activate questions into the tracker.
 
 - [ ] **Task 5.7: Question Editing & Archiving Workflow**
   - Enable editing of existing custom questions (updating text, short label, tags, curve, and endpoint labels) while maintaining the immutable `id`.
@@ -255,11 +255,11 @@ just native `<script type="module">`, staying within the vanilla-only constraint
 ---
 
 ### Phase 6: Offline Capabilities & PWA Readiness
-- [ ] **Task 6.1: Service Worker Implementation**
+- [x] **Task 6.1: Service Worker Implementation**
   - Create a lightweight vanilla service worker (`sw.js`) to cache static assets (`index.html`, `style.css`, `js/*.js`, `manifest.json`).
   - Verify and test service worker registration in `public/js/main.js` to enable 100% offline functionality.
 
-- [ ] **Task 6.2: Web App Manifest Verification**
+- [x] **Task 6.2: Web App Manifest Verification**
   - Verify and complete `manifest.json` with correct relative paths, high-resolution app icons, theme colors (`#121212`), and `display: "standalone"` parameters.
 
 ---

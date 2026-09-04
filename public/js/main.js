@@ -18,13 +18,32 @@ import { setupQuestionAuthoring, loadQuestionsView } from './ui/question-authori
 import { setupKeyboardNavigation } from './ui/keyboard-navigation.js';
 import { safeRAF } from './utils.js';
 
-// Register service worker if available
-if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(error => {
+/**
+ * Registers the service worker for offline capability.
+ * @returns {Promise<ServiceWorkerRegistration | undefined>}
+ */
+export function registerServiceWorker() {
+    if (typeof window !== 'undefined' && window.navigator && 'serviceWorker' in window.navigator) {
+        return window.navigator.serviceWorker.register('/sw.js').catch(error => {
             console.warn('Service worker registration failed:', error);
         });
-    });
+    }
+    return Promise.resolve(undefined);
+}
+
+// Register service worker on window load
+if (typeof window !== 'undefined') {
+    if (document.readyState === 'complete') {
+        registerServiceWorker().catch(error => {
+            console.warn('Service worker registration failed:', error);
+        });
+    } else {
+        window.addEventListener('load', () => {
+            registerServiceWorker().catch(error => {
+                console.warn('Service worker registration failed:', error);
+            });
+        });
+    }
 }
 
 export let isAppInitialized = false;
@@ -45,11 +64,16 @@ export function initApp() {
     setupQuestionAuthoring();
     setupKeyboardNavigation();
     setupCanvasBackButtons();
+    registerServiceWorker().catch(error => {
+        console.warn('Service worker registration failed during init:', error);
+    });
 
     const newCheckinButton = document.getElementById('button-new-checkin');
     if (newCheckinButton) {
         newCheckinButton.addEventListener('click', () => {
-            void startNewCheckIn();
+            startNewCheckIn().catch(error => {
+                console.error('Failed to start new check-in:', error);
+            });
         });
     }
 
@@ -149,6 +173,7 @@ if (typeof window !== 'undefined') {
     window.renderLineGraph = renderLineGraph;
     window.navigateTo = navigateTo;
     window.finalizeCheckin = finalizeCheckin;
+    window.registerServiceWorker = registerServiceWorker;
     window['STATE'] = STATE;
 }
 
@@ -156,9 +181,15 @@ if (typeof document !== 'undefined') {
     const isVitestTestRunner = typeof process !== 'undefined' && (Boolean(process.env?.VITEST) || process.env?.NODE_ENV === 'test');
     if (!isVitestTestRunner) {
         if (document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", () => void initApp());
+            document.addEventListener("DOMContentLoaded", () => {
+                initApp().catch(error => {
+                    console.error('Unhandled initialization error on DOMContentLoaded:', error);
+                });
+            });
         } else {
-            void initApp();
+            initApp().catch(error => {
+                console.error('Unhandled initialization error:', error);
+            });
         }
     }
 }

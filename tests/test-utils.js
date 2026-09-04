@@ -3,7 +3,7 @@ import { resolve } from 'path';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { JSDOM } from 'jsdom';
 import { STATE } from '../public/js/state.js';
-import { initApp, resetAppInitialized } from '../public/js/main.js';
+import { initApp, resetAppInitialized, registerServiceWorker } from '../public/js/main.js';
 import {
     DEFAULT_QUESTIONS,
     seedDefaults,
@@ -79,13 +79,10 @@ export async function setupTestDOM(customSessionStorage = {}) {
     }
 
     // Polyfill matchMedia on window in JSDOM
-    windowInstance.matchMedia = windowInstance.matchMedia || function() {
+    windowInstance.matchMedia = windowInstance.matchMedia || function(query) {
         return {
             matches: false,
-            addListener: () => {},
-            removeListener: () => {},
-            addEventListener: () => {},
-            removeEventListener: () => {}
+            media: query
         };
     };
 
@@ -163,6 +160,7 @@ export async function setupTestDOM(customSessionStorage = {}) {
     windowInstance.setConfig = setConfig;
     windowInstance.deleteConfig = deleteConfig;
     windowInstance.applyStoredDisplay = applyStoredDisplay;
+    windowInstance.registerServiceWorker = registerServiceWorker;
 
     resetAppInitialized();
     await initApp();
