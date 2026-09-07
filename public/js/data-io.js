@@ -4,6 +4,7 @@
  */
 
 import { getDatabase } from './storage/db.js';
+import {showNoticeDialog} from "./ui/dialogs";
 
 export function exportAllDataAndConfig() {
     const database = getDatabase();
@@ -58,57 +59,71 @@ export function exportAllDataAndConfig() {
 export function handleFileImport(file, mode) {
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = function(event) {
-        const result = event.target.result;
-        if (typeof result !== 'string') {
-            console.error("Invalid file format read. Expected text.");
+    reader.onload = event => handleFileImportReaderLoad(mode, event);
+    reader.readAsText(file);
+}
+
+function handleFileImportReaderLoad(mode, event) {
+    const result = event.target.result;
+    if (typeof result !== 'string') {
+        console.error("Invalid file format read. Expected text.");
+        return;
+    }
+    try {
+        const importedData = JSON.parse(result);
+        if (!importedData.entries || !importedData.config) {
+            if (typeof showNoticeDialog === 'function') {
+                showNoticeDialog('Invalid Backup File', 'The selected file is missing required blueprint structure (entries or configuration).', 'file-import');
+            } else if (typeof window !== 'undefined' && typeof window.showNoticeDialog === 'function') {
+                window.showNoticeDialog('Invalid Backup File', 'The selected file is missing required blueprint structure (entries or configuration).', 'file-import');
+            }
             return;
         }
-        try {
-            const importedData = JSON.parse(result);
-            if (!importedData.entries || !importedData.config) {
-                if (typeof showNoticeDialog === 'function') {
-                    showNoticeDialog('Invalid Backup File', 'The selected file is missing required blueprint structure (entries or configuration).', 'file-import');
-                } else if (typeof window !== 'undefined' && typeof window.showNoticeDialog === 'function') {
-                    window.showNoticeDialog('Invalid Backup File', 'The selected file is missing required blueprint structure (entries or configuration).', 'file-import');
-                }
-                return;
-            }
-            const importedQuestions = Array.isArray(importedData.questions) ? importedData.questions : [];
+        const importedQuestions = Array.isArray(importedData.questions) ? importedData.questions : [];
 
-            const database = getDatabase();
-            if (!database) {
-                console.error('Database not initialized for import.');
-                return;
-            }
-            const transaction = database.transaction(['config', 'questions', 'entries'], 'readwrite');
-            const configStore = transaction.objectStore('config');
-            const questionStore = transaction.objectStore('questions');
-            const entryStore = transaction.objectStore('entries');
+        const database = getDatabase();
+        if (!database) {
+            console.error('Database not initialized for import.');
+            return;
+        }
+        const transaction = database.transaction(['config', 'questions', 'entries'], 'readwrite');
+        const configStore = transaction.objectStore('config');
+        const questionStore = transaction.objectStore('questions');
+        const entryStore = transaction.objectStore('entries');
 
-            if (mode === 'replace') {
-                configStore.clear();
-                questionStore.clear();
-                entryStore.clear();
-                importedData.config.forEach(configItem => configStore.add(configItem));
-                importedQuestions.forEach(questionItem => questionStore.add(questionItem));
-                importedData.entries.forEach(entryItem => entryStore.add(entryItem));
-            } else {
-                importedData.config.forEach(configItem => configStore.put(configItem));
-                importedQuestions.forEach(questionItem => mergeQuestionWithConflictCheck(questionStore, questionItem));
-                importedData.entries.forEach(entryItem => safelyAddEntryWithCollisionCheck(entryStore, entryItem));
+        if (mode === 'replace') {
+            configStore.clear();
+            questionStore.clear();
+            entryStore.clear();
+            for (const configItem of importedData.config) {
+                configStore.add(configItem);
             }
-            transaction.oncomplete = () => window.location.reload();
-        } catch (error) {
-            console.error('File import failed:', error);
-            if (typeof showNoticeDialog === 'function') {
-                showNoticeDialog('Corrupted File', 'The selected file could not be parsed or contains corrupted data.', 'file-import');
-            } else if (typeof window !== 'undefined' && typeof window.showNoticeDialog === 'function') {
-                window.showNoticeDialog('Corrupted File', 'The selected file could not be parsed or contains corrupted data.', 'file-import');
+            for (const questionItem of importedQuestions) {
+                questionStore.add(questionItem);
+            }
+            for (const entryItem of importedData.entries) {
+                entryStore.add(entryItem);
+            }
+        } else {
+            for (const configItem of importedData.config) {
+                configStore.put(configItem);
+            }
+            for (const questionItem of importedQuestions) {
+                mergeQuestionWithConflictCheck(questionStore, questionItem);
+            }
+            for (const entryItem of importedData.entries) {
+                safelyAddEntryWithCollisionCheck(entryStore, entryItem);
             }
         }
-    };
-    reader.readAsText(file);
+        transaction.oncomplete = () => window.location.reload();
+    } catch (error) {
+        console.error('File import failed:', error);
+        if (typeof showNoticeDialog === 'function') {
+            showNoticeDialog('Corrupted File', 'The selected file could not be parsed or contains corrupted data.', 'file-import');
+        } else if (typeof window !== 'undefined' && typeof window.showNoticeDialog === 'function') {
+            window.showNoticeDialog('Corrupted File', 'The selected file could not be parsed or contains corrupted data.', 'file-import');
+        }
+    }
 }
 
 export function mergeQuestionWithConflictCheck(store, incoming) {

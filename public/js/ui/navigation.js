@@ -8,6 +8,7 @@ import { saveActiveView } from '../storage/session.js';
 import { safeRAF } from '../utils.js';
 import { loadHistoryView } from './history-graph.js';
 import { loadQuestionsView } from './question-authoring.js';
+import {setInert} from "./settings-menu";
 
 let currentViewId = 'tracker-canvas';
 
@@ -122,7 +123,7 @@ export function navigateTo(targetViewId, options = {}) {
     // Push a history entry so hardware/gesture 'back' steps back one view
     // instead of exiting the app. Skip when we're already responding to
     // a popstate event or during instant loads.
-    if (!options.fromPopState && !isInstant && typeof window !== 'undefined' && window.history && window.history.pushState) {
+    if (!options.fromPopState && !isInstant && typeof window !== 'undefined' && window.history?.pushState) {
         window.history.pushState({ view: targetViewId }, '');
     }
 

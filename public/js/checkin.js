@@ -3,11 +3,12 @@
  * Scoring, question rendering, transitions, response persistence, and check-in lifecycle.
  */
 
+import { loadActiveQuestions } from './questions.js';
 import { STATE } from './state.js';
 import { getDatabase, put } from './storage/db.js';
-import { saveActiveCheckin, clearActiveCheckin } from './storage/session.js';
-import { loadActiveQuestions } from './questions.js';
-import { safeRAF, escapeHTML } from './utils.js';
+import { clearActiveCheckin, saveActiveCheckin } from './storage/session.js';
+import {updateNotesButtonLabel} from "./ui/dialogs";
+import { escapeHTML, safeRAF } from './utils.js';
 
 export function buildScoreButtonsHTML(question) {
     if (!question) return '';
@@ -18,7 +19,7 @@ export function buildScoreButtonsHTML(question) {
         else if (score === 1) rawContextLabel = question.minLabel || '';
         else if (score === 3 && question.curve === 'middle-is-best') rawContextLabel = question.midLabel || '';
 
-        const fullAriaLabel = `Score ${score} out of 5${rawContextLabel ? ': ' + rawContextLabel : ''}`;
+        const fullAriaLabel = `Score ${score} out of 5${rawContextLabel ? `: ${rawContextLabel}` : ''}`;
         const escapedAriaLabel = escapeHTML(fullAriaLabel);
         const escapedContextLabel = escapeHTML(rawContextLabel);
 
@@ -113,12 +114,12 @@ export function handleScoreSubmission(questionId, score) {
                 if (headerBox) {
                     headerBox.classList.remove('question-transition-enter');
                     headerBox.classList.add('question-transition-in');
-                    setTimeout(() => headerBox && headerBox.classList.remove('question-transition-in'), 180);
+                    setTimeout(() => headerBox?.classList?.remove('question-transition-in'), 180);
                 }
                 if (inputBox) {
                     inputBox.classList.remove('question-transition-enter');
                     inputBox.classList.add('question-transition-in');
-                    setTimeout(() => inputBox && inputBox.classList.remove('question-transition-in'), 180);
+                    setTimeout(() => inputBox?.classList?.remove('question-transition-in'), 180);
                 }
             });
         });

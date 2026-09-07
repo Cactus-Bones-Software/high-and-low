@@ -29,7 +29,7 @@ export async function loadHistoryView() {
         const activeIds = Array.isArray(activeSet) ? activeSet : DEFAULT_ACTIVE_SET;
 
         const sortedEntries = (entries || [])
-            .filter(entry => entry && entry.timestamp && !isNaN(new Date(entry.timestamp).getTime()))
+            .filter(entry => entry?.timestamp && !Number.isNaN(new Date(entry.timestamp).getTime()))
             .slice()
             .sort((firstEntry, secondEntry) => new Date(firstEntry.timestamp).getTime() - new Date(secondEntry.timestamp).getTime());
 
@@ -38,11 +38,11 @@ export async function loadHistoryView() {
         sortedEntries.forEach(entry => {
             if (Array.isArray(entry.answers)) {
                 entry.answers.forEach(answerItem => {
-                    if (answerItem && answerItem.questionId) {
+                    if (answerItem?.questionId) {
                         relevantQuestionIds.add(answerItem.questionId);
                     }
                 });
-            } else if (entry && entry.answers && typeof entry.answers === 'object') {
+            } else if (entry?.answers && typeof entry.answers === 'object') {
                 Object.keys(entry.answers).forEach(questionId => {
                     if (entry.answers[questionId] !== undefined && entry.answers[questionId] !== null) {
                         relevantQuestionIds.add(questionId);
@@ -76,7 +76,7 @@ export function formatEntryDateTime(isoString) {
     if (!isoString) return '';
     try {
         const date = new Date(isoString);
-        if (isNaN(date.getTime())) return isoString;
+        if (Number.isNaN(date.getTime())) return isoString;
         const month = date.getMonth() + 1;
         const day = date.getDate();
         const year = date.getFullYear();
@@ -95,7 +95,7 @@ export function formatEntryDateTime(isoString) {
 export function formatTickDate(timeMilliseconds, isShortRange) {
     try {
         const date = new Date(timeMilliseconds);
-        if (isNaN(date.getTime())) return '';
+        if (Number.isNaN(date.getTime())) return '';
         const month = date.getMonth() + 1;
         const day = date.getDate();
         if (isShortRange) {
@@ -200,7 +200,7 @@ export function computeGraphLayout({
         let latestTimestampNumber = -Infinity;
         for (const entry of rawAllEntries) {
             const time = new Date(entry.timestamp).getTime();
-            if (!isNaN(time) && time > latestTimestampNumber) {
+            if (!Number.isNaN(time) && time > latestTimestampNumber) {
                 latestTimestampNumber = time;
             }
         }
@@ -209,7 +209,7 @@ export function computeGraphLayout({
 
         filteredEntries = rawAllEntries.filter(entry => {
             const entryTime = new Date(entry.timestamp).getTime();
-            return !isNaN(entryTime) && entryTime >= cutoffTime;
+            return !Number.isNaN(entryTime) && entryTime >= cutoffTime;
         });
     }
 
@@ -228,7 +228,7 @@ export function computeGraphLayout({
     const entryCount = filteredEntries.length;
     const entryTimes = filteredEntries.map(entry => {
         const time = new Date(entry.timestamp).getTime();
-        return isNaN(time) ? 0 : time;
+        return Number.isNaN(time) ? 0 : time;
     });
 
     let minTime = Infinity;
@@ -290,7 +290,7 @@ export function computeGraphLayout({
         const dateString = formatTickDate(minTime, true);
         xTicks.push({ x: xPosition, time: minTime, label: dateString });
     } else if (timeDuration <= 0) {
-        filteredEntries.forEach((entry, entryIndex) => {
+        filteredEntries.forEach((_entry, entryIndex) => {
             const xPosition = getX(entryIndex);
             const dateString = formatTickDate(entryTimes[entryIndex], true);
             xTicks.push({ x: xPosition, time: entryTimes[entryIndex], label: dateString });
@@ -918,10 +918,10 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
         function displayNoteDialog() {
             const entryIndexAttribute = noteMarkerElement.getAttribute('data-entry-index');
             const entryIndex = entryIndexAttribute !== null ? parseInt(entryIndexAttribute, 10) : -1;
-            const targetEntry = Number.isInteger(entryIndex) && layout.filteredEntries && layout.filteredEntries[entryIndex]
+            const targetEntry = Number.isInteger(entryIndex) && layout.filteredEntries?.[entryIndex]
                 ? layout.filteredEntries[entryIndex]
                 : null;
-            const rawNoteContent = targetEntry && targetEntry.note
+            const rawNoteContent = targetEntry?.note
                 ? targetEntry.note.trim()
                 : (noteMarkerElement.dataset.note || noteMarkerElement.getAttribute('data-note') || '');
             const noteDateTime = targetEntry
@@ -955,7 +955,7 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
     if (legendElement) {
         let longPressTimer = null;
         let isLongPressTriggered = false;
-        let activePointerId = null;
+        let _activePointerId = null;
         let startPosition = { x: 0, y: 0 };
 
         function clearLongPress() {
@@ -963,7 +963,7 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
                 clearTimeout(longPressTimer);
                 longPressTimer = null;
             }
-            activePointerId = null;
+            _activePointerId = null;
         }
 
         function handleIsolateOrRestore(targetQuestionId) {
@@ -1007,7 +1007,7 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
             if (!questionId) return;
 
             isLongPressTriggered = false;
-            activePointerId = event.pointerId;
+            _activePointerId = event.pointerId;
             startPosition = { x: event.clientX, y: event.clientY };
 
             clearLongPress();

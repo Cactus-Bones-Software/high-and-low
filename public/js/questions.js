@@ -4,7 +4,7 @@
  */
 
 import { STATE } from './state.js';
-import { getAll, getConfig, setConfig, getDatabase } from './storage/db.js';
+import { getAll, getConfig, getDatabase, setConfig } from './storage/db.js';
 
 // Bump this whenever new entries are added to DEFAULT_QUESTIONS so that existing
 // installations pick up the new built-ins on next load (see seedDefaults) without
@@ -50,7 +50,7 @@ export function fnv1a32(inputString) {
 // from the original text; later edits to display text never change it, so
 // historical entries never orphan.
 export function makeCustomId(text) {
-    return 'c_' + fnv1a32(normalizeQuestionText(text));
+    return `c_${fnv1a32(normalizeQuestionText(text))}`;
 }
 
 // Idempotently insert any built-in question whose id is not already present.

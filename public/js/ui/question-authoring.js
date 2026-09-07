@@ -220,7 +220,7 @@ export function setupActiveQuestionsListeners(activeList) {
                 await removeQuestionFromTracker(questionId);
                 await loadQuestionsView();
             }
-            return;
+
         }
     });
 
@@ -361,7 +361,7 @@ export function setupActiveQuestionsListeners(activeList) {
 
         try {
             dragHandle.setPointerCapture(event.pointerId);
-        } catch (ignoredError) {
+        } catch (_ignoredError) {
             // In case pointer capture is unsupported
         }
 
@@ -386,7 +386,7 @@ export function setupActiveQuestionsListeners(activeList) {
             ? document.elementsFromPoint(event.clientX, event.clientY)
             : [];
         const targetCard = elementsUnderPointer.find(element =>
-            element.classList && element.classList.contains('question-card-active') && element !== pointerDragState.sourceCard
+            element.classList?.contains('question-card-active') && element !== pointerDragState.sourceCard
         );
 
         activeList.querySelectorAll('.question-card-active').forEach(card => {
@@ -420,7 +420,7 @@ export function setupActiveQuestionsListeners(activeList) {
 
         try {
             dragHandle.releasePointerCapture(event.pointerId);
-        } catch (ignoredError) {
+        } catch (_ignoredError) {
             // Pointer capture release
         }
 
@@ -482,7 +482,6 @@ export function setupCatalogQuestionsListeners(catalogList) {
                 }
                 await loadQuestionsView();
             }
-            return;
         }
     });
 }
@@ -601,7 +600,9 @@ export function setupQuestionAuthoring() {
         overlay.classList.remove('is-open');
         overlay.setAttribute('aria-hidden', 'true');
         overlay.setAttribute('inert', '');
-        document.querySelectorAll('#question-authoring-dialog .hold-action').forEach(button => resetHold(button));
+        for (const button of document.querySelectorAll('#question-authoring-dialog .hold-action')) {
+            resetHold(button);
+        }
         addQuestionButton.focus({ preventScroll: true });
     }
 
@@ -625,7 +626,7 @@ export function setupQuestionAuthoring() {
                 addToSet: addToSetInput ? addToSetInput.checked : false
             });
 
-            if (addToSetInput && addToSetInput.checked) {
+            if (addToSetInput?.checked) {
                 await loadActiveQuestions();
             }
 

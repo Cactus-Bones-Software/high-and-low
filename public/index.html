@@ -77,13 +77,13 @@
             </header>
 
             <section class="canvas-box input-box" id="input-box" data-curve="neutral" aria-label="Score Options">
-                <div class="button-stack" id="button-stack" role="group" aria-label="Select score from 1 to 5">
+                <fieldset class="button-stack" id="button-stack" aria-label="Select score from 1 to 5">
                     <button type="button" class="score-button" data-score="5" aria-label="Score 5 out of 5"><span class="num" aria-hidden="true">5</span> --</button>
                     <button type="button" class="score-button" data-score="4" aria-label="Score 4 out of 5"><span class="num" aria-hidden="true">4</span> --</button>
                     <button type="button" class="score-button" data-score="3" aria-label="Score 3 out of 5"><span class="num" aria-hidden="true">3</span> --</button>
                     <button type="button" class="score-button" data-score="2" aria-label="Score 2 out of 5"><span class="num" aria-hidden="true">2</span> --</button>
                     <button type="button" class="score-button" data-score="1" aria-label="Score 1 out of 5"><span class="num" aria-hidden="true">1</span> --</button>
-                </div>
+                </fieldset>
 
                 <div class="completion-view" id="completion-view" hidden>
                     <p class="completion-message" id="completion-message">Saved securely to device storage.</p>
@@ -154,7 +154,7 @@
         <!-- ================================================================= -->
         <!-- VIEW: QUESTIONS CATALOG & AUTHORING                               -->
         <!-- ================================================================= -->
-        <section id="questions-canvas" class="app-canvas view-canvas view-hidden-right" role="region"
+        <section id="questions-canvas" class="app-canvas view-canvas view-hidden-right"
                  aria-label="Questions Catalog" inert>
 
             <header class="canvas-box view-header-box">
@@ -199,7 +199,7 @@
         <!-- ================================================================= -->
         <!-- VIEW: DATA MANAGEMENT & BACKUPS                                   -->
         <!-- ================================================================= -->
-        <section id="data-canvas" class="app-canvas view-canvas view-hidden-right" role="region" aria-label="Data Management" inert>
+        <section id="data-canvas" class="app-canvas view-canvas view-hidden-right" aria-label="Data Management" inert>
 
             <header class="canvas-box view-header-box">
                 <button type="button" class="canvas-back-button" data-close-view aria-label="Back to Mood Tracker">
@@ -214,7 +214,8 @@
                     <button type="button" id="button-export-all" class="utility-button">Backup Data &amp; Settings</button>
                 </div>
                 <div class="file-import-zone">
-                    <label class="utility-button" for="file-import" tabindex="0" role="button" aria-label="Import Backup JSON File">Import Backup File</label>
+                    <button class="utility-button" type="button" id="button-import"
+                            aria-label="Import Backup File">Import Backup File</button>
                     <input type="file" id="file-import" accept=".json" style="display: none;">
                 </div>
             </section>
@@ -223,8 +224,7 @@
         <!-- ================================================================= -->
         <!-- VIEW: HISTORY TIMELINE & GRAPH                                    -->
         <!-- ================================================================= -->
-        <section id="history-canvas" class="app-canvas view-canvas view-hidden-right" role="region" aria-label="History" inert>
-
+        <section id="history-canvas" class="app-canvas view-canvas view-hidden-right" aria-label="History" inert>
             <header class="canvas-box view-header-box">
                 <button type="button" class="canvas-back-button" data-close-view aria-label="Back to Mood Tracker">
                     <span class="back-arrow" aria-hidden="true">&larr;</span> Back

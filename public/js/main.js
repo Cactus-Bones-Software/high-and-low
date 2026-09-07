@@ -85,11 +85,16 @@ export function initApp() {
     const importFileInput = document.getElementById('file-import');
     if (importFileInput) {
         importFileInput.addEventListener('change', (event) => {
-            const file = event.target.files && event.target.files[0];
+            const file = event.target.files?.[0];
             if (file) {
                 openImportDialog(file);
             }
         });
+    }
+
+    const importButton = document.getElementById('button-import');
+    if (importButton && importFileInput) {
+        importButton.addEventListener('click', () => importFileInput.click());
     }
 
     return initDatabase()
@@ -116,13 +121,13 @@ export function initApp() {
             }
 
             const storedView = getStoredActiveView();
-            const historyView = (window.history && window.history.state && window.history.state.view) ? window.history.state.view : null;
+            const historyView = (window.history?.state?.view) ? window.history.state.view : null;
             const targetInitialView = storedView || historyView || 'tracker-canvas';
 
             if (targetInitialView && targetInitialView !== 'tracker-canvas') {
                 navigateTo(targetInitialView, { fromPopState: true, instant: true, fromInit: true });
             } else {
-                if (window.history && window.history.replaceState) {
+                if (window.history?.replaceState) {
                     history.replaceState({ view: 'tracker-canvas' }, '');
                 }
             }

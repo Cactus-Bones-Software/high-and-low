@@ -46,7 +46,9 @@ export function closeNoticeDialog() {
 
     const dialog = document.getElementById('notice-dialog') || document.getElementById('question-feedback-dialog');
     if (dialog) {
-        dialog.querySelectorAll('.hold-action').forEach(button => resetHold(button));
+        for (const button of dialog.querySelectorAll('.hold-action')) {
+            resetHold(button);
+        }
     }
 
     if (noticeReturnFocusElement) {
@@ -111,7 +113,9 @@ export function closeImportDialog() {
     overlay.setAttribute('aria-hidden', 'true');
     overlay.setAttribute('inert', '');
 
-    document.querySelectorAll('#import-dialog .hold-action').forEach(button => resetHold(button));
+    for (const button of document.querySelectorAll('#import-dialog .hold-action')) {
+        resetHold(button);
+    }
 }
 
 export function confirmImport(mode) {
@@ -161,7 +165,9 @@ export function closeNotesDialog() {
     overlay.setAttribute('inert', '');
 
     // Reset hold visual indicator state on dialog buttons
-    document.querySelectorAll('#notes-dialog .hold-action').forEach(button => resetHold(button));
+    for (const button of document.querySelectorAll('#notes-dialog .hold-action')) {
+        resetHold(button);
+    }
 
     // Return focus to notes button on the tracker canvas
     const notesButton = document.getElementById('button-notes');
