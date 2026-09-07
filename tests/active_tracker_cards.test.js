@@ -195,7 +195,11 @@ describe('Task 5.5: Active Tracker Cards, Reordering Handles & In-Tracker Toggle
 
         const nonDominantActions = firstCard.querySelector('.card-actions-non-dominant');
         expect(nonDominantActions).not.toBeNull();
-        expect(nonDominantActions.querySelector('.question-reorder-controls')).not.toBeNull();
+        expect(nonDominantActions.querySelector('.question-edit-button')).not.toBeNull();
+
+        const centerSlot = firstCard.querySelector('.card-actions-center');
+        expect(centerSlot).not.toBeNull();
+        expect(centerSlot.querySelector('.question-reorder-controls')).not.toBeNull();
 
         const cssContent = readFileSync(resolve(__dirname, '../public/style.css'), 'utf8');
         expect(cssContent).toContain('.question-card-status-group');
@@ -205,15 +209,29 @@ describe('Task 5.5: Active Tracker Cards, Reordering Handles & In-Tracker Toggle
         expect(cssContent).toContain('.question-tracker-toggle');
     });
 
-    it('7. Drag Handle Structure: Center placement, quarter-width sizing, and grip lines', () => {
+    it('7. Drag Handle Structure: Center placement, flanking reorder buttons, and grip lines', () => {
         const activeList = documentInstance.getElementById('questions-active-list');
         const firstCard = activeList.children[0];
 
         const centerSlot = firstCard.querySelector('.card-actions-center');
         expect(centerSlot).not.toBeNull();
 
-        const dragHandle = centerSlot.querySelector('.question-drag-handle');
+        const reorderControls = centerSlot.querySelector('.question-reorder-controls');
+        expect(reorderControls).not.toBeNull();
+
+        const upButton = reorderControls.querySelector('button[data-action="move-up"]');
+        const dragHandle = reorderControls.querySelector('.question-drag-handle');
+        const downButton = reorderControls.querySelector('button[data-action="move-down"]');
+
+        expect(upButton).not.toBeNull();
         expect(dragHandle).not.toBeNull();
+        expect(downButton).not.toBeNull();
+
+        // Flanking order: Up button on the left, handle in the middle, Down button on the right
+        expect(reorderControls.children[0]).toBe(upButton);
+        expect(reorderControls.children[1]).toBe(dragHandle);
+        expect(reorderControls.children[2]).toBe(downButton);
+
         expect(dragHandle.getAttribute('draggable')).toBe('true');
         expect(dragHandle.getAttribute('aria-label')).toContain('Drag to reorder');
         expect(dragHandle.querySelector('.drag-handle-bar')).not.toBeNull();
@@ -221,8 +239,7 @@ describe('Task 5.5: Active Tracker Cards, Reordering Handles & In-Tracker Toggle
         const cssContent = readFileSync(resolve(__dirname, '../public/style.css'), 'utf8');
         expect(cssContent).toContain('.card-actions-center');
         expect(cssContent).toContain('.question-drag-handle');
-        expect(cssContent).toContain('width: 25%');
-        expect(cssContent).toContain('flex: 0 0 25%');
+        expect(cssContent).toContain('.question-reorder-controls');
     });
 
     it('8. Drag and Drop Reordering: Dragging card drops into new position and persists order', async () => {

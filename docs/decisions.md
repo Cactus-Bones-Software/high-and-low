@@ -100,4 +100,16 @@ Locked design decisions and open questions for High & Low (menu, question store,
   - **UI Copy Consistency:** Standardize completion and prompt messages around Check-In (e.g. "Check-In recorded",
     "New Check-In"). Retire ambiguous aliases like "Session", "Quiz", "Test", and "Log" in user-facing text.
 
+- **Unified Question Card Architecture & Reorder Visibility:**
+  - Both active tracker cards and catalog cards share a single, unified HTML template structure
+    (`buildQuestionCardHTML`).
+  - The activation toggle switch is placed in the header status group (`.question-card-status-group`) directly below
+    the Built-In / Custom badge on all cards.
+  - The Edit button (`.question-edit-button`) is always visible in the non-dominant action slot
+    (`.card-actions-non-dominant`) across all question cards.
+  - Reordering controls (up/down buttons and the center drag handle) are grouped in the center container
+    (`.card-actions-center`) with the Up button on the left and Down button on the right flanking the drag handle.
+    Their visibility is styled and toggled via the `.is-reorderable` class, ensuring cards can be dynamically rendered
+    with or without reordering affordances while sharing the exact same DOM and style rules.
+
 ## Open Questions

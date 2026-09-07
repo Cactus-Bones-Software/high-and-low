@@ -68,8 +68,8 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
         expect(activeList.querySelector('.question-drag-handle')).toBeTruthy();
         expect(activeList.querySelector('.question-reorder-button')).toBeTruthy();
         expect(activeList.querySelector('button[role="switch"]')).toBeTruthy();
-        expect(catalogList.querySelector('.question-drag-handle')).toBeFalsy();
-        expect(catalogList.querySelector('.question-reorder-button')).toBeFalsy();
+        expect(activeList.querySelector('.is-reorderable')).toBeTruthy();
+        expect(catalogList.querySelector('.is-reorderable')).toBeFalsy();
         expect(catalogList.querySelector('button[role="switch"]')).toBeTruthy();
     });
 

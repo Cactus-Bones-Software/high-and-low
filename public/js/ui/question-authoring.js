@@ -60,7 +60,20 @@ export function partitionQuestionsForView(allQuestions, activeSetIds, searchQuer
     return { activeQuestions, catalogQuestions };
 }
 
-export function buildActiveQuestionCardHTML(question, questionIndex, totalQuestionsCount) {
+export function buildQuestionCardHTML(question, options = {}) {
+    const parsedOptions = typeof options === 'boolean'
+        ? { isActiveInTracker: options, isReorderable: false, questionIndex: 0, totalQuestionsCount: 1 }
+        : options;
+
+    const isActiveInTracker = Boolean(parsedOptions.isActiveInTracker);
+    const isReorderable = Boolean(parsedOptions.isReorderable);
+    const questionIndex = typeof parsedOptions.questionIndex === 'number'
+        ? parsedOptions.questionIndex
+        : 0;
+    const totalQuestionsCount = typeof parsedOptions.totalQuestionsCount === 'number'
+        ? parsedOptions.totalQuestionsCount
+        : 1;
+
     const statusLabel = question.builtIn ? 'Built-in' : 'Custom';
     const statusClass = question.builtIn ? 'question-card-badge-builtin' : 'question-card-badge-custom';
     const tags = Array.isArray(question.tags) ? question.tags : [];
@@ -74,16 +87,31 @@ export function buildActiveQuestionCardHTML(question, questionIndex, totalQuesti
         ? `<p class="question-card-short-label">${escapeHTML(question.shortLabel)}</p>`
         : '';
     const questionTitle = escapeHTML(question.shortLabel || question.text);
+
+    const toggleAction = isActiveInTracker ? 'remove-from-tracker' : 'add-to-tracker';
+    const toggleChecked = isActiveInTracker ? 'true' : 'false';
+    const toggleActiveClass = isActiveInTracker ? ' is-active' : '';
+    const toggleAriaLabel = isActiveInTracker
+        ? `In tracker: ${questionTitle}. Toggle to remove from tracker.`
+        : `Not in tracker: ${questionTitle}. Toggle to add to tracker.`;
+
     const isFirstQuestion = questionIndex === 0;
     const isLastQuestion = questionIndex === totalQuestionsCount - 1;
 
+    const cardClasses = [
+        'question-card',
+        isReorderable ? 'question-card-active is-reorderable' : 'question-card-catalog'
+    ].join(' ');
+
+    const indexAttribute = isReorderable ? ` data-index="${questionIndex}"` : '';
+
     return html`
-        <li class="question-card question-card-active" data-question-id="${question.id}" data-index="${questionIndex}">
+        <li class="${cardClasses}" data-question-id="${question.id}"${rawHTML(indexAttribute)}>
             <div class="question-card-header">
                 <p class="question-card-text">${question.text}</p>
                 <div class="question-card-status-group">
                     <span class="question-card-badge ${statusClass}">${statusLabel}</span>
-                    <button type="button" role="switch" aria-checked="true" class="question-tracker-toggle is-active" data-action="remove-from-tracker" data-question-id="${question.id}" aria-label="In tracker: ${questionTitle}. Toggle to remove from tracker.">
+                    <button type="button" role="switch" aria-checked="${toggleChecked}" class="question-tracker-toggle question-catalog-toggle card-action-toggle${toggleActiveClass}" data-action="${toggleAction}" data-question-id="${question.id}" aria-label="${toggleAriaLabel}">
                         <span class="toggle-track" aria-hidden="true">
                             <span class="toggle-thumb"></span>
                         </span>
@@ -94,10 +122,21 @@ export function buildActiveQuestionCardHTML(question, questionIndex, totalQuesti
             ${rawHTML(tagsHTML)}
             <div class="card-action-row question-card-actions">
                 <div class="card-actions-non-dominant">
+                    <button type="button" class="question-edit-button card-action-edit" data-action="edit-question" data-question-id="${question.id}" aria-label="Edit question: ${questionTitle}">
+                        Edit
+                    </button>
+                </div>
+                <div class="card-actions-center">
                     <div class="question-reorder-controls" role="group" aria-label="Reorder question in tracker sequence">
                         <button type="button" class="question-reorder-button question-reorder-up" data-action="move-up" data-question-id="${question.id}" aria-label="Move '${questionTitle}' up in tracker"${isFirstQuestion ? ' disabled' : ''}>
                             <span aria-hidden="true">&uarr;</span>
                             <span class="reorder-label sr-only">Move up</span>
+                        </button>
+                        <button type="button" class="question-drag-handle" draggable="true" data-question-id="${question.id}" aria-label="Drag to reorder '${questionTitle}'. Use arrow keys or drag." aria-grabbed="false">
+                            <span class="drag-handle-bar" aria-hidden="true">
+                                <span class="drag-handle-line"></span>
+                                <span class="drag-handle-line"></span>
+                            </span>
                         </button>
                         <button type="button" class="question-reorder-button question-reorder-down" data-action="move-down" data-question-id="${question.id}" aria-label="Move '${questionTitle}' down in tracker"${isLastQuestion ? ' disabled' : ''}>
                             <span aria-hidden="true">&darr;</span>
@@ -105,58 +144,19 @@ export function buildActiveQuestionCardHTML(question, questionIndex, totalQuesti
                         </button>
                     </div>
                 </div>
-                <div class="card-actions-center">
-                    <button type="button" class="question-drag-handle" draggable="true" data-question-id="${question.id}" aria-label="Drag to reorder '${questionTitle}'. Use arrow keys or drag." aria-grabbed="false">
-                        <span class="drag-handle-bar" aria-hidden="true">
-                            <span class="drag-handle-line"></span>
-                            <span class="drag-handle-line"></span>
-                        </span>
-                    </button>
-                </div>
                 <div class="card-actions-dominant"></div>
             </div>
         </li>
     `;
 }
 
-export function buildQuestionCardHTML(question, isActiveInTracker = false) {
-    const statusLabel = question.builtIn ? 'Built-in' : 'Custom';
-    const statusClass = question.builtIn ? 'question-card-badge-builtin' : 'question-card-badge-custom';
-    const tags = Array.isArray(question.tags) ? question.tags : [];
-    const tagChipsHTML = tags
-        .map(tag => `<span class="question-tag-chip">${escapeHTML(tag)}</span>`)
-        .join('');
-    const tagsHTML = tags.length > 0
-        ? `<div class="question-card-tags" aria-label="Tags">${tagChipsHTML}</div>`
-        : '';
-    const shortLabelHTML = question.shortLabel
-        ? `<p class="question-card-short-label">${escapeHTML(question.shortLabel)}</p>`
-        : '';
-    const questionTitle = escapeHTML(question.shortLabel || question.text);
-    const toggleAction = isActiveInTracker ? 'remove-from-tracker' : 'add-to-tracker';
-    const toggleChecked = isActiveInTracker ? 'true' : 'false';
-    const toggleActiveClass = isActiveInTracker ? ' is-active' : '';
-    const toggleAriaLabel = isActiveInTracker
-        ? `In tracker: ${questionTitle}. Toggle to remove from tracker.`
-        : `Not in tracker: ${questionTitle}. Toggle to add to tracker.`;
-
-    return html`
-        <li class="question-card question-card-catalog" data-question-id="${question.id}">
-            <div class="question-card-header">
-                <p class="question-card-text">${question.text}</p>
-                <div class="question-card-status-group">
-                    <span class="question-card-badge ${statusClass}">${statusLabel}</span>
-                    <button type="button" role="switch" aria-checked="${toggleChecked}" class="question-tracker-toggle${toggleActiveClass}" data-action="${toggleAction}" data-question-id="${question.id}" aria-label="${toggleAriaLabel}">
-                        <span class="toggle-track" aria-hidden="true">
-                            <span class="toggle-thumb"></span>
-                        </span>
-                    </button>
-                </div>
-            </div>
-            ${rawHTML(shortLabelHTML)}
-            ${rawHTML(tagsHTML)}
-        </li>
-    `;
+export function buildActiveQuestionCardHTML(question, questionIndex, totalQuestionsCount) {
+    return buildQuestionCardHTML(question, {
+        isActiveInTracker: true,
+        isReorderable: true,
+        questionIndex,
+        totalQuestionsCount
+    });
 }
 
 export function setupActiveQuestionsListeners(activeList) {
@@ -177,6 +177,18 @@ export function setupActiveQuestionsListeners(activeList) {
     };
 
     activeList.addEventListener('click', async (event) => {
+        const editButton = event.target.closest('.question-edit-button');
+        if (editButton) {
+            event.preventDefault();
+            const questionId = editButton.getAttribute('data-question-id');
+            const customEvent = new CustomEvent('question-edit-requested', {
+                bubbles: true,
+                detail: { questionId }
+            });
+            editButton.dispatchEvent(customEvent);
+            return;
+        }
+
         const reorderButton = event.target.closest('.question-reorder-button');
         if (reorderButton && !reorderButton.disabled) {
             event.preventDefault();
@@ -208,6 +220,7 @@ export function setupActiveQuestionsListeners(activeList) {
                 await removeQuestionFromTracker(questionId);
                 await loadQuestionsView();
             }
+            return;
         }
     });
 
@@ -444,6 +457,18 @@ export function setupCatalogQuestionsListeners(catalogList) {
     catalogList.dataset.hasCatalogListeners = 'true';
 
     catalogList.addEventListener('click', async (event) => {
+        const editButton = event.target.closest('.question-edit-button');
+        if (editButton) {
+            event.preventDefault();
+            const questionId = editButton.getAttribute('data-question-id');
+            const customEvent = new CustomEvent('question-edit-requested', {
+                bubbles: true,
+                detail: { questionId }
+            });
+            editButton.dispatchEvent(customEvent);
+            return;
+        }
+
         const toggleButton = event.target.closest('.question-tracker-toggle');
         if (toggleButton) {
             event.preventDefault();
@@ -457,6 +482,7 @@ export function setupCatalogQuestionsListeners(catalogList) {
                 }
                 await loadQuestionsView();
             }
+            return;
         }
     });
 }
@@ -488,10 +514,17 @@ export async function loadQuestionsView() {
     const activeIdSet = new Set(Array.isArray(activeSetIds) ? activeSetIds : []);
 
     activeList.innerHTML = activeQuestions
-        .map((question, questionIndex) => buildActiveQuestionCardHTML(question, questionIndex, activeQuestions.length))
+        .map((question, questionIndex) => buildActiveQuestionCardHTML(
+            question,
+            questionIndex,
+            activeQuestions.length
+        ))
         .join('');
     catalogList.innerHTML = catalogQuestions
-        .map(question => buildQuestionCardHTML(question, activeIdSet.has(question.id)))
+        .map(question => buildQuestionCardHTML(question, {
+            isActiveInTracker: activeIdSet.has(question.id),
+            isReorderable: false
+        }))
         .join('');
 
     if (activeEmpty) activeEmpty.hidden = activeQuestions.length > 0;

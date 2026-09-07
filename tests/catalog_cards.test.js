@@ -1,0 +1,118 @@
+// @vitest-environment jsdom
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { setupTestDOM, waitFor } from './test-utils.js';
+
+let domInstance;
+let windowInstance;
+let documentInstance;
+
+describe('Task 5.6: Catalog Cards & Non-Dominant Edit Actions', () => {
+    beforeEach(async () => {
+        const environment = await setupTestDOM();
+        domInstance = environment.dom;
+        windowInstance = environment.window;
+        documentInstance = environment.document;
+
+        // Navigate to questions view to populate the lists
+        windowInstance.navigateTo('questions-canvas', { instant: true });
+        await waitFor(() => {
+            const catalogList = documentInstance.getElementById('questions-catalog-list');
+            return Boolean(catalogList && catalogList.children.length > 0);
+        });
+    });
+
+    it('1. Catalog Card Structure: Renders cards with question text, tags, edit button, and toggle switch', () => {
+        const catalogList = documentInstance.getElementById('questions-catalog-list');
+        expect(catalogList).not.toBeNull();
+        expect(catalogList.children.length).toBe(7);
+
+        const firstCard = catalogList.children[0];
+        expect(firstCard.classList.contains('question-card')).toBe(true);
+        expect(firstCard.classList.contains('question-card-catalog')).toBe(true);
+
+        const questionText = firstCard.querySelector('.question-card-text');
+        expect(questionText).not.toBeNull();
+        expect(questionText.textContent).toBeTruthy();
+
+        const shortLabel = firstCard.querySelector('.question-card-short-label');
+        expect(shortLabel).not.toBeNull();
+
+        const statusBadge = firstCard.querySelector('.question-card-badge');
+        expect(statusBadge).not.toBeNull();
+
+        // Toggle switch placed below Built-in label inside header status group (unified cards)
+        const statusGroup = firstCard.querySelector('.question-card-status-group');
+        expect(statusGroup).not.toBeNull();
+        const toggleButton = statusGroup.querySelector('.question-tracker-toggle');
+        expect(toggleButton).not.toBeNull();
+        expect(toggleButton.getAttribute('role')).toBe('switch');
+
+        // Edit button inside action row on non-dominant container (always visible)
+        const actionRow = firstCard.querySelector('.card-action-row');
+        expect(actionRow).not.toBeNull();
+        const nonDominantActions = actionRow.querySelector('.card-actions-non-dominant');
+        expect(nonDominantActions).not.toBeNull();
+        const editButton = nonDominantActions.querySelector('.card-action-edit');
+        expect(editButton).not.toBeNull();
+        expect(editButton.classList.contains('question-edit-button')).toBe(true);
+        expect(editButton.getAttribute('data-action')).toBe('edit-question');
+        expect(editButton.textContent.trim()).toBe('Edit');
+
+        // Active list card also has edit button always visible and has is-reorderable class
+        const activeList = documentInstance.getElementById('questions-active-list');
+        const firstActiveCard = activeList.children[0];
+        expect(firstActiveCard.querySelector('.question-edit-button')).not.toBeNull();
+        expect(firstActiveCard.classList.contains('is-reorderable')).toBe(true);
+        expect(firstCard.classList.contains('is-reorderable')).toBe(false);
+    });
+
+    it('2. Toggle Functionality: Toggling an inactive catalog card activates it into active tracker', async () => {
+        const activeList = documentInstance.getElementById('questions-active-list');
+        const catalogList = documentInstance.getElementById('questions-catalog-list');
+        const initialActiveCount = activeList.children.length;
+
+        // Find an inactive question in catalog
+        const inactiveCard = Array.from(catalogList.children).find(card => {
+            const toggle = card.querySelector('.question-tracker-toggle');
+            return toggle && toggle.getAttribute('aria-checked') === 'false';
+        });
+        expect(inactiveCard).not.toBeNull();
+
+        const questionId = inactiveCard.getAttribute('data-question-id');
+        const toggle = inactiveCard.querySelector('.question-tracker-toggle');
+        toggle.click();
+
+        await waitFor(() => {
+            const updatedActiveList = documentInstance.getElementById('questions-active-list');
+            return updatedActiveList.children.length === initialActiveCount + 1;
+        });
+
+        // Verify active list now has the question
+        expect(documentInstance.querySelector(`#questions-active-list [data-question-id="${questionId}"]`)).not.toBeNull();
+
+        // Verify catalog card now shows active toggle state
+        const updatedCatalogCard = documentInstance.querySelector(`#questions-catalog-list [data-question-id="${questionId}"]`);
+        expect(updatedCatalogCard.querySelector('.question-tracker-toggle').getAttribute('aria-checked')).toBe('true');
+    });
+
+    it('3. Handedness Alignment & CSS Rules: Edit button follows non-dominant alignment rule', () => {
+        const cssContent = readFileSync(resolve(__dirname, '../public/style.css'), 'utf8');
+
+        // Edit button styles exist
+        expect(cssContent).toContain('.question-edit-button');
+
+        // Right-handed: card-action-edit is in non-dominant container (order 1 / left)
+        expect(cssContent).toContain('body[data-handedness="right"] .card-action-edit');
+        expect(cssContent).toContain('body[data-handedness="right"] .card-actions-non-dominant');
+
+        // Left-handed: card-action-edit is in non-dominant container (order 3 / right)
+        expect(cssContent).toContain('body[data-handedness="left"] .card-action-edit');
+        expect(cssContent).toContain('body[data-handedness="left"] .card-actions-non-dominant');
+
+        // Dominant actions (toggle) order
+        expect(cssContent).toContain('body[data-handedness="right"] .card-actions-dominant');
+        expect(cssContent).toContain('body[data-handedness="left"] .card-actions-dominant');
+    });
+});

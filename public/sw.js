@@ -1,6 +1,6 @@
 // High & Low - Offline Service Worker
 // Cache Name with versioning
-const CACHE_NAME = 'high-and-low-v3';
+const CACHE_NAME = 'high-and-low-v6';
 
 // Static relative assets required for complete offline operation
 const PRECACHE_ASSETS = [
@@ -57,7 +57,7 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// Fetch: Cache-First strategy with Network fallback for local assets
+// Fetch: Network-First strategy with Cache fallback for seamless offline operation and instant updates
 self.addEventListener('fetch', (event) => {
     // Only handle GET requests
     if (event.request.method !== 'GET') {
@@ -65,13 +65,8 @@ self.addEventListener('fetch', (event) => {
     }
 
     event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
-            if (cachedResponse) {
-                return cachedResponse;
-            }
-
-            return fetch(event.request).then(async (networkResponse) => {
-                // If valid response, clone and cache for offline access
+        fetch(event.request)
+            .then(async (networkResponse) => {
                 if (networkResponse && networkResponse.status === 200) {
                     const responseClone = networkResponse.clone();
                     try {
@@ -82,15 +77,17 @@ self.addEventListener('fetch', (event) => {
                     }
                 }
                 return networkResponse;
-            }).catch(() => {
-                // If network fails (offline) and HTML is requested, return cached index.html for current scope
+            })
+            .catch(async () => {
+                const cachedResponse = await caches.match(event.request);
+                if (cachedResponse) {
+                    return cachedResponse;
+                }
+                // If network fails (offline) and HTML is requested, return cached index.html
                 if (event.request.headers.get('accept')?.includes('text/html')) {
                     const scopedIndexUrl = new URL('./index.html', self.registration.scope).toString();
-                    return caches.match(scopedIndexUrl).then((matchedIndex) => {
-                        return matchedIndex || caches.match('./index.html') || caches.match('/index.html');
-                    });
+                    return (await caches.match(scopedIndexUrl)) || (await caches.match('./index.html')) || (await caches.match('/index.html'));
                 }
-            });
-        })
+            })
     );
 });

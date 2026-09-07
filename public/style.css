@@ -1247,7 +1247,8 @@ body[data-theme="light"] .question-card-badge-custom {
 .question-reorder-controls {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    gap: 8px;
 }
 
 .question-reorder-button {
@@ -1289,21 +1290,20 @@ body[data-theme="light"] .question-card-badge-custom {
     outline-offset: 2px;
 }
 
-/* Draggable reordering handle (Task 5.5) */
+/* Draggable reordering handle (Task 5.5) flanked by reorder buttons */
 .card-actions-center {
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 25%;
-    flex: 0 0 25%;
+    flex: 0 0 auto;
 }
 
 .question-drag-handle {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 100%;
-    height: 30px;
+    width: 68px;
+    height: 38px;
     padding: 4px 6px;
     border-radius: 999px;
     border: 1px solid var(--border-color);
@@ -1447,6 +1447,46 @@ body[data-theme="dark"] .question-tracker-toggle[aria-checked="true"] .toggle-tr
 body[data-theme="light"] .question-tracker-toggle.is-active .toggle-track,
 body[data-theme="light"] .question-tracker-toggle[aria-checked="true"] .toggle-track {
     background-color: #34c759;
+}
+
+/* Catalog Edit Button & Actions (Task 5.6) */
+.question-edit-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 6px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-color);
+    color: var(--text-bright);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 150ms var(--transition-curve), border-color 150ms var(--transition-curve), transform 100ms ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+    .question-edit-button:hover {
+        background-color: var(--border-color);
+        border-color: var(--text-muted);
+    }
+}
+
+.question-edit-button:active {
+    transform: scale(0.96);
+}
+
+.question-edit-button:focus-visible {
+    outline: 2px solid #007aff;
+    outline-offset: 2px;
+}
+
+.question-empty-action-space {
+    flex: 0 0 25%;
+    width: 25%;
 }
 
 .questions-empty-state {
@@ -2516,6 +2556,27 @@ body[data-contrast="high"] .modal-info-badge {
     gap: 12px;
 }
 
+.card-actions-non-dominant {
+    display: inline-flex;
+    align-items: center;
+    flex: 1 1 0;
+    gap: 8px;
+}
+
+/* Card Reordering Controls Visibility (Unified Question Cards)
+   Reorder buttons and drag handle are visible only when the card has .is-reorderable.
+   The edit button remains always visible in .card-actions-non-dominant. */
+.question-card:not(.is-reorderable) .question-reorder-controls,
+.question-card:not(.is-reorderable) .question-drag-handle {
+    display: none !important;
+}
+
+.card-actions-dominant {
+    display: inline-flex;
+    align-items: center;
+    flex: 1 1 0;
+}
+
 /* Right-handed default: non-dominant actions (e.g. edit) on left, dominant actions (e.g. toggle switch) on right */
 body[data-handedness="right"] .card-actions-non-dominant,
 body:not([data-handedness]) .card-actions-non-dominant,
@@ -2528,8 +2589,7 @@ body:not([data-handedness]) .card-action-edit {
 
 .card-actions-center {
     order: 2;
-    flex: 0 0 25%;
-    width: 25%;
+    flex: 0 0 auto;
     display: flex;
     justify-content: center;
     align-items: center;
