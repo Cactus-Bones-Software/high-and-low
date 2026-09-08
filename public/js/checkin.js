@@ -7,7 +7,7 @@ import { loadActiveQuestions } from './questions.js';
 import { STATE } from './state.js';
 import { getDatabase, put } from './storage/db.js';
 import { clearActiveCheckin, saveActiveCheckin } from './storage/session.js';
-import {updateNotesButtonLabel} from "./ui/dialogs";
+import {updateNotesButtonLabel} from "./ui/dialogs.js";
 import { escapeHTML, safeRAF } from './utils.js';
 
 export function buildScoreButtonsHTML(question) {

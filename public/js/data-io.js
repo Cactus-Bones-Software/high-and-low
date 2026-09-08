@@ -4,7 +4,7 @@
  */
 
 import { getDatabase } from './storage/db.js';
-import {showNoticeDialog} from "./ui/dialogs";
+import {showNoticeDialog} from "./ui/dialogs.js";
 
 export function exportAllDataAndConfig() {
     const database = getDatabase();
