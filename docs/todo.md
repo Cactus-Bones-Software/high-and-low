@@ -240,7 +240,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - Position "Edit" buttons on the non-dominant side (based on `handedness` setting).
   - Include an "Add to Tracker" toggle switch on each card to activate questions into the tracker.
 
-- [x] **Task 5.7: Question Editing & Archiving Workflow**
+- [ ] **Task 5.7: Question Editing & Archiving Workflow**
   - Enable editing of existing custom questions (updating text, short label, tags, curve, and endpoint labels) while maintaining the immutable `id`.
   - Include soft-archive / restore capabilities for custom questions.
 
