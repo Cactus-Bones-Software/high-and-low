@@ -32,7 +32,7 @@ import { setupSettingsAndMenu, setupCanvasBackButtons, applyStoredDisplay } from
 // Load history UI
 import { renderLineGraph, loadHistoryView } from './ui/history-graph.js';
 // Load Questions UI
-import { setupQuestionAuthoring, loadQuestionsView } from './ui/question-authoring.js';
+import { setupQuestionAuthoring, loadQuestionsView } from './ui/question-view.js';
 // Set up keyboard navigation for accessibility
 import { setupKeyboardNavigation } from './ui/keyboard-navigation.js';
 // Import safe animation frame requests.

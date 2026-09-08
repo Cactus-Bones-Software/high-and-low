@@ -175,7 +175,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - Do not attempt to split `renderLineGraph` internally in this task — that is Task 4.13. This task only moves the file boundary.
 
 - [x] **Task 4.10: Extract `ui/question-authoring.js`**
-  - Move `setupQuestionAuthoring` into `public/js/ui/question-authoring.js`, importing from `questions.js` and `storage/db.js`.
+  - Move `setupQuestionAuthoring` into `../public/js/ui/question-view.js`, importing from `questions.js` and `storage/db.js`.
 
 - [x] **Task 4.11: Extract `ui/keyboard-navigation.js`**
   - Move `setupKeyboardNavigation` into `public/js/ui/keyboard-navigation.js`, importing from `checkin.js` and `ui/navigation.js`.
@@ -212,10 +212,10 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - Dominant hand dictates menu drawer position (`right` or `left`), and non-dominant hand dictates edit button placement on cards to prevent accidental taps during single-handed use.
 
 - [x] **Task 5.3: Custom Question Dialog — Tags Field**
-  - Add a comma-separated or pill-based Tags input field to the custom question form in `index.html` and wire it into `public/js/ui/question-authoring.js` save handlers.
+  - Add a comma-separated or pill-based Tags input field to the custom question form in `index.html` and wire it into `../public/js/ui/question-view.js` save handlers.
 
 - [x] **Task 5.4: Questions View — Search, Layout Structure & Add Question Modal**
-  - Build the searchable Questions view in `index.html` and `public/js/ui/question-authoring.js`, featuring a search bar that filters questions by full question text, short label, or tags in real time.
+  - Build the searchable Questions view in `index.html` and `../public/js/ui/question-view.js`, featuring a search bar that filters questions by full question text, short label, or tags in real time.
   - Split the Questions view into two clear visual card sections:
     - **Active in Tracker** at the top, showing currently active non-archived questions in tracker order.
     - **Question Library Catalog** below, showing inactive non-archived questions.
@@ -261,7 +261,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
 
 - [ ] **Task 5.10: Yes/No Question Type Schema & Authoring**
   - Extend the question schema in `public/js/questions.js` to support response types (`responseType: "scale" | "boolean"` or `curve: "boolean"`).
-  - Add response type selector (5-Point Scale vs. Yes/No) to the custom question authoring & editing dialogs in `index.html` and wire it into `public/js/ui/question-authoring.js`.
+  - Add response type selector (5-Point Scale vs. Yes/No) to the custom question authoring & editing dialogs in `index.html` and wire it into `../public/js/ui/question-view.js`.
 
 - [ ] **Task 5.11: Yes/No Question Tracker UI & Graph Analytics**
   - Update `renderCurrentQuestion` in `public/js/checkin.js` to render a clean 2-button (Yes / No) input deck when `responseType: "boolean"`.

@@ -8,7 +8,7 @@ import {
     restoreCustomQuestion
 } from '../public/js/questions.js';
 import { getAll, getConfig } from '../public/js/storage/db.js';
-import { loadQuestionsView } from '../public/js/ui/question-authoring.js';
+import { loadQuestionsView } from '../public/js/ui/question-view.js';
 
 let domInstance;
 let windowInstance;

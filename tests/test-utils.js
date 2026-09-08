@@ -21,7 +21,7 @@ import {
     archiveQuestionFromAuthoring,
     saveQuestionFromAuthoring,
     cancelQuestionAuthoring
-} from '../public/js/ui/question-authoring.js';
+} from '../public/js/ui/question-view.js';
 import { startNewCheckIn, finalizeCheckin, renderCurrentQuestion, buildScoreButtonsHTML } from '../public/js/checkin.js';
 import { renderLineGraph, loadHistoryView, computeGraphLayout, renderGraphSVG } from '../public/js/ui/history-graph.js';
 import { navigateTo, setCurrentViewId } from '../public/js/ui/navigation.js';

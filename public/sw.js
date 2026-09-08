@@ -28,7 +28,7 @@ const PRECACHE_ASSETS = [
     './js/ui/dialogs.js',
     './js/ui/settings-menu.js',
     './js/ui/keyboard-navigation.js',
-    './js/ui/question-authoring.js'
+    './js/ui/question-view.js'
 ];
 
 // Install: precache all critical application shell assets resolved against service worker scope

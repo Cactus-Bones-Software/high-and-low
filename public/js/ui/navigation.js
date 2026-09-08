@@ -7,7 +7,7 @@ import { STATE } from '../state.js';
 import { saveActiveView } from '../storage/session.js';
 import { safeRAF } from '../utils.js';
 import { loadHistoryView } from './history-graph.js';
-import { loadQuestionsView } from './question-authoring.js';
+import { loadQuestionsView } from './question-view.js';
 import {setInert} from "./settings-menu.js";
 
 let currentViewId = 'tracker-canvas';

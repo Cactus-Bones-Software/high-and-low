@@ -5,7 +5,7 @@ import {
     questionMatchesSearch,
     partitionQuestionsForView,
     loadQuestionsView
-} from '../public/js/ui/question-authoring.js';
+} from '../public/js/ui/question-view.js';
 import { executeHoldAction } from '../public/js/ui/hold-actions.js';
 
 describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {

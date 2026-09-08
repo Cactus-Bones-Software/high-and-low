@@ -13,7 +13,7 @@ import {
     confirmImport,
     closeNoticeDialog
 } from './dialogs.js';
-import { cancelQuestionAuthoring, saveQuestionFromAuthoring } from './question-authoring.js';
+import { cancelQuestionAuthoring, saveQuestionFromAuthoring } from './question-view.js';
 
 let holdTimer = null;
 let isExecutingAction = false;
