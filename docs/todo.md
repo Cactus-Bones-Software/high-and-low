@@ -244,11 +244,25 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - Enable editing of existing custom questions (updating text, short label, tags, curve, and endpoint labels) while maintaining the immutable `id`.
   - Include soft-archive / restore capabilities for custom questions.
 
-- [ ] **Task 5.8: Yes/No Question Type Schema & Authoring**
+- [ ] **Task 5.8: Removed Questions**
+  - Place all removed questions into a normally hidden section of the question catalog.
+  - Create a "Show|Hide Removed Questions" button at the bottom of the main catalog that shows and hides the removed questions below it.
+    - Do not add a section header for the removed question. 
+  - Change "Archive Question" button to say "Remove Question".
+
+- [ ] **TASK 5.9: Built In Question Copying
+  - Change the edit button for a built-in question to be a 'Copy' button that opens a pre-filled dialog with all the same information as the built-in question. 
+  - If the user attempts to save the question without making important changes, like to the text of the question, ensure that the save fails, and the reason is clear to the user.
+    - Save button should wiggle
+    - A short, informative message should display explaining what needs to be changed. 
+    - Fields that should be changed should have a red outline.
+    - The form should scroll to the first field that needs changed.
+
+- [ ] **Task 5.10: Yes/No Question Type Schema & Authoring**
   - Extend the question schema in `public/js/questions.js` to support response types (`responseType: "scale" | "boolean"` or `curve: "boolean"`).
   - Add response type selector (5-Point Scale vs. Yes/No) to the custom question authoring & editing dialogs in `index.html` and wire it into `public/js/ui/question-authoring.js`.
 
-- [ ] **Task 5.9: Yes/No Question Tracker UI & Graph Analytics**
+- [ ] **Task 5.11: Yes/No Question Tracker UI & Graph Analytics**
   - Update `renderCurrentQuestion` in `public/js/checkin.js` to render a clean 2-button (Yes / No) input deck when `responseType: "boolean"`.
   - Map Yes/No responses to binary score values (or boolean flags) that render accurately in `public/js/ui/history-graph.js` without disrupting standard 1–5 scale questions.
 
@@ -262,7 +276,16 @@ just native `<script type="module">`, staying within the vanilla-only constraint
 - [x] **Task 6.2: Web App Manifest Verification**
   - Verify and complete `manifest.json` with correct relative paths, high-resolution app icons, theme colors (`#121212`), and `display: "standalone"` parameters.
 
+- [ ] **Task 6.3: Service Worker Lifecycle & PWA Update Handling** 
+  - Listen for service worker state changes and `controllerchange` events in `public/js/main.js` to automatically prompt users or reload active tabs when app updates deploy.
+  - Implement app lifecycle re-checks (`visibilitychange` / `registration.update()`) to force fresh update checks when the installed PWA resumes from background states.
+
 ---
+
+### Phase 7: Bugs and Issues
+
+- [ ] Buttons in dialogs sometimes have the hold-to-actuate effect, even if they do not need to be held.
+- [ ] 
 
 ### Phase 7: Documentation & Final Cleanup
 - [ ] **Task 7.1: Code Base JSDoc & Architectural Comments**
