@@ -35,7 +35,7 @@ or required cloud accounts. During deep depressive lows or restless manic phases
 habits to stop completely.
 
 High & Low was created to remove those obstacles. By focusing on quick one-tap answers, comfortable one-handed
-controls, guilt-free skip buttons, and complete privacy, High & Low helps you keep track of your well-being even on
+controls, a skip button for bad days, and complete privacy, High & Low helps you keep track of your well-being even on
 your hardest days.
 
 ---
