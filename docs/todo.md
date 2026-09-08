@@ -249,8 +249,9 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - Create a "Show|Hide Removed Questions" button at the bottom of the main catalog that shows and hides the removed questions below it.
     - Do not add a section header for the removed question. 
   - Change "Archive Question" button to say "Remove Question".
+  - Ensure search only shows removed questions if the removed question section is being shown.
 
-- [ ] **TASK 5.9: Built In Question Copying
+- [ ] **Task 5.9: Built In Question Copying
   - Change the edit button for a built-in question to be a 'Copy' button that opens a pre-filled dialog with all the same information as the built-in question. 
   - If the user attempts to save the question without making important changes, like to the text of the question, ensure that the save fails, and the reason is clear to the user.
     - Save button should wiggle
