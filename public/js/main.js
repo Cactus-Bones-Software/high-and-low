@@ -3,26 +3,42 @@
  * Bootstrap sequence, module wiring, database seeding, and runtime initialization.
  */
 
+// Grab the STATE object.
 import { STATE } from './state.js';
+// Prepare to grab data from storage
 import { initDatabase, put, getAll, getConfig, setConfig, deleteConfig } from './storage/db.js';
+// Prepare to grab session details if not stale
 import { restoreActiveCheckin, getStoredActiveView } from './storage/session.js';
+// Prepare to load questions from storage and make new ones if necessary
 import { DEFAULT_QUESTIONS, seedDefaults, loadActiveQuestions, createCustomQuestion } from './questions.js';
+// Load the code for check-ins
 import { startNewCheckIn, renderCurrentQuestion, clearQuestionTransitions, finalizeCheckin } from './checkin.js';
+// Prepare to export data if necessary
 import { exportAllDataAndConfig } from './data-io.js';
+// Load the navigation drawer
 import { navigateTo } from './ui/navigation.js';
+// Set up the hold-to-actuate buttons
 import { setupHoldActions } from './ui/hold-actions.js';
+// Load modal dialogs
 import { setupNoticeDialog, openImportDialog, setupImportDialog, setupNotesDialog, updateNotesButtonLabel } from './ui/dialogs.js';
+// Load settings and settings UI
 import { setupSettingsAndMenu, setupCanvasBackButtons, applyStoredDisplay } from './ui/settings-menu.js';
+// Load history UI
 import { renderLineGraph, loadHistoryView } from './ui/history-graph.js';
+// Load Questions UI
 import { setupQuestionAuthoring, loadQuestionsView } from './ui/question-authoring.js';
+// Set up keyboard navigation for accessibility
 import { setupKeyboardNavigation } from './ui/keyboard-navigation.js';
+// Import safe animation frame requests.
 import { safeRAF } from './utils.js';
 
 /**
  * Registers the service worker for offline capability.
+ * The service worker is responsible for updating the application when new versions of source files are available.
  * @returns {Promise<ServiceWorkerRegistration | undefined>}
  */
 export function registerServiceWorker() {
+
     if (typeof window !== 'undefined' && window.navigator && 'serviceWorker' in window.navigator) {
         return window.navigator.serviceWorker.register('sw.js').catch(error => {
             console.warn('Service worker registration failed:', error);
