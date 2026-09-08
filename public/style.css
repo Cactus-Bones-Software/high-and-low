@@ -1107,7 +1107,7 @@ select, .utility-button, .form-input {
 }
 
 /* ==========================================================================
-7a. QUESTIONS CATALOG VIEW — SEARCH, CARDS & FAB (TASK 5.4)
+8. QUESTIONS CATALOG VIEW — SEARCH, CARDS & FAB (TASK 5.4)
 ========================================================================== */
 
 .questions-view-content {
@@ -1545,8 +1545,83 @@ body[data-theme="light"] .question-tracker-toggle[aria-checked="true"] .toggle-t
     padding-right: 2px;
 }
 
+/* --- 8a. CARD ACTION ALIGNMENT & ERGONOMIC HANDEDNESS
+   Dominant hand: Menu drawer toggle, primary toggle switches, high-frequency actions
+   Non-dominant hand: Edit actions, secondary/destructive controls (prevents accidental taps)
+   --- */
+.card-action-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 12px;
+}
+
+.card-actions-non-dominant {
+    display: inline-flex;
+    align-items: center;
+    flex: 1 1 0;
+    gap: 8px;
+}
+
+/* Card Reordering Controls Visibility (Unified Question Cards)
+   Reorder buttons and drag handle are visible only when the card has .is-reorderable.
+   The edit button remains always visible in .card-actions-non-dominant. */
+.question-card:not(.is-reorderable) .question-reorder-controls,
+.question-card:not(.is-reorderable) .question-drag-handle {
+    display: none !important;
+}
+
+.card-actions-dominant {
+    display: inline-flex;
+    align-items: center;
+    flex: 1 1 0;
+}
+
+/* Right-handed default: non-dominant actions (e.g. edit) on left, dominant actions (e.g. toggle switch) on right */
+body[data-handedness="right"] .card-actions-non-dominant,
+body:not([data-handedness]) .card-actions-non-dominant,
+body[data-handedness="right"] .card-action-edit,
+body:not([data-handedness]) .card-action-edit {
+    order: 1;
+    margin-right: auto;
+    margin-left: 0;
+}
+
+.card-actions-center {
+    order: 2;
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+body[data-handedness="right"] .card-actions-dominant,
+body:not([data-handedness]) .card-actions-dominant,
+body[data-handedness="right"] .card-action-toggle,
+body:not([data-handedness]) .card-action-toggle {
+    order: 3;
+    margin-left: auto;
+    margin-right: 0;
+}
+
+/* Left-handed: non-dominant actions (e.g. edit) on right, dominant actions (e.g. toggle switch) on left */
+body[data-handedness="left"] .card-actions-dominant,
+body[data-handedness="left"] .card-action-toggle {
+    order: 1;
+    margin-right: auto;
+    margin-left: 0;
+}
+
+body[data-handedness="left"] .card-actions-non-dominant,
+body[data-handedness="left"] .card-action-edit {
+    order: 3;
+    margin-left: auto;
+    margin-right: 0;
+}
+
 /* ==========================================================================
-7b. GRAPH & TIMELINE LEGEND & CONTROLS (TASK 3.6 - 3.10)
+9. GRAPH & TIMELINE LEGEND & CONTROLS (TASK 3.6 - 3.10)
 ========================================================================== */
 .history-graph-wrapper {
     width: 100%;
@@ -2019,7 +2094,7 @@ body[data-contrast="high"] .note-marker:active .note-marker-icon {
 }
 
 /* ==========================================================================
-8. DESKTOP & TABLET LAYOUT ORIENTATION (MEDIA QUERY)
+10. DESKTOP & TABLET LAYOUT ORIENTATION (MEDIA QUERY)
 ========================================================================== */
 @media (min-width: 768px) {
     .app-container {
@@ -2101,9 +2176,7 @@ body[data-contrast="high"] .note-marker:active .note-marker-icon {
     }
 }
 
-/* ==========================================================================
-8b. LANDSCAPE MOBILE & CONSTRAINED-HEIGHT LANDSCAPE ORIENTATION
-========================================================================== */
+/* --- 10a. LANDSCAPE MOBILE & CONSTRAINED-HEIGHT LANDSCAPE ORIENTATION --- */
 @media (orientation: landscape) and (max-height: 600px) {
     .app-canvas {
         padding: 10px 14px;
@@ -2275,7 +2348,7 @@ body[data-contrast="high"] .note-marker:active .note-marker-icon {
 }
 
 /* ==========================================================================
-9. LAYOUT RIG DEBUG OUTLINES (SANITY CHECK BOUNDARIES)
+11. LAYOUT RIG DEBUG OUTLINES (SANITY CHECK BOUNDARIES)
 ========================================================================== */
 body[data-debug-bounds="true"] .viewport-wrapper { outline: 2px dashed #3b82f6 !important; outline-offset: -2px; }
 body[data-debug-bounds="true"] .app-container { outline: 2px dashed #10b981 !important; outline-offset: -2px; }
@@ -2285,7 +2358,7 @@ body[data-debug-bounds="true"] .side-drawer { outline: 2px solid #8b5cf6 !import
 body[data-debug-bounds="true"] .menu-toggle { outline: 2px solid #ef4444 !important; }
 
 /* ==========================================================================
-10. ACCESSIBILITY & KEYBOARD FOCUS STYLES
+12. ACCESSIBILITY & KEYBOARD FOCUS STYLES
 ========================================================================== */
 :focus-visible,
 button:focus-visible,
@@ -2309,7 +2382,7 @@ body[data-contrast="high"] label[tabindex="0"]:focus-visible {
 }
 
 /* ==========================================================================
-11. MODAL POP-IN DIALOG (USER NOTES & OVERLAYS)
+13. MODAL POP-IN DIALOG (USER NOTES & OVERLAYS)
 ========================================================================== */
 .modal-overlay {
     position: absolute;
@@ -2541,80 +2614,4 @@ body[data-contrast="high"] .modal-info-badge {
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border: 0;
-}
-
-/* ==========================================================================
-   20. CARD ACTION ALIGNMENT & ERGONOMIC HANDEDNESS
-   Dominant hand: Menu drawer toggle, primary toggle switches, high-frequency actions
-   Non-dominant hand: Edit actions, secondary/destructive controls (prevents accidental taps)
-   ========================================================================== */
-.card-action-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    gap: 12px;
-}
-
-.card-actions-non-dominant {
-    display: inline-flex;
-    align-items: center;
-    flex: 1 1 0;
-    gap: 8px;
-}
-
-/* Card Reordering Controls Visibility (Unified Question Cards)
-   Reorder buttons and drag handle are visible only when the card has .is-reorderable.
-   The edit button remains always visible in .card-actions-non-dominant. */
-.question-card:not(.is-reorderable) .question-reorder-controls,
-.question-card:not(.is-reorderable) .question-drag-handle {
-    display: none !important;
-}
-
-.card-actions-dominant {
-    display: inline-flex;
-    align-items: center;
-    flex: 1 1 0;
-}
-
-/* Right-handed default: non-dominant actions (e.g. edit) on left, dominant actions (e.g. toggle switch) on right */
-body[data-handedness="right"] .card-actions-non-dominant,
-body:not([data-handedness]) .card-actions-non-dominant,
-body[data-handedness="right"] .card-action-edit,
-body:not([data-handedness]) .card-action-edit {
-    order: 1;
-    margin-right: auto;
-    margin-left: 0;
-}
-
-.card-actions-center {
-    order: 2;
-    flex: 0 0 auto;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-body[data-handedness="right"] .card-actions-dominant,
-body:not([data-handedness]) .card-actions-dominant,
-body[data-handedness="right"] .card-action-toggle,
-body:not([data-handedness]) .card-action-toggle {
-    order: 3;
-    margin-left: auto;
-    margin-right: 0;
-}
-
-/* Left-handed: non-dominant actions (e.g. edit) on right, dominant actions (e.g. toggle switch) on left */
-body[data-handedness="left"] .card-actions-dominant,
-body[data-handedness="left"] .card-action-toggle {
-    order: 1;
-    margin-right: auto;
-    margin-left: 0;
-}
-
-body[data-handedness="left"] .card-actions-non-dominant,
-body[data-handedness="left"] .card-action-edit {
-    order: 3;
-    margin-left: auto;
-    margin-right: 0;
 }
