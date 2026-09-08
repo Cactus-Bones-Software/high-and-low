@@ -8,15 +8,24 @@ import {
     DEFAULT_QUESTIONS,
     seedDefaults,
     createCustomQuestion,
+    updateCustomQuestion,
+    archiveQuestion,
+    restoreQuestion,
     moveActiveQuestion,
     removeQuestionFromTracker,
     addQuestionToTracker
 } from '../public/js/questions.js';
-import { loadQuestionsView, buildActiveQuestionCardHTML } from '../public/js/ui/question-authoring.js';
+import {
+    loadQuestionsView,
+    buildActiveQuestionCardHTML,
+    archiveQuestionFromAuthoring,
+    saveQuestionFromAuthoring,
+    cancelQuestionAuthoring
+} from '../public/js/ui/question-authoring.js';
 import { startNewCheckIn, finalizeCheckin, renderCurrentQuestion, buildScoreButtonsHTML } from '../public/js/checkin.js';
 import { renderLineGraph, loadHistoryView, computeGraphLayout, renderGraphSVG } from '../public/js/ui/history-graph.js';
 import { navigateTo, setCurrentViewId } from '../public/js/ui/navigation.js';
-import { getAll, put, getConfig, setConfig, deleteConfig } from '../public/js/storage/db.js';
+import { get, getAll, put, getConfig, setConfig, deleteConfig } from '../public/js/storage/db.js';
 import { saveActiveCheckin, clearActiveCheckin, restoreActiveCheckin, saveActiveView, getStoredActiveView } from '../public/js/storage/session.js';
 import { applyStoredDisplay } from '../public/js/ui/settings-menu.js';
 import { escapeHTML, html, rawHTML } from '../public/js/utils.js';
@@ -114,6 +123,7 @@ export async function setupTestDOM(customSessionStorage = {}) {
     global.PointerEvent = windowInstance.PointerEvent;
     global.MouseEvent = windowInstance.MouseEvent;
     global.Event = windowInstance.Event;
+    global.CustomEvent = windowInstance.CustomEvent;
 
     // Reset singleton in-memory state
     STATE.activeQuestions = [];
@@ -147,6 +157,12 @@ export async function setupTestDOM(customSessionStorage = {}) {
     windowInstance.html = html;
     windowInstance.rawHTML = rawHTML;
     windowInstance.createCustomQuestion = createCustomQuestion;
+    windowInstance.updateCustomQuestion = updateCustomQuestion;
+    windowInstance.archiveQuestion = archiveQuestion;
+    windowInstance.restoreQuestion = restoreQuestion;
+    windowInstance.archiveQuestionFromAuthoring = archiveQuestionFromAuthoring;
+    windowInstance.saveQuestionFromAuthoring = saveQuestionFromAuthoring;
+    windowInstance.cancelQuestionAuthoring = cancelQuestionAuthoring;
     windowInstance.moveActiveQuestion = moveActiveQuestion;
     windowInstance.removeQuestionFromTracker = removeQuestionFromTracker;
     windowInstance.addQuestionToTracker = addQuestionToTracker;
@@ -155,6 +171,7 @@ export async function setupTestDOM(customSessionStorage = {}) {
     windowInstance.DEFAULT_QUESTIONS = DEFAULT_QUESTIONS;
     windowInstance.seedDefaults = seedDefaults;
     windowInstance.put = put;
+    windowInstance.get = get;
     windowInstance.getAll = getAll;
     windowInstance.getConfig = getConfig;
     windowInstance.setConfig = setConfig;

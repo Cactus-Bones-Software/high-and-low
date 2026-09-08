@@ -9,8 +9,14 @@ import { STATE } from './state.js';
 import { initDatabase, put, getAll, getConfig, setConfig, deleteConfig } from './storage/db.js';
 // Prepare to grab session details if not stale
 import { restoreActiveCheckin, getStoredActiveView } from './storage/session.js';
-// Prepare to load questions from storage and make new ones if necessary
-import { DEFAULT_QUESTIONS, seedDefaults, loadActiveQuestions, createCustomQuestion } from './questions.js';
+// Load default questions, then prepare to load, create, remove, and restore questions
+import { DEFAULT_QUESTIONS,
+    seedDefaults,
+    loadActiveQuestions,
+    createCustomQuestion,
+    archiveQuestion,
+    restoreQuestion
+} from './questions.js';
 // Load the code for check-ins
 import { startNewCheckIn, renderCurrentQuestion, clearQuestionTransitions, finalizeCheckin } from './checkin.js';
 // Prepare to export data if necessary
@@ -108,11 +114,6 @@ export function initApp() {
         });
     }
 
-    const importButton = document.getElementById('button-import');
-    if (importButton && importFileInput) {
-        importButton.addEventListener('click', () => importFileInput.click());
-    }
-
     return initDatabase()
         .then(seedDefaults)
         .then(() => Promise.all([applyStoredDisplay(), loadActiveQuestions()]))
@@ -137,7 +138,7 @@ export function initApp() {
             }
 
             const storedView = getStoredActiveView();
-            const historyView = (window.history?.state?.view) ? window.history.state.view : null;
+            const historyView = window.history?.state?.view ? window.history.state.view : null;
             const targetInitialView = storedView || historyView || 'tracker-canvas';
 
             if (targetInitialView && targetInitialView !== 'tracker-canvas') {
@@ -157,9 +158,13 @@ export function initApp() {
                 window.finalizeCheckin = finalizeCheckin;
                 window.renderCurrentQuestion = renderCurrentQuestion;
                 window.createCustomQuestion = createCustomQuestion;
+                window.updateCustomQuestion = updateCustomQuestion;
+                window.archiveQuestion = archiveQuestion;
+                window.restoreQuestion = restoreQuestion;
                 window.DEFAULT_QUESTIONS = DEFAULT_QUESTIONS;
-                window['STATE'] = STATE;
+                window.STATE = STATE;
                 window.put = put;
+                window.get = get;
                 window.getAll = getAll;
                 window.getConfig = getConfig;
                 window.setConfig = setConfig;
@@ -195,7 +200,7 @@ if (typeof window !== 'undefined') {
     window.navigateTo = navigateTo;
     window.finalizeCheckin = finalizeCheckin;
     window.registerServiceWorker = registerServiceWorker;
-    window['STATE'] = STATE;
+    window.STATE = STATE;
 }
 
 if (typeof document !== 'undefined') {

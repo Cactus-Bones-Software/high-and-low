@@ -3,7 +3,7 @@
  * Single in-memory state singleton shared across modules.
  */
 
-export const STATE = {
+export let STATE = {
     activeQuestions: [],
     currentQuestionIndex: 0,
     checkinAnswers: [],

@@ -6,6 +6,9 @@
 import {
     normalizeQuestionText,
     createCustomQuestion,
+    updateCustomQuestion,
+    archiveQuestion,
+    restoreQuestion,
     loadActiveQuestions,
     moveActiveQuestion,
     reorderActiveQuestions,
@@ -13,13 +16,14 @@ import {
     addQuestionToTracker
 } from '../questions.js';
 import { getAll, getConfig } from '../storage/db.js';
-import { buildScoreButtonsHTML } from '../checkin.js';
+import { buildScoreButtonsHTML, renderCurrentQuestion } from '../checkin.js';
 import { showNoticeDialog } from './dialogs.js';
 import { resetHold } from './hold-actions.js';
 import { escapeHTML, html, rawHTML } from '../utils.js';
 
 let cancelAuthoringHandler = null;
 let saveAuthoringHandler = null;
+let archiveAuthoringHandler = null;
 
 export function cancelQuestionAuthoring() {
     if (cancelAuthoringHandler) cancelAuthoringHandler();
@@ -27,6 +31,10 @@ export function cancelQuestionAuthoring() {
 
 export async function saveQuestionFromAuthoring() {
     if (saveAuthoringHandler) await saveAuthoringHandler();
+}
+
+export async function archiveQuestionFromAuthoring() {
+    if (archiveAuthoringHandler) await archiveAuthoringHandler();
 }
 
 export function questionMatchesSearch(question, searchQuery) {
@@ -57,16 +65,25 @@ export function partitionQuestionsForView(allQuestions, activeSetIds, searchQuer
             return leftLabel.localeCompare(rightLabel);
         });
 
-    return { activeQuestions, catalogQuestions };
+    const archivedQuestions = allQuestions
+        .filter(question => question.archived && questionMatchesSearch(question, searchQuery))
+        .sort((left, right) => {
+            const leftLabel = (left.shortLabel || left.text || '').toLowerCase();
+            const rightLabel = (right.shortLabel || right.text || '').toLowerCase();
+            return leftLabel.localeCompare(rightLabel);
+        });
+
+    return { activeQuestions, catalogQuestions, archivedQuestions };
 }
 
 export function buildQuestionCardHTML(question, options = {}) {
     const parsedOptions = typeof options === 'boolean'
-        ? { isActiveInTracker: options, isReorderable: false, questionIndex: 0, totalQuestionsCount: 1 }
+        ? { isActiveInTracker: options, isReorderable: false, isArchived: false, questionIndex: 0, totalQuestionsCount: 1 }
         : options;
 
-    const isActiveInTracker = Boolean(parsedOptions.isActiveInTracker);
-    const isReorderable = Boolean(parsedOptions.isReorderable);
+    const isArchived = Boolean(parsedOptions.isArchived || question.archived);
+    const isActiveInTracker = isArchived ? false : Boolean(parsedOptions.isActiveInTracker);
+    const isReorderable = isArchived ? false : Boolean(parsedOptions.isReorderable);
     const questionIndex = typeof parsedOptions.questionIndex === 'number'
         ? parsedOptions.questionIndex
         : 0;
@@ -74,8 +91,13 @@ export function buildQuestionCardHTML(question, options = {}) {
         ? parsedOptions.totalQuestionsCount
         : 1;
 
-    const statusLabel = question.builtIn ? 'Built-in' : 'Custom';
-    const statusClass = question.builtIn ? 'question-card-badge-builtin' : 'question-card-badge-custom';
+    let statusLabel = question.builtIn ? 'Built-in' : 'Custom';
+    let statusClass = question.builtIn ? 'question-card-badge-builtin' : 'question-card-badge-custom';
+    if (isArchived) {
+        statusLabel = 'Archived';
+        statusClass = 'question-card-badge-archived';
+    }
+
     const tags = Array.isArray(question.tags) ? question.tags : [];
     const tagChipsHTML = tags
         .map(tag => `<span class="question-tag-chip">${escapeHTML(tag)}</span>`)
@@ -98,12 +120,35 @@ export function buildQuestionCardHTML(question, options = {}) {
     const isFirstQuestion = questionIndex === 0;
     const isLastQuestion = questionIndex === totalQuestionsCount - 1;
 
+    let cardModifierClass = 'question-card-catalog';
+    if (isArchived) {
+        cardModifierClass = 'question-card-archived';
+    } else if (isReorderable) {
+        cardModifierClass = 'question-card-active is-reorderable';
+    }
+
     const cardClasses = [
         'question-card',
-        isReorderable ? 'question-card-active is-reorderable' : 'question-card-catalog'
+        cardModifierClass
     ].join(' ');
 
     const indexAttribute = isReorderable ? ` data-index="${questionIndex}"` : '';
+
+    const toggleHTML = isArchived
+        ? ''
+        : `<button type="button" role="switch" aria-checked="${toggleChecked}" class="question-tracker-toggle question-catalog-toggle card-action-toggle${toggleActiveClass}" data-action="${toggleAction}" data-question-id="${question.id}" aria-label="${toggleAriaLabel}">
+            <span class="toggle-track" aria-hidden="true">
+                <span class="toggle-thumb"></span>
+            </span>
+        </button>`;
+
+    const actionButtonHTML = isArchived
+        ? `<button type="button" class="question-restore-button card-action-restore" data-action="restore-question" data-question-id="${question.id}" aria-label="Restore question: ${questionTitle}">
+            Restore
+        </button>`
+        : `<button type="button" class="question-edit-button card-action-edit" data-action="edit-question" data-question-id="${question.id}" aria-label="Edit question: ${questionTitle}">
+            Edit
+        </button>`;
 
     return html`
         <li class="${cardClasses}" data-question-id="${question.id}"${rawHTML(indexAttribute)}>
@@ -111,20 +156,14 @@ export function buildQuestionCardHTML(question, options = {}) {
                 <p class="question-card-text">${question.text}</p>
                 <div class="question-card-status-group">
                     <span class="question-card-badge ${statusClass}">${statusLabel}</span>
-                    <button type="button" role="switch" aria-checked="${toggleChecked}" class="question-tracker-toggle question-catalog-toggle card-action-toggle${toggleActiveClass}" data-action="${toggleAction}" data-question-id="${question.id}" aria-label="${toggleAriaLabel}">
-                        <span class="toggle-track" aria-hidden="true">
-                            <span class="toggle-thumb"></span>
-                        </span>
-                    </button>
+                    ${rawHTML(toggleHTML)}
                 </div>
             </div>
             ${rawHTML(shortLabelHTML)}
             ${rawHTML(tagsHTML)}
             <div class="card-action-row question-card-actions">
                 <div class="card-actions-non-dominant">
-                    <button type="button" class="question-edit-button card-action-edit" data-action="edit-question" data-question-id="${question.id}" aria-label="Edit question: ${questionTitle}">
-                        Edit
-                    </button>
+                    ${rawHTML(actionButtonHTML)}
                 </div>
                 <div class="card-actions-center">
                     <div class="question-reorder-controls" role="group" aria-label="Reorder question in tracker sequence">
@@ -220,7 +259,7 @@ export function setupActiveQuestionsListeners(activeList) {
                 await removeQuestionFromTracker(questionId);
                 await loadQuestionsView();
             }
-
+            return;
         }
     });
 
@@ -361,7 +400,7 @@ export function setupActiveQuestionsListeners(activeList) {
 
         try {
             dragHandle.setPointerCapture(event.pointerId);
-        } catch (_ignoredError) {
+        } catch {
             // In case pointer capture is unsupported
         }
 
@@ -420,7 +459,7 @@ export function setupActiveQuestionsListeners(activeList) {
 
         try {
             dragHandle.releasePointerCapture(event.pointerId);
-        } catch (_ignoredError) {
+        } catch {
             // Pointer capture release
         }
 
@@ -482,6 +521,38 @@ export function setupCatalogQuestionsListeners(catalogList) {
                 }
                 await loadQuestionsView();
             }
+            return;
+        }
+    });
+}
+
+export function setupArchivedQuestionsListeners(archivedList) {
+    if (!archivedList || archivedList.dataset.hasArchivedListeners === 'true') return;
+    archivedList.dataset.hasArchivedListeners = 'true';
+
+    archivedList.addEventListener('click', async (event) => {
+        const restoreButton = event.target.closest('.question-restore-button, [data-action="restore-question"]');
+        if (restoreButton) {
+            event.preventDefault();
+            const questionId = restoreButton.getAttribute('data-question-id');
+            if (questionId) {
+                await restoreQuestion(questionId);
+                await loadQuestionsView();
+                showNoticeDialog('Question Restored', 'The question has been restored to your question catalog.', restoreButton);
+            }
+            return;
+        }
+
+        const editButton = event.target.closest('.question-edit-button');
+        if (editButton) {
+            event.preventDefault();
+            const questionId = editButton.getAttribute('data-question-id');
+            const customEvent = new CustomEvent('question-edit-requested', {
+                bubbles: true,
+                detail: { questionId }
+            });
+            editButton.dispatchEvent(customEvent);
+            return;
         }
     });
 }
@@ -489,14 +560,21 @@ export function setupCatalogQuestionsListeners(catalogList) {
 export async function loadQuestionsView() {
     const activeList = document.getElementById('questions-active-list');
     const catalogList = document.getElementById('questions-catalog-list');
+    const archivedList = document.getElementById('questions-archived-list');
     const activeEmpty = document.getElementById('questions-active-empty');
     const catalogEmpty = document.getElementById('questions-catalog-empty');
+    const archivedEmpty = document.getElementById('questions-archived-empty');
+    const archivedSection = document.getElementById('questions-archived-section');
+    const archivedDivider = document.getElementById('questions-archived-divider');
     const searchInput = document.getElementById('questions-search-input');
 
     if (!activeList || !catalogList) return;
 
     setupActiveQuestionsListeners(activeList);
     setupCatalogQuestionsListeners(catalogList);
+    if (archivedList) {
+        setupArchivedQuestionsListeners(archivedList);
+    }
 
     const searchQuery = searchInput ? searchInput.value : '';
     const [allQuestions, activeSetIds] = await Promise.all([
@@ -504,7 +582,7 @@ export async function loadQuestionsView() {
         getConfig('activeQuestionSet')
     ]);
 
-    const { activeQuestions, catalogQuestions } = partitionQuestionsForView(
+    const { activeQuestions, catalogQuestions, archivedQuestions } = partitionQuestionsForView(
         allQuestions,
         activeSetIds,
         searchQuery
@@ -528,11 +606,36 @@ export async function loadQuestionsView() {
 
     if (activeEmpty) activeEmpty.hidden = activeQuestions.length > 0;
     if (catalogEmpty) catalogEmpty.hidden = catalogQuestions.length > 0;
+
+    if (archivedList) {
+        archivedList.innerHTML = archivedQuestions
+            .map(question => buildQuestionCardHTML(question, {
+                isArchived: true,
+                isActiveInTracker: false,
+                isReorderable: false
+            }))
+            .join('');
+
+        const totalArchivedCount = allQuestions.filter(question => question.archived).length;
+        if (archivedSection) {
+            archivedSection.hidden = totalArchivedCount === 0;
+        }
+        if (archivedDivider) {
+            archivedDivider.hidden = totalArchivedCount === 0;
+        }
+        if (archivedEmpty) {
+            archivedEmpty.hidden = archivedQuestions.length > 0 || totalArchivedCount === 0;
+        }
+    }
 }
 
 export function setupQuestionAuthoring() {
+    let currentEditingQuestionId = null;
+
     const addQuestionButton = document.getElementById('button-add-question');
     const overlay = document.getElementById('question-authoring-dialog-overlay');
+    const modalTitle = document.getElementById('question-authoring-dialog-title');
+    const modalSubtitle = document.getElementById('question-authoring-dialog-subtitle');
     const form = document.getElementById('question-form');
     const textInput = document.getElementById('q-text');
     const shortLabelInput = document.getElementById('q-short-label');
@@ -546,8 +649,10 @@ export function setupQuestionAuthoring() {
     const previewTitleBox = document.getElementById('preview-title-box');
     const previewStack = document.getElementById('question-preview-stack');
     const addToSetInput = document.getElementById('q-add-to-set');
+    const addToSetLabel = document.getElementById('q-add-to-set-label');
     const saveButton = document.getElementById('button-save-question');
     const cancelButton = document.getElementById('button-cancel-question');
+    const archiveRow = document.getElementById('archive-question-row');
     const searchInput = document.getElementById('questions-search-input');
 
     if (!addQuestionButton || !overlay || !form || !textInput || !curveInput || !maxInput || !midField || !midInput ||
@@ -589,7 +694,50 @@ export function setupQuestionAuthoring() {
     }
 
     function openAuthoringModal() {
+        currentEditingQuestionId = null;
         resetForm();
+
+        if (modalTitle) modalTitle.textContent = 'Add Custom Question';
+        if (modalSubtitle) modalSubtitle.textContent = 'Create a new question for your library and optional daily tracker.';
+        const saveButtonLabel = saveButton.querySelector('.button-label');
+        if (saveButtonLabel) saveButtonLabel.textContent = 'Save Question';
+        if (archiveRow) archiveRow.hidden = true;
+        if (addToSetLabel) addToSetLabel.textContent = 'Add to my daily set now';
+
+        overlay.removeAttribute('inert');
+        overlay.setAttribute('aria-hidden', 'false');
+        overlay.classList.add('is-open');
+        setTimeout(() => textInput.focus({ preventScroll: true }), 60);
+    }
+
+    async function openEditModal(question) {
+        currentEditingQuestionId = question.id;
+        resetForm();
+
+        if (modalTitle) modalTitle.textContent = 'Edit Custom Question';
+        if (modalSubtitle) modalSubtitle.textContent = 'Update question details or archive this question.';
+        const saveButtonLabel = saveButton.querySelector('.button-label');
+        if (saveButtonLabel) saveButtonLabel.textContent = 'Save Changes';
+        if (archiveRow) archiveRow.hidden = false;
+        if (addToSetLabel) addToSetLabel.textContent = 'Active in daily tracker';
+
+        textInput.value = question.text;
+        if (shortLabelInput) shortLabelInput.value = question.shortLabel || '';
+        if (tagsInput) tagsInput.value = Array.isArray(question.tags) ? question.tags.join(', ') : '';
+        curveInput.value = question.curve || 'more-is-better';
+        maxInput.value = question.maxLabel || '';
+        midInput.value = question.midLabel || '';
+        minInput.value = question.minLabel || '';
+
+        const activeSet = await getConfig('activeQuestionSet');
+        if (addToSetInput) {
+            addToSetInput.checked = Array.isArray(activeSet) && activeSet.includes(question.id);
+        }
+
+        syncMidVisibility();
+        syncSaveEnabled();
+        refreshPreview();
+
         overlay.removeAttribute('inert');
         overlay.setAttribute('aria-hidden', 'false');
         overlay.classList.add('is-open');
@@ -600,9 +748,11 @@ export function setupQuestionAuthoring() {
         overlay.classList.remove('is-open');
         overlay.setAttribute('aria-hidden', 'true');
         overlay.setAttribute('inert', '');
-        for (const button of document.querySelectorAll('#question-authoring-dialog .hold-action')) {
+        document.querySelectorAll('#question-authoring-dialog .hold-action').forEach((button) => {
             resetHold(button);
-        }
+        });
+        currentEditingQuestionId = null;
+        if (archiveRow) archiveRow.hidden = true;
         addQuestionButton.focus({ preventScroll: true });
     }
 
@@ -614,55 +764,135 @@ export function setupQuestionAuthoring() {
     saveAuthoringHandler = async () => {
         if (saveButton.disabled) return;
         saveButton.disabled = true;
+
         try {
-            const outcome = await createCustomQuestion({
-                text: textInput.value,
-                shortLabel: shortLabelInput ? shortLabelInput.value : '',
-                tags: tagsInput ? tagsInput.value : '',
-                curve: curveInput.value,
-                minLabel: minInput.value,
-                maxLabel: maxInput.value,
-                midLabel: midInput.value,
-                addToSet: addToSetInput ? addToSetInput.checked : false
-            });
+            if (currentEditingQuestionId) {
+                const questionId = currentEditingQuestionId;
+                await updateCustomQuestion(questionId, {
+                    text: textInput.value,
+                    shortLabel: shortLabelInput ? shortLabelInput.value : '',
+                    tags: tagsInput ? tagsInput.value : '',
+                    curve: curveInput.value,
+                    minLabel: minInput.value,
+                    maxLabel: maxInput.value,
+                    midLabel: midInput.value
+                });
 
-            if (addToSetInput?.checked) {
+                if (addToSetInput) {
+                    if (addToSetInput.checked) {
+                        await addQuestionToTracker(questionId);
+                    } else {
+                        await removeQuestionFromTracker(questionId);
+                    }
+                }
+
                 await loadActiveQuestions();
-            }
+                await loadQuestionsView();
+                renderCurrentQuestion();
+                resetForm();
+                closeAuthoringModal();
 
-            await loadQuestionsView();
-            resetForm();
-            closeAuthoringModal();
-
-            if (outcome.status === 'added') {
                 showNoticeDialog(
-                    'Question Saved',
-                    'Your custom question has been saved and will appear in your check-in tracker.',
-                    addQuestionButton
-                );
-            } else if (outcome.status === 'restored') {
-                showNoticeDialog(
-                    'Question Restored',
-                    'That question already existed in your archived items and has been restored.',
+                    'Question Updated',
+                    'Your changes have been saved to this question.',
                     addQuestionButton
                 );
             } else {
-                showNoticeDialog(
-                    'Question Exists',
-                    'You already have an active question with this text in your library.',
-                    addQuestionButton
-                );
+                const outcome = await createCustomQuestion({
+                    text: textInput.value,
+                    shortLabel: shortLabelInput ? shortLabelInput.value : '',
+                    tags: tagsInput ? tagsInput.value : '',
+                    curve: curveInput.value,
+                    minLabel: minInput.value,
+                    maxLabel: maxInput.value,
+                    midLabel: midInput.value,
+                    addToSet: addToSetInput ? addToSetInput.checked : false
+                });
+
+                if (addToSetInput?.checked) {
+                    await loadActiveQuestions();
+                }
+
+                await loadQuestionsView();
+                resetForm();
+                closeAuthoringModal();
+
+                if (outcome.status === 'added') {
+                    showNoticeDialog(
+                        'Question Saved',
+                        'Your custom question has been saved and will appear in your check-in tracker.',
+                        addQuestionButton
+                    );
+                } else if (outcome.status === 'restored') {
+                    showNoticeDialog(
+                        'Question Restored',
+                        'That question already existed in your archived items and has been restored.',
+                        addQuestionButton
+                    );
+                } else {
+                    showNoticeDialog(
+                        'Question Exists',
+                        'You already have an active question with this text in your library.',
+                        addQuestionButton
+                    );
+                }
             }
         } catch (error) {
             console.error('Failed to save question:', error);
             showNoticeDialog(
                 'Could Not Save',
-                'Could not save the question. Please check the fields and try again.',
+                error?.message || 'Could not save the question. Please check the fields and try again.',
                 addQuestionButton
             );
             syncSaveEnabled();
         }
     };
+
+    archiveAuthoringHandler = async () => {
+        if (!currentEditingQuestionId) return;
+        try {
+            const questionId = currentEditingQuestionId;
+            await archiveQuestion(questionId);
+            await loadActiveQuestions();
+            await loadQuestionsView();
+            renderCurrentQuestion();
+            resetForm();
+            closeAuthoringModal();
+
+            showNoticeDialog(
+                'Question Archived',
+                'This question has been archived and removed from your active tracker.',
+                addQuestionButton
+            );
+        } catch (error) {
+            console.error('Failed to archive question:', error);
+            showNoticeDialog(
+                'Could Not Archive',
+                error?.message || 'Could not archive the question.',
+                addQuestionButton
+            );
+        }
+    };
+
+    document.addEventListener('question-edit-requested', async (event) => {
+        const questionId = event.detail?.questionId;
+        if (!questionId) return;
+
+        const allQuestions = await getAll('questions');
+        const question = allQuestions.find(q => q.id === questionId);
+        if (!question) return;
+
+        if (question.builtIn) {
+            showNoticeDialog(
+                'Built-in Question',
+                'Built-in questions are part of the core tracker and cannot be edited or archived.',
+                event.target
+            );
+            return;
+        }
+
+        await openEditModal(question);
+    });
 
     addQuestionButton.addEventListener('click', () => {
         openAuthoringModal();
@@ -703,4 +933,10 @@ export function setupQuestionAuthoring() {
     syncMidVisibility();
     syncSaveEnabled();
     refreshPreview();
+}
+
+if (typeof window !== 'undefined') {
+    window.cancelQuestionAuthoring = cancelQuestionAuthoring;
+    window.saveQuestionFromAuthoring = saveQuestionFromAuthoring;
+    window.archiveQuestionFromAuthoring = archiveQuestionFromAuthoring;
 }

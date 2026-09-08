@@ -54,6 +54,15 @@ export function initDatabase() {
     });
 }
 
+export function get(storeName, key) {
+    return new Promise((resolve, reject) => {
+        if (!db) return resolve(undefined);
+        const request = db.transaction([storeName], 'readonly').objectStore(storeName).get(key);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
 export function getAll(storeName) {
     return new Promise((resolve, reject) => {
         if (!db) return resolve([]);

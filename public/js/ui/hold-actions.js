@@ -18,21 +18,22 @@ import { cancelQuestionAuthoring, saveQuestionFromAuthoring } from './question-a
 let holdTimer = null;
 let isExecutingAction = false;
 let isHoldDelayEnabled = true; // Enabled on by default
+
+export function getIsHoldDelayEnabled() {
+    return isHoldDelayEnabled;
+}
+
 export function setIsHoldDelayEnabled(enabled) {
     isHoldDelayEnabled = Boolean(enabled);
 }
 
 export function setupHoldActions() {
     document.querySelectorAll('.hold-action').forEach(button => {
-        let _holdFinished = false;
-
         const startHold = () => {
             if (!isHoldDelayEnabled || button.disabled) return;
-            _holdFinished = false;
             button.classList.add('is-holding');
             clearTimeout(holdTimer);
             holdTimer = setTimeout(() => {
-                _holdFinished = true;
                 executeHoldAction(button.id);
                 resetHold(button);
             }, 1500);
@@ -219,6 +220,12 @@ export function executeHoldAction(id) {
         } else if (typeof window !== 'undefined' && typeof window.saveQuestionFromAuthoring === 'function') {
             void window.saveQuestionFromAuthoring();
         }
+    } else if (id === 'button-archive-question') {
+        if (typeof archiveQuestionFromAuthoring === 'function') {
+            void archiveQuestionFromAuthoring();
+        } else if (typeof window !== 'undefined' && typeof window.archiveQuestionFromAuthoring === 'function') {
+            void window.archiveQuestionFromAuthoring();
+        }
     }
 }
 
@@ -231,5 +238,9 @@ export function updateHoldActionAriaLabels() {
     if (notesButton) {
         const noteStateText = STATE.checkinNote ? 'Note Attached' : 'Add custom note';
         notesButton.setAttribute('aria-label', isHoldDelayEnabled ? `${noteStateText} (Hold to confirm)` : noteStateText);
+    }
+    const archiveButton = document.getElementById('button-archive-question');
+    if (archiveButton) {
+        archiveButton.setAttribute('aria-label', isHoldDelayEnabled ? 'Archive question (Hold to confirm)' : 'Archive question');
     }
 }

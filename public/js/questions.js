@@ -4,7 +4,7 @@
  */
 
 import { STATE } from './state.js';
-import { getAll, getConfig, getDatabase, setConfig } from './storage/db.js';
+import { getAll, getConfig, setConfig, getDatabase } from './storage/db.js';
 
 // Bump this whenever new entries are added to DEFAULT_QUESTIONS so that existing
 // installations pick up the new built-ins on next load (see seedDefaults) without
@@ -27,7 +27,7 @@ export const DEFAULT_QUESTIONS = [
 // Daily set established on first run (ids into the 'questions' store).
 export const DEFAULT_ACTIVE_SET = ['q_energy', 'q_sadness', 'q_irritability', 'q_overall'];
 
-// Collapse leading/trailing and internal whitespace so trivially different
+// Collapse leading/trailing and internal whitespace so trivially-different
 // wordings resolve to the same content-addressed id.
 export function normalizeQuestionText(text) {
     return text.trim().replace(/\s+/g, ' ');
@@ -50,7 +50,7 @@ export function fnv1a32(inputString) {
 // from the original text; later edits to display text never change it, so
 // historical entries never orphan.
 export function makeCustomId(text) {
-    return `c_${fnv1a32(normalizeQuestionText(text))}`;
+    return 'c_' + fnv1a32(normalizeQuestionText(text));
 }
 
 // Idempotently insert any built-in question whose id is not already present.
@@ -242,6 +242,181 @@ export async function createCustomQuestion({ text, shortLabel, tags, curve, minL
     }
 
     return outcome;
+}
+
+export async function updateCustomQuestion(questionId, updates = {}) {
+    if (!questionId || typeof questionId !== 'string') {
+        throw new Error('Valid question ID is required to update a question.');
+    }
+
+    const database = getDatabase();
+    if (!database) {
+        throw new Error('IndexedDB database instance is not available.');
+    }
+
+    const now = new Date().toISOString();
+
+    const updatedRecord = await new Promise((resolve, reject) => {
+        const transaction = database.transaction(['questions'], 'readwrite');
+        const store = transaction.objectStore('questions');
+
+        const getRequest = store.get(questionId);
+        getRequest.onsuccess = () => {
+            const existing = getRequest.result;
+            if (!existing) {
+                return reject(new Error(`Question not found with ID: ${questionId}`));
+            }
+            if (existing.builtIn) {
+                return reject(new Error('Built-in questions cannot be edited.'));
+            }
+
+            const rawText = typeof updates.text === 'string' ? updates.text : existing.text;
+            const normalizedText = normalizeQuestionText(rawText);
+            if (!normalizedText) {
+                return reject(new Error('Question text cannot be empty.'));
+            }
+
+            const rawShortLabel = typeof updates.shortLabel === 'string'
+                ? updates.shortLabel
+                : existing.shortLabel;
+            const normalizedShortLabel = normalizeQuestionText(rawShortLabel);
+            if (!normalizedShortLabel) {
+                return reject(new Error('Short label cannot be empty.'));
+            }
+
+            let tags = existing.tags || [];
+            if (updates.tags !== undefined) {
+                if (Array.isArray(updates.tags)) {
+                    tags = updates.tags
+                        .map(tag => typeof tag === 'string' ? tag.trim() : '')
+                        .filter(tag => tag.length > 0);
+                } else if (typeof updates.tags === 'string') {
+                    tags = updates.tags
+                        .split(',')
+                        .map(tag => tag.trim())
+                        .filter(tag => tag.length > 0);
+                }
+            }
+
+            const curve = updates.curve || existing.curve || 'more-is-better';
+            const minLabel = updates.minLabel !== undefined ? (updates.minLabel || null) : existing.minLabel;
+            const maxLabel = updates.maxLabel !== undefined ? (updates.maxLabel || null) : existing.maxLabel;
+            const midLabel = curve === 'middle-is-best'
+                ? (updates.midLabel !== undefined ? (updates.midLabel || null) : existing.midLabel)
+                : null;
+
+            // Preserve immutable properties: id, originalText, builtIn, createdAt
+            const recordToSave = {
+                ...existing,
+                id: existing.id,
+                originalText: existing.originalText || existing.text,
+                builtIn: false,
+                createdAt: existing.createdAt,
+                text: normalizedText,
+                shortLabel: normalizedShortLabel,
+                tags,
+                curve,
+                minLabel,
+                maxLabel,
+                midLabel,
+                updatedAt: now
+            };
+
+            store.put(recordToSave);
+            transaction.oncomplete = () => resolve(recordToSave);
+        };
+
+        transaction.onerror = () => reject(transaction.error);
+    });
+
+    await loadActiveQuestions();
+    return updatedRecord;
+}
+
+export async function archiveQuestion(questionId) {
+    if (!questionId || typeof questionId !== 'string') {
+        throw new Error('Valid question ID is required to archive a question.');
+    }
+
+    const database = getDatabase();
+    if (!database) {
+        throw new Error('IndexedDB database instance is not available.');
+    }
+
+    const now = new Date().toISOString();
+
+    const archivedRecord = await new Promise((resolve, reject) => {
+        const transaction = database.transaction(['questions'], 'readwrite');
+        const store = transaction.objectStore('questions');
+
+        const getRequest = store.get(questionId);
+        getRequest.onsuccess = () => {
+            const existing = getRequest.result;
+            if (!existing) {
+                return reject(new Error(`Question not found with ID: ${questionId}`));
+            }
+            if (existing.builtIn) {
+                return reject(new Error('Built-in questions cannot be archived.'));
+            }
+
+            const recordToSave = {
+                ...existing,
+                archived: true,
+                updatedAt: now
+            };
+
+            store.put(recordToSave);
+            transaction.oncomplete = () => resolve(recordToSave);
+        };
+
+        transaction.onerror = () => reject(transaction.error);
+    });
+
+    const activeSet = await getConfig('activeQuestionSet');
+    if (Array.isArray(activeSet) && activeSet.includes(questionId)) {
+        const updatedSet = activeSet.filter(identifier => identifier !== questionId);
+        await setConfig('activeQuestionSet', updatedSet);
+    }
+
+    await loadActiveQuestions();
+    return archivedRecord;
+}
+
+export async function restoreQuestion(questionId) {
+    if (!questionId || typeof questionId !== 'string') {
+        throw new Error('Valid question ID is required to restore a question.');
+    }
+
+    const database = getDatabase();
+    if (!database) {
+        throw new Error('IndexedDB database instance is not available.');
+    }
+
+    const now = new Date().toISOString();
+
+    return new Promise((resolve, reject) => {
+        const transaction = database.transaction(['questions'], 'readwrite');
+        const store = transaction.objectStore('questions');
+
+        const getRequest = store.get(questionId);
+        getRequest.onsuccess = () => {
+            const existing = getRequest.result;
+            if (!existing) {
+                return reject(new Error(`Question not found with ID: ${questionId}`));
+            }
+
+            const recordToSave = {
+                ...existing,
+                archived: false,
+                updatedAt: now
+            };
+
+            store.put(recordToSave);
+            transaction.oncomplete = () => resolve(recordToSave);
+        };
+
+        transaction.onerror = () => reject(transaction.error);
+    });
 }
 
 export function getCurveColor(curve, index) {

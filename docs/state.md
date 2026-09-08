@@ -150,12 +150,16 @@ export const STATE = {
 └── tests/                     # Automated Vitest test suites
     ├── test-utils.js          # JSDOM, IndexedDB, and environment test harness
     ├── active_tracker_cards.test.js
+    ├── catalog_cards.test.js
     ├── checkin_persistence.test.js
     ├── drawer.test.js
     ├── graph.test.js
     ├── handedness.test.js
     ├── hold_actions.test.js
+    ├── question_editing_archiving.test.js
     ├── questions.test.js
+    ├── questions-view.test.js
+    ├── service_worker.test.js
     ├── transitions.test.js
     └── synthetic-dataset.json
 ```
