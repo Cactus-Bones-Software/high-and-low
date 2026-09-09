@@ -1524,6 +1524,48 @@ body[data-theme="dark"] .question-restore-button {
     width: 100%;
 }
 
+.questions-toggle-removed-button {
+    width: 100%;
+    max-width: 320px;
+    align-self: center;
+    margin: 10px auto 4px auto;
+    min-height: 44px;
+    height: 48px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 10px 20px;
+    background-color: var(--button-default);
+    border: 1px solid var(--border-color);
+    color: var(--button-text, var(--text-bright));
+    cursor: pointer;
+    border-radius: var(--border-radius-card, 12px);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.questions-toggle-removed-button:hover {
+    background-color: var(--box-bg);
+    color: var(--text-bright);
+    border-color: var(--text-muted);
+}
+
+.questions-toggle-removed-button:active {
+    transform: scale(0.98);
+}
+
+.questions-toggle-removed-button:focus-visible {
+    outline: 2px solid #007aff;
+    outline-offset: 2px;
+}
+
+.questions-removed-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    margin-top: 4px;
+}
+
 .questions-empty-state {
     margin: 0;
     font-size: 0.9rem;

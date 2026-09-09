@@ -241,6 +241,6 @@ export function updateHoldActionAriaLabels() {
     }
     const archiveButton = document.getElementById('button-archive-question');
     if (archiveButton) {
-        archiveButton.setAttribute('aria-label', isHoldDelayEnabled ? 'Archive question (Hold to confirm)' : 'Archive question');
+        archiveButton.setAttribute('aria-label', isHoldDelayEnabled ? 'Remove question (Hold to confirm)' : 'Remove question');
     }
 }

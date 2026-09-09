@@ -24,6 +24,15 @@ import { escapeHTML, html, rawHTML } from '../utils.js';
 let cancelAuthoringHandler = null;
 let saveAuthoringHandler = null;
 let archiveAuthoringHandler = null;
+let isRemovedQuestionsExpanded = false;
+
+export function setRemovedQuestionsExpanded(expanded) {
+    isRemovedQuestionsExpanded = Boolean(expanded);
+}
+
+export function isRemovedQuestionsSectionExpanded() {
+    return isRemovedQuestionsExpanded;
+}
 
 export function cancelQuestionAuthoring() {
     if (cancelAuthoringHandler) cancelAuthoringHandler();
@@ -36,6 +45,8 @@ export async function saveQuestionFromAuthoring() {
 export async function archiveQuestionFromAuthoring() {
     if (archiveAuthoringHandler) await archiveAuthoringHandler();
 }
+
+export const removeQuestionFromAuthoring = archiveQuestionFromAuthoring;
 
 export function questionMatchesSearch(question, searchQuery) {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -142,13 +153,22 @@ export function buildQuestionCardHTML(question, options = {}) {
             </span>
         </button>`;
 
-    const actionButtonHTML = isArchived
-        ? `<button type="button" class="question-restore-button card-action-restore" data-action="restore-question" data-question-id="${question.id}" aria-label="Restore question: ${questionTitle}">
+    const isBuiltIn = Boolean(question.builtIn);
+    let actionButtonsHTML = '';
+    if (isArchived) {
+        actionButtonsHTML = `<button type="button" class="question-restore-button card-action-restore" data-action="restore-question" data-question-id="${question.id}" aria-label="Restore question: ${questionTitle}">
             Restore
-        </button>`
-        : `<button type="button" class="question-edit-button card-action-edit" data-action="edit-question" data-question-id="${question.id}" aria-label="Edit question: ${questionTitle}">
+        </button>`;
+    } else {
+        actionButtonsHTML = `<button type="button" class="question-edit-button card-action-edit" data-action="edit-question" data-question-id="${question.id}" aria-label="Edit question: ${questionTitle}"${isBuiltIn ? ' disabled' : ''}>
             Edit
         </button>`;
+        if (!isBuiltIn) {
+            actionButtonsHTML += ` <button type="button" class="question-archive-button question-remove-button card-action-archive card-action-remove" data-action="archive-question" data-question-id="${question.id}" aria-label="Remove question: ${questionTitle}">
+                Remove
+            </button>`;
+        }
+    }
 
     return html`
         <li class="${cardClasses}" data-question-id="${question.id}"${rawHTML(indexAttribute)}>
@@ -163,7 +183,7 @@ export function buildQuestionCardHTML(question, options = {}) {
             ${rawHTML(tagsHTML)}
             <div class="card-action-row question-card-actions">
                 <div class="card-actions-non-dominant">
-                    ${rawHTML(actionButtonHTML)}
+                    ${rawHTML(actionButtonsHTML)}
                 </div>
                 <div class="card-actions-center">
                     <div class="question-reorder-controls" role="group" aria-label="Reorder question in tracker sequence">
@@ -217,7 +237,7 @@ export function setupActiveQuestionsListeners(activeList) {
 
     activeList.addEventListener('click', async (event) => {
         const editButton = event.target.closest('.question-edit-button');
-        if (editButton) {
+        if (editButton && !editButton.disabled) {
             event.preventDefault();
             const questionId = editButton.getAttribute('data-question-id');
             const customEvent = new CustomEvent('question-edit-requested', {
@@ -225,6 +245,21 @@ export function setupActiveQuestionsListeners(activeList) {
                 detail: { questionId }
             });
             editButton.dispatchEvent(customEvent);
+            return;
+        }
+
+        const archiveButton = event.target.closest('.question-archive-button, .question-remove-button');
+        if (archiveButton) {
+            event.preventDefault();
+            const questionId = archiveButton.getAttribute('data-question-id');
+            if (questionId) {
+                await archiveQuestion(questionId);
+                isRemovedQuestionsExpanded = true;
+                await loadActiveQuestions();
+                await loadQuestionsView();
+                renderCurrentQuestion();
+                showNoticeDialog('Question Removed', 'This question has been removed.', archiveButton);
+            }
             return;
         }
 
@@ -497,7 +532,7 @@ export function setupCatalogQuestionsListeners(catalogList) {
 
     catalogList.addEventListener('click', async (event) => {
         const editButton = event.target.closest('.question-edit-button');
-        if (editButton) {
+        if (editButton && !editButton.disabled) {
             event.preventDefault();
             const questionId = editButton.getAttribute('data-question-id');
             const customEvent = new CustomEvent('question-edit-requested', {
@@ -505,6 +540,21 @@ export function setupCatalogQuestionsListeners(catalogList) {
                 detail: { questionId }
             });
             editButton.dispatchEvent(customEvent);
+            return;
+        }
+
+        const archiveButton = event.target.closest('.question-archive-button, .question-remove-button');
+        if (archiveButton) {
+            event.preventDefault();
+            const questionId = archiveButton.getAttribute('data-question-id');
+            if (questionId) {
+                await archiveQuestion(questionId);
+                isRemovedQuestionsExpanded = true;
+                await loadActiveQuestions();
+                await loadQuestionsView();
+                renderCurrentQuestion();
+                showNoticeDialog('Question Removed', 'This question has been removed.', archiveButton);
+            }
             return;
         }
 
@@ -557,6 +607,17 @@ export function setupArchivedQuestionsListeners(archivedList) {
     });
 }
 
+export function setupRemovedQuestionsToggleListener(toggleRemovedButton) {
+    if (!toggleRemovedButton || toggleRemovedButton.dataset.hasToggleListener === 'true') return;
+    toggleRemovedButton.dataset.hasToggleListener = 'true';
+
+    toggleRemovedButton.addEventListener('click', async (event) => {
+        event.preventDefault();
+        isRemovedQuestionsExpanded = !isRemovedQuestionsExpanded;
+        await loadQuestionsView();
+    });
+}
+
 export async function loadQuestionsView() {
     const activeList = document.getElementById('questions-active-list');
     const catalogList = document.getElementById('questions-catalog-list');
@@ -564,14 +625,19 @@ export async function loadQuestionsView() {
     const activeEmpty = document.getElementById('questions-active-empty');
     const catalogEmpty = document.getElementById('questions-catalog-empty');
     const archivedEmpty = document.getElementById('questions-archived-empty');
-    const archivedSection = document.getElementById('questions-archived-section');
+    const archivedSection = document.getElementById('questions-archived-section') ||
+        document.getElementById('questions-removed-section');
     const archivedDivider = document.getElementById('questions-archived-divider');
+    const toggleRemovedButton = document.getElementById('button-toggle-removed-questions');
     const searchInput = document.getElementById('questions-search-input');
 
     if (!activeList || !catalogList) return;
 
     setupActiveQuestionsListeners(activeList);
     setupCatalogQuestionsListeners(catalogList);
+    if (toggleRemovedButton) {
+        setupRemovedQuestionsToggleListener(toggleRemovedButton);
+    }
     if (archivedList) {
         setupArchivedQuestionsListeners(archivedList);
     }
@@ -607,24 +673,48 @@ export async function loadQuestionsView() {
     if (activeEmpty) activeEmpty.hidden = activeQuestions.length > 0;
     if (catalogEmpty) catalogEmpty.hidden = catalogQuestions.length > 0;
 
-    if (archivedList) {
-        archivedList.innerHTML = archivedQuestions
-            .map(question => buildQuestionCardHTML(question, {
-                isArchived: true,
-                isActiveInTracker: false,
-                isReorderable: false
-            }))
-            .join('');
+    const totalArchivedCount = allQuestions.filter(question => question.archived).length;
+    if (totalArchivedCount === 0) {
+        isRemovedQuestionsExpanded = false;
+    }
 
-        const totalArchivedCount = allQuestions.filter(question => question.archived).length;
-        if (archivedSection) {
-            archivedSection.hidden = totalArchivedCount === 0;
-        }
-        if (archivedDivider) {
-            archivedDivider.hidden = totalArchivedCount === 0;
-        }
-        if (archivedEmpty) {
-            archivedEmpty.hidden = archivedQuestions.length > 0 || totalArchivedCount === 0;
+    if (toggleRemovedButton) {
+        toggleRemovedButton.hidden = totalArchivedCount === 0;
+        toggleRemovedButton.setAttribute('aria-expanded', isRemovedQuestionsExpanded ? 'true' : 'false');
+        toggleRemovedButton.textContent = isRemovedQuestionsExpanded
+            ? 'Hide Removed Questions'
+            : 'Show Removed Questions';
+    }
+
+    if (archivedDivider) {
+        archivedDivider.hidden = true;
+    }
+
+    const isShowingRemoved = isRemovedQuestionsExpanded && totalArchivedCount > 0;
+
+    if (archivedSection) {
+        archivedSection.hidden = !isShowingRemoved;
+    }
+
+    if (archivedList) {
+        if (isShowingRemoved) {
+            archivedList.innerHTML = archivedQuestions
+                .map(question => buildQuestionCardHTML(question, {
+                    isArchived: true,
+                    isActiveInTracker: false,
+                    isReorderable: false
+                }))
+                .join('');
+
+            if (archivedEmpty) {
+                archivedEmpty.hidden = archivedQuestions.length > 0;
+                archivedEmpty.textContent = 'No removed questions match your search.';
+            }
+        } else {
+            archivedList.innerHTML = '';
+            if (archivedEmpty) {
+                archivedEmpty.hidden = true;
+            }
         }
     }
 }
@@ -715,10 +805,12 @@ export function setupQuestionAuthoring() {
         resetForm();
 
         if (modalTitle) modalTitle.textContent = 'Edit Custom Question';
-        if (modalSubtitle) modalSubtitle.textContent = 'Update question details or archive this question.';
+        if (modalSubtitle) modalSubtitle.textContent = 'Update question details or remove this question.';
         const saveButtonLabel = saveButton.querySelector('.button-label');
         if (saveButtonLabel) saveButtonLabel.textContent = 'Save Changes';
         if (archiveRow) archiveRow.hidden = false;
+        const removeButtonLabel = archiveRow?.querySelector('.button-label');
+        if (removeButtonLabel) removeButtonLabel.textContent = 'Remove Question';
         if (addToSetLabel) addToSetLabel.textContent = 'Active in daily tracker';
 
         textInput.value = question.text;
@@ -853,6 +945,7 @@ export function setupQuestionAuthoring() {
         try {
             const questionId = currentEditingQuestionId;
             await archiveQuestion(questionId);
+            isRemovedQuestionsExpanded = true;
             await loadActiveQuestions();
             await loadQuestionsView();
             renderCurrentQuestion();
@@ -860,15 +953,15 @@ export function setupQuestionAuthoring() {
             closeAuthoringModal();
 
             showNoticeDialog(
-                'Question Archived',
-                'This question has been archived and removed from your active tracker.',
+                'Question Removed',
+                'This question has been removed from your active tracker.',
                 addQuestionButton
             );
         } catch (error) {
-            console.error('Failed to archive question:', error);
+            console.error('Failed to remove question:', error);
             showNoticeDialog(
-                'Could Not Archive',
-                error?.message || 'Could not archive the question.',
+                'Could Not Remove',
+                error?.message || 'Could not remove the question.',
                 addQuestionButton
             );
         }
@@ -885,7 +978,7 @@ export function setupQuestionAuthoring() {
         if (question.builtIn) {
             showNoticeDialog(
                 'Built-in Question',
-                'Built-in questions are part of the core tracker and cannot be edited or archived.',
+                'Built-in questions are part of the core tracker and cannot be edited or removed.',
                 event.target
             );
             return;
@@ -939,4 +1032,7 @@ if (typeof window !== 'undefined') {
     window.cancelQuestionAuthoring = cancelQuestionAuthoring;
     window.saveQuestionFromAuthoring = saveQuestionFromAuthoring;
     window.archiveQuestionFromAuthoring = archiveQuestionFromAuthoring;
+    window.removeQuestionFromAuthoring = archiveQuestionFromAuthoring;
+    window.setRemovedQuestionsExpanded = setRemovedQuestionsExpanded;
+    window.isRemovedQuestionsSectionExpanded = isRemovedQuestionsSectionExpanded;
 }

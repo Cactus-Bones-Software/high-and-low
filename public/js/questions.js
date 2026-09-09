@@ -419,6 +419,11 @@ export async function restoreQuestion(questionId) {
     });
 }
 
+export const archiveCustomQuestion = archiveQuestion;
+export const restoreCustomQuestion = restoreQuestion;
+export const removeQuestion = archiveQuestion;
+export const removeCustomQuestion = archiveQuestion;
+
 export function getCurveColor(curve, index) {
     if (curve === 'more-is-better') return '#34c759';
     if (curve === 'less-is-better') return '#ff3b30';

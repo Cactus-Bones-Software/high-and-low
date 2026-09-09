@@ -6,7 +6,7 @@
 // Grab the STATE object.
 import { STATE } from './state.js';
 // Prepare to grab data from storage
-import { initDatabase, put, getAll, getConfig, setConfig, deleteConfig } from './storage/db.js';
+import { initDatabase, get, put, getAll, getConfig, setConfig, deleteConfig } from './storage/db.js';
 // Prepare to grab session details if not stale
 import { restoreActiveCheckin, getStoredActiveView } from './storage/session.js';
 // Load default questions, then prepare to load, create, remove, and restore questions
@@ -14,8 +14,11 @@ import { DEFAULT_QUESTIONS,
     seedDefaults,
     loadActiveQuestions,
     createCustomQuestion,
+    updateCustomQuestion,
     archiveQuestion,
-    restoreQuestion
+    restoreQuestion,
+    archiveCustomQuestion,
+    restoreCustomQuestion
 } from './questions.js';
 // Load the code for check-ins
 import { startNewCheckIn, renderCurrentQuestion, clearQuestionTransitions, finalizeCheckin } from './checkin.js';
@@ -161,6 +164,10 @@ export function initApp() {
                 window.updateCustomQuestion = updateCustomQuestion;
                 window.archiveQuestion = archiveQuestion;
                 window.restoreQuestion = restoreQuestion;
+                window.archiveCustomQuestion = archiveCustomQuestion;
+                window.restoreCustomQuestion = restoreCustomQuestion;
+                window.removeQuestion = archiveQuestion;
+                window.removeCustomQuestion = archiveQuestion;
                 window.DEFAULT_QUESTIONS = DEFAULT_QUESTIONS;
                 window.STATE = STATE;
                 window.put = put;

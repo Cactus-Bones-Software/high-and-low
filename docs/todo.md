@@ -240,11 +240,11 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - Position "Edit" buttons on the non-dominant side (based on `handedness` setting).
   - Include an "Add to Tracker" toggle switch on each card to activate questions into the tracker.
 
-- [ ] **Task 5.7: Question Editing & Archiving Workflow**
+- [x] **Task 5.7: Question Editing & Archiving Workflow**
   - Enable editing of existing custom questions (updating text, short label, tags, curve, and endpoint labels) while maintaining the immutable `id`.
   - Include soft-archive / restore capabilities for custom questions.
 
-- [ ] **Task 5.8: Removed Questions**
+- [x] **Task 5.8: Removed Questions**
   - Place all removed questions into a normally hidden section of the question catalog.
   - Create a "Show|Hide Removed Questions" button at the bottom of the main catalog that shows and hides the removed questions below it.
     - Do not add a section header for the removed question. 

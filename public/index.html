@@ -187,6 +187,19 @@
                     <p id="questions-catalog-empty" class="questions-empty-state" hidden>
                         No catalog questions match your search.
                     </p>
+
+                    <button type="button" id="button-toggle-removed-questions"
+                            class="control-button questions-toggle-removed-button"
+                            aria-expanded="false" hidden>
+                        Show Removed Questions
+                    </button>
+
+                    <div id="questions-archived-section" class="questions-removed-section" hidden>
+                        <ul id="questions-archived-list" class="question-card-list"></ul>
+                        <p id="questions-archived-empty" class="questions-empty-state" hidden>
+                            No removed questions match your search.
+                        </p>
+                    </div>
                 </section>
             </section>
 
@@ -327,6 +340,15 @@
                                     aria-label="Save question (Press or Hold)">
                                 <span class="hold-indicator" aria-hidden="true"></span>
                                 <span class="button-label">Save Question</span>
+                            </button>
+                        </div>
+
+                        <div class="question-form-archive-row" id="archive-question-row" hidden>
+                            <button type="button" id="button-archive-question"
+                                    class="control-button hold-action modal-button modal-button-danger button-remove-question"
+                                    aria-label="Remove question (Press or Hold)">
+                                <span class="hold-indicator" aria-hidden="true"></span>
+                                <span class="button-label">Remove Question</span>
                             </button>
                         </div>
                     </form>
