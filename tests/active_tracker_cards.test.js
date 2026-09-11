@@ -195,7 +195,7 @@ describe('Task 5.5: Active Tracker Cards, Reordering Handles & In-Tracker Toggle
 
         const nonDominantActions = firstCard.querySelector('.card-actions-non-dominant');
         expect(nonDominantActions).not.toBeNull();
-        expect(nonDominantActions.querySelector('.question-edit-button')).not.toBeNull();
+        expect(nonDominantActions.querySelector('.question-copy-button, .question-edit-button')).not.toBeNull();
 
         const centerSlot = firstCard.querySelector('.card-actions-center');
         expect(centerSlot).not.toBeNull();

@@ -1057,6 +1057,47 @@ select, .utility-button, .form-input {
     resize: vertical;
 }
 
+.form-input.is-invalid,
+.form-input.input-error {
+    border-color: #d9534f !important;
+    outline: 2px solid #d9534f !important;
+    outline-offset: 1px;
+}
+
+.form-error-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background-color: rgba(217, 83, 79, 0.15);
+    border: 1px solid #d9534f;
+    color: #ff6b6b;
+    font-size: 0.9rem;
+    font-weight: 500;
+    line-height: 1.4;
+    margin-bottom: 12px;
+}
+
+body[data-theme="light"] .form-error-banner {
+    background-color: #fdf2f2;
+    border-color: #d9534f;
+    color: #b91c1c;
+}
+
+@keyframes button-wiggle-animation {
+    0% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+    100% { transform: translateX(0); }
+}
+
+.button-wiggle {
+    animation: button-wiggle-animation 240ms ease-in-out;
+}
+
 .required-marker {
     color: #d9534f;
     font-weight: 700;
@@ -1455,8 +1496,9 @@ body[data-theme="light"] .question-tracker-toggle[aria-checked="true"] .toggle-t
     background-color: #34c759;
 }
 
-/* Catalog Edit & Restore Buttons & Actions (Tasks 5.6 & 5.7) */
+/* Catalog Edit, Copy & Restore Buttons & Actions (Tasks 5.6, 5.7 & 5.9) */
 .question-edit-button,
+.question-copy-button,
 .question-restore-button {
     display: inline-flex;
     align-items: center;
@@ -1487,6 +1529,7 @@ body[data-theme="dark"] .question-restore-button {
 
 @media (hover: hover) {
     .question-edit-button:hover,
+    .question-copy-button:hover,
     .question-restore-button:hover {
         background-color: var(--border-color);
         border-color: var(--text-muted);
@@ -1499,11 +1542,13 @@ body[data-theme="dark"] .question-restore-button {
 }
 
 .question-edit-button:active,
+.question-copy-button:active,
 .question-restore-button:active {
     transform: scale(0.96);
 }
 
 .question-edit-button:focus-visible,
+.question-copy-button:focus-visible,
 .question-restore-button:focus-visible {
     outline: 2px solid #007aff;
     outline-offset: 2px;

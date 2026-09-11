@@ -259,15 +259,64 @@ just native `<script type="module">`, staying within the vanilla-only constraint
     - Fields that should be changed should have a red outline.
     - The form should scroll to the first field that needs changed.
 
-- [ ] **Task 5.10: Yes/No Question Type Schema & Authoring**
-  - Extend the question schema in `public/js/questions.js` to support response types (`responseType: "scale" | "boolean"` or `curve: "boolean"`).
-  - Add response type selector (5-Point Scale vs. Yes/No) to the custom question authoring & editing dialogs in `index.html` and wire it into `../public/js/ui/question-view.js`.
+- [ ] **Task 5.10.1: Yes/No Question Type — Schema Field**
+  - In `public/js/questions.js`, add a `responseType` field to the question schema (`"scale" | "boolean"`).
+  - Default every entry in `DEFAULT_QUESTIONS` to `responseType: "scale"` explicitly (do not rely on `undefined`).
+  - In `createCustomQuestion`, accept an optional `responseType` argument, validate it against the two allowed
+    values, default to `"scale"` when omitted, and persist it on both create and the existing restore-from-archive
+    path.
+  - In `seedDefaults`, backfill `responseType: "scale"` onto any existing stored question record that predates this
+    field, the same way `shortLabel`/`tags` are currently backfilled.
+  - This is a pure data-layer task — no dialog markup or UI wiring here. Do not touch `index.html` or
+    `question-view.js`.
 
-- [ ] **Task 5.11: Yes/No Question Tracker UI & Graph Analytics**
-  - Update `renderCurrentQuestion` in `public/js/checkin.js` to render a clean 2-button (Yes / No) input deck when `responseType: "boolean"`.
-  - Map Yes/No responses to binary score values (or boolean flags) that render accurately in `public/js/ui/history-graph.js` without disrupting standard 1–5 scale questions.
+- [ ] **Task 5.10.2: Yes/No Question Type — Authoring Dialog Field**
+  - In `index.html`, add a response type selector (5-Point Scale vs. Yes/No) to the custom question authoring modal
+    markup (the same modal used for both add and edit, per Task 5.9), using the existing form-field/label
+    conventions already used for the curve selector (`#q-curve`).
+  - When "Yes/No" is selected, hide the scale-only fields that don't apply to a boolean question (curve selector,
+    min/mid/max endpoint label inputs) from view; when "5-Point Scale" is selected, show them again. Pure
+    show/hide markup and inline behavior only — do not wire this into save/load logic yet, that is Task 5.10.3.
+  - Reflect the selected response type in the live question preview element.
 
+- [ ] **Task 5.10.3: Yes/No Question Type — Wire Selector Into Save/Edit**
+  - In `../public/js/ui/question-view.js`, read the new response type selector's value on save and pass it through
+    to `createCustomQuestion` (Task 5.10.1) as `responseType`.
+  - When opening the dialog to edit an existing custom question, populate the selector from that question's stored
+    `responseType` and apply the same show/hide behavior from Task 5.10.2 immediately on open (not just on
+    subsequent `change` events).
+  - Confirm the field-hiding behavior from Task 5.10.2 is correctly triggered both by user interaction and by the
+    programmatic population step above.
+- [ ] **Task 5.11.1: Boolean Score Mapping Constants**
+  - In `public/js/questions.js`, add two exported constants for how a boolean answer is stored as a score on the
+    existing 1–5 scale, e.g. `BOOLEAN_NO_SCORE = 1` and `BOOLEAN_YES_SCORE = 5`. Answers persist as the mapped
+    number, not as a separate `true`/`false` field, so every existing `score`-based read path (`handleScoreSubmission`,
+    `history-graph.js`'s `getY()`/grid lines/skip handling) keeps working unchanged for `responseType: "boolean"`
+    questions with zero additional branching there.
+  - This is the single source of truth for the mapping — Tasks 5.11.2 and 5.11.4 both import these constants rather
+    than hardcoding `1`/`5` again.
+- [ ] **Task 5.11.2: Yes/No Tracker Input Deck**
+  - Update `renderCurrentQuestion` and `buildScoreButtonsHTML` in `public/js/checkin.js` so that when the current
+    question has `responseType: "boolean"`, a clean 2-button (Yes / No) input deck renders in place of the 5-button
+    scale deck.
+  - Wire both buttons to the existing `handleScoreSubmission(questionId, score)` call, passing
+    `BOOLEAN_YES_SCORE`/`BOOLEAN_NO_SCORE` from Task 5.11.1 — no changes to `handleScoreSubmission` itself or to
+    check-in persistence/transition logic are needed.
+- [ ] **Task 5.11.3: Boolean Line Rendering — Step Interpolation**
+  - In `public/js/ui/history-graph.js`, change the segment-to-`<path>` construction so that a `responseType: "boolean"`
+    question's line draws as a horizontal-then-vertical step between consecutive answered points, instead of the
+    diagonal straight line currently produced for every question — a diagonal implies in-between values a Yes/No
+    answer never has.
+  - Standard `responseType: "scale"` questions must render exactly as before; this only changes the `pathData`
+    construction taken for boolean series.
+- [ ] **Task 5.11.4: Boolean Point Tooltips & Accessible Labels**
+  - In the same point-circle rendering block in `public/js/ui/history-graph.js`, replace the `Score ${point.score}/5`
+    wording in the `aria-label` and `<title>` tooltip text with `Yes`/`No` (via the Task 5.11.1 constants) whenever
+    the point belongs to a `responseType: "boolean"` question, so a psychiatrist reading a tooltip never sees a raw
+    `1`/`5` for a question that was never actually a 5-point scale.
+  - Scale-question tooltips keep their current `Score X/5` wording unchanged.
 ---
+
 
 ### Phase 6: Offline Capabilities & PWA Readiness
 - [x] **Task 6.1: Service Worker Implementation**

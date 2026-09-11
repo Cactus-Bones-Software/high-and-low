@@ -119,7 +119,7 @@ describe('Task 5.7: Question Editing & Archiving Workflow', () => {
         expect(restoredDbRecord.archived).toBe(false);
     });
 
-    it('4. UI Workflow: Built-in question cards have disabled Edit button and no Archive button', async () => {
+    it('4. UI Workflow: Built-in question cards have Copy button and no Archive button', async () => {
         const activeList = documentInstance.getElementById('questions-active-list');
         const builtInCard = Array.from(activeList.children).find(card => {
             const badge = card.querySelector('.question-card-badge');
@@ -127,9 +127,11 @@ describe('Task 5.7: Question Editing & Archiving Workflow', () => {
         });
 
         expect(builtInCard).not.toBeNull();
-        const editButton = builtInCard.querySelector('.question-edit-button');
-        expect(editButton).not.toBeNull();
-        expect(editButton.disabled).toBe(true);
+        const copyButton = builtInCard.querySelector('.question-copy-button');
+        expect(copyButton).not.toBeNull();
+        expect(copyButton.disabled).toBe(false);
+        expect(copyButton.textContent.trim()).toBe('Copy');
+        expect(copyButton.getAttribute('data-action')).toBe('copy-question');
 
         const archiveButton = builtInCard.querySelector('.question-archive-button');
         expect(archiveButton).toBeNull();

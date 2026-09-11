@@ -24,6 +24,7 @@ import { escapeHTML, html, rawHTML } from '../utils.js';
 let cancelAuthoringHandler = null;
 let saveAuthoringHandler = null;
 let archiveAuthoringHandler = null;
+let openCopyAuthoringHandler = null;
 let isRemovedQuestionsExpanded = false;
 
 export function setRemovedQuestionsExpanded(expanded) {
@@ -47,6 +48,12 @@ export async function archiveQuestionFromAuthoring() {
 }
 
 export const removeQuestionFromAuthoring = archiveQuestionFromAuthoring;
+
+export async function openCopyModalForQuestion(question) {
+    if (openCopyAuthoringHandler) {
+        await openCopyAuthoringHandler(question);
+    }
+}
 
 export function questionMatchesSearch(question, searchQuery) {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -159,15 +166,16 @@ export function buildQuestionCardHTML(question, options = {}) {
         actionButtonsHTML = `<button type="button" class="question-restore-button card-action-restore" data-action="restore-question" data-question-id="${question.id}" aria-label="Restore question: ${questionTitle}">
             Restore
         </button>`;
-    } else {
-        actionButtonsHTML = `<button type="button" class="question-edit-button card-action-edit" data-action="edit-question" data-question-id="${question.id}" aria-label="Edit question: ${questionTitle}"${isBuiltIn ? ' disabled' : ''}>
-            Edit
+    } else if (isBuiltIn) {
+        actionButtonsHTML = `<button type="button" class="question-copy-button card-action-copy card-action-edit" data-action="copy-question" data-question-id="${question.id}" aria-label="Copy question: ${questionTitle}">
+            Copy
         </button>`;
-        if (!isBuiltIn) {
-            actionButtonsHTML += ` <button type="button" class="question-archive-button question-remove-button card-action-archive card-action-remove" data-action="archive-question" data-question-id="${question.id}" aria-label="Remove question: ${questionTitle}">
-                Remove
-            </button>`;
-        }
+    } else {
+        actionButtonsHTML = `<button type="button" class="question-edit-button card-action-edit" data-action="edit-question" data-question-id="${question.id}" aria-label="Edit question: ${questionTitle}">
+            Edit
+        </button> <button type="button" class="question-archive-button question-remove-button card-action-archive card-action-remove" data-action="archive-question" data-question-id="${question.id}" aria-label="Remove question: ${questionTitle}">
+            Remove
+        </button>`;
     }
 
     return html`
@@ -236,6 +244,18 @@ export function setupActiveQuestionsListeners(activeList) {
     };
 
     activeList.addEventListener('click', async (event) => {
+        const copyButton = event.target.closest('.question-copy-button, [data-action="copy-question"]');
+        if (copyButton && !copyButton.disabled) {
+            event.preventDefault();
+            const questionId = copyButton.getAttribute('data-question-id');
+            const customEvent = new CustomEvent('question-copy-requested', {
+                bubbles: true,
+                detail: { questionId }
+            });
+            copyButton.dispatchEvent(customEvent);
+            return;
+        }
+
         const editButton = event.target.closest('.question-edit-button');
         if (editButton && !editButton.disabled) {
             event.preventDefault();
@@ -531,6 +551,18 @@ export function setupCatalogQuestionsListeners(catalogList) {
     catalogList.dataset.hasCatalogListeners = 'true';
 
     catalogList.addEventListener('click', async (event) => {
+        const copyButton = event.target.closest('.question-copy-button, [data-action="copy-question"]');
+        if (copyButton && !copyButton.disabled) {
+            event.preventDefault();
+            const questionId = copyButton.getAttribute('data-question-id');
+            const customEvent = new CustomEvent('question-copy-requested', {
+                bubbles: true,
+                detail: { questionId }
+            });
+            copyButton.dispatchEvent(customEvent);
+            return;
+        }
+
         const editButton = event.target.closest('.question-edit-button');
         if (editButton && !editButton.disabled) {
             event.preventDefault();
@@ -744,10 +776,50 @@ export function setupQuestionAuthoring() {
     const cancelButton = document.getElementById('button-cancel-question');
     const archiveRow = document.getElementById('archive-question-row');
     const searchInput = document.getElementById('questions-search-input');
+    const formErrorBanner = document.getElementById('question-form-error');
+    let sourceCopiedQuestion = null;
 
     if (!addQuestionButton || !overlay || !form || !textInput || !curveInput || !maxInput || !midField || !midInput ||
         !minInput || !preview || !previewStack || !saveButton || !cancelButton) {
         return;
+    }
+
+    function clearValidationErrors() {
+        if (formErrorBanner) {
+            formErrorBanner.hidden = true;
+            formErrorBanner.textContent = '';
+        }
+        if (textInput) {
+            textInput.classList.remove('is-invalid');
+            textInput.removeAttribute('aria-invalid');
+        }
+        if (shortLabelInput) {
+            shortLabelInput.classList.remove('is-invalid');
+            shortLabelInput.removeAttribute('aria-invalid');
+        }
+    }
+
+    function triggerValidationError(targetElement, message) {
+        if (formErrorBanner) {
+            formErrorBanner.textContent = message;
+            formErrorBanner.hidden = false;
+        }
+        if (targetElement) {
+            targetElement.classList.add('is-invalid');
+            targetElement.setAttribute('aria-invalid', 'true');
+            if (typeof targetElement.scrollIntoView === 'function') {
+                targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            targetElement.focus();
+        }
+        if (saveButton) {
+            saveButton.classList.remove('button-wiggle');
+            void saveButton.offsetWidth;
+            saveButton.classList.add('button-wiggle');
+            saveButton.addEventListener('animationend', () => {
+                saveButton.classList.remove('button-wiggle');
+            }, { once: true });
+        }
     }
 
     function refreshPreview() {
@@ -778,6 +850,7 @@ export function setupQuestionAuthoring() {
 
     function resetForm() {
         form.reset();
+        clearValidationErrors();
         syncMidVisibility();
         syncSaveEnabled();
         refreshPreview();
@@ -785,6 +858,7 @@ export function setupQuestionAuthoring() {
 
     function openAuthoringModal() {
         currentEditingQuestionId = null;
+        sourceCopiedQuestion = null;
         resetForm();
 
         if (modalTitle) modalTitle.textContent = 'Add Custom Question';
@@ -800,8 +874,42 @@ export function setupQuestionAuthoring() {
         setTimeout(() => textInput.focus({ preventScroll: true }), 60);
     }
 
+    async function openCopyModal(question) {
+        currentEditingQuestionId = null;
+        sourceCopiedQuestion = question;
+        resetForm();
+
+        if (modalTitle) modalTitle.textContent = 'Copy Question';
+        if (modalSubtitle) modalSubtitle.textContent = 'Create a custom question based on this built-in question.';
+        const saveButtonLabel = saveButton.querySelector('.button-label');
+        if (saveButtonLabel) saveButtonLabel.textContent = 'Save Question';
+        if (archiveRow) archiveRow.hidden = true;
+        if (addToSetLabel) addToSetLabel.textContent = 'Add to my daily set now';
+
+        textInput.value = question.text;
+        if (shortLabelInput) shortLabelInput.value = question.shortLabel || '';
+        if (tagsInput) tagsInput.value = Array.isArray(question.tags) ? question.tags.join(', ') : '';
+        curveInput.value = question.curve || 'more-is-better';
+        maxInput.value = question.maxLabel || '';
+        midInput.value = question.midLabel || '';
+        minInput.value = question.minLabel || '';
+        if (addToSetInput) addToSetInput.checked = false;
+
+        syncMidVisibility();
+        syncSaveEnabled();
+        refreshPreview();
+
+        overlay.removeAttribute('inert');
+        overlay.setAttribute('aria-hidden', 'false');
+        overlay.classList.add('is-open');
+        setTimeout(() => textInput.focus({ preventScroll: true }), 60);
+    }
+
+    openCopyAuthoringHandler = openCopyModal;
+
     async function openEditModal(question) {
         currentEditingQuestionId = question.id;
+        sourceCopiedQuestion = null;
         resetForm();
 
         if (modalTitle) modalTitle.textContent = 'Edit Custom Question';
@@ -844,6 +952,8 @@ export function setupQuestionAuthoring() {
             resetHold(button);
         });
         currentEditingQuestionId = null;
+        sourceCopiedQuestion = null;
+        clearValidationErrors();
         if (archiveRow) archiveRow.hidden = true;
         addQuestionButton.focus({ preventScroll: true });
     }
@@ -855,6 +965,19 @@ export function setupQuestionAuthoring() {
 
     saveAuthoringHandler = async () => {
         if (saveButton.disabled) return;
+
+        if (sourceCopiedQuestion) {
+            const currentText = normalizeQuestionText(textInput.value);
+            const sourceText = normalizeQuestionText(sourceCopiedQuestion.text);
+            if (currentText === sourceText) {
+                triggerValidationError(
+                    textInput,
+                    'Please change the question text so it differs from the built-in question.'
+                );
+                return;
+            }
+        }
+
         saveButton.disabled = true;
 
         try {
@@ -906,6 +1029,7 @@ export function setupQuestionAuthoring() {
                 }
 
                 await loadQuestionsView();
+                sourceCopiedQuestion = null;
                 resetForm();
                 closeAuthoringModal();
 
@@ -967,6 +1091,17 @@ export function setupQuestionAuthoring() {
         }
     };
 
+    document.addEventListener('question-copy-requested', async (event) => {
+        const questionId = event.detail?.questionId;
+        if (!questionId) return;
+
+        const allQuestions = await getAll('questions');
+        const question = allQuestions.find(q => q.id === questionId);
+        if (!question) return;
+
+        await openCopyModal(question);
+    });
+
     document.addEventListener('question-edit-requested', async (event) => {
         const questionId = event.detail?.questionId;
         if (!questionId) return;
@@ -1003,6 +1138,7 @@ export function setupQuestionAuthoring() {
     [textInput, shortLabelInput, maxInput, midInput, minInput].forEach(inputElement => {
         if (!inputElement) return;
         inputElement.addEventListener('input', () => {
+            clearValidationErrors();
             syncSaveEnabled();
             refreshPreview();
         });
@@ -1035,4 +1171,5 @@ if (typeof window !== 'undefined') {
     window.removeQuestionFromAuthoring = archiveQuestionFromAuthoring;
     window.setRemovedQuestionsExpanded = setRemovedQuestionsExpanded;
     window.isRemovedQuestionsSectionExpanded = isRemovedQuestionsSectionExpanded;
+    window.openCopyModalForQuestion = openCopyModalForQuestion;
 }

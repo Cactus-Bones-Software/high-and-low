@@ -156,6 +156,7 @@ export const STATE = {
     ├── graph.test.js
     ├── handedness.test.js
     ├── hold_actions.test.js
+    ├── question_copying.test.js
     ├── question_editing.test.js
     ├── question_editing_archiving.test.js
     ├── questions.test.js
