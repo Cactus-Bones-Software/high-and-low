@@ -279,4 +279,54 @@ describe('Task 5.8: Removed Questions Section & Search Visibility', () => {
         // Verify minimum accessible touch target height
         expect(cssContent).toMatch(/\.questions-toggle-removed-button\s*\{[^}]*min-height:\s*44px/);
     });
+
+    it('8. Built-in questions can be removed and restored in the UI', async () => {
+        windowInstance.navigateTo('questions-canvas', { instant: true });
+        await waitFor(() => {
+            const activeList = documentInstance.getElementById('questions-active-list');
+            return Boolean(activeList && activeList.children.length > 0);
+        });
+
+        const activeList = documentInstance.getElementById('questions-active-list');
+        const builtInCard = activeList.querySelector('[data-question-id="q_energy"]');
+        expect(builtInCard).not.toBeNull();
+
+        const removeButton = builtInCard.querySelector('.question-remove-button, .question-archive-button');
+        expect(removeButton).not.toBeNull();
+        expect(removeButton.textContent.trim()).toBe('Remove');
+
+        // Click remove on built-in question
+        removeButton.click();
+
+        // Wait for question to be removed from active list in DOM
+        await waitFor(() => {
+            const activeListAfter = documentInstance.getElementById('questions-active-list');
+            return activeListAfter && activeListAfter.querySelector('[data-question-id="q_energy"]') === null;
+        });
+
+        // Toggle button to show removed questions should now be visible
+        const toggleButton = documentInstance.getElementById('button-toggle-removed-questions');
+        await waitFor(() => !toggleButton.hidden);
+        expect(toggleButton.hidden).toBe(false);
+
+        // Open removed questions section
+        toggleButton.click();
+        const removedSection = documentInstance.getElementById('questions-archived-section');
+        await waitFor(() => !removedSection.hidden);
+
+        // Verify built-in question is in removed list with Restore button
+        const removedBuiltInCard = documentInstance.querySelector(
+            '#questions-archived-list [data-question-id="q_energy"]'
+        );
+        expect(removedBuiltInCard).not.toBeNull();
+        const restoreButton = removedBuiltInCard.querySelector('.question-restore-button');
+        expect(restoreButton).not.toBeNull();
+
+        // Click restore
+        restoreButton.click();
+        await waitFor(() => {
+            const catalogList = documentInstance.getElementById('questions-catalog-list');
+            return catalogList && catalogList.querySelector('[data-question-id="q_energy"]') !== null;
+        });
+    });
 });

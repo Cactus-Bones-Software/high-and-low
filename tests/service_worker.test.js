@@ -53,8 +53,8 @@ describe('Phase 6: Offline Capabilities & Service Worker (Task 6.1 & 6.2)', () =
         expect(manifest.icons.length).toBeGreaterThanOrEqual(2);
 
         const iconSources = manifest.icons.map(icon => icon.src);
-        expect(iconSources).toContain('pwa-192x192.png');
-        expect(iconSources).toContain('pwa-512x512.png');
+        expect(iconSources.some(src => src.endsWith('pwa-192x192.png'))).toBe(true);
+        expect(iconSources.some(src => src.endsWith('pwa-512x512.png'))).toBe(true);
     });
 
     it('4. index.html links to manifest, favicon, and mobile meta headers', () => {

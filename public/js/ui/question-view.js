@@ -169,6 +169,8 @@ export function buildQuestionCardHTML(question, options = {}) {
     } else if (isBuiltIn) {
         actionButtonsHTML = `<button type="button" class="question-copy-button card-action-copy card-action-edit" data-action="copy-question" data-question-id="${question.id}" aria-label="Copy question: ${questionTitle}">
             Copy
+        </button> <button type="button" class="question-archive-button question-remove-button card-action-archive card-action-remove" data-action="archive-question" data-question-id="${question.id}" aria-label="Remove question: ${questionTitle}">
+            Remove
         </button>`;
     } else {
         actionButtonsHTML = `<button type="button" class="question-edit-button card-action-edit" data-action="edit-question" data-question-id="${question.id}" aria-label="Edit question: ${questionTitle}">

@@ -355,9 +355,6 @@ export async function archiveQuestion(questionId) {
             if (!existing) {
                 return reject(new Error(`Question not found with ID: ${questionId}`));
             }
-            if (existing.builtIn) {
-                return reject(new Error('Built-in questions cannot be archived.'));
-            }
 
             const recordToSave = {
                 ...existing,

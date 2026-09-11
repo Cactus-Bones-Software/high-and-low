@@ -1,197 +1,247 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setupTestDOM, waitFor } from './test-utils.js';
-import {
-    createCustomQuestion,
-    updateCustomQuestion,
-    archiveCustomQuestion,
-    restoreCustomQuestion
-} from '../public/js/questions.js';
-import { getAll, getConfig } from '../public/js/storage/db.js';
-import { loadQuestionsView } from '../public/js/ui/question-view.js';
-
-let domInstance;
-let windowInstance;
-let documentInstance;
 
 describe('Task 5.7: Question Editing & Archiving Workflow', () => {
+    let windowInstance;
+    let documentInstance;
+
     beforeEach(async () => {
-        const environment = await setupTestDOM();
-        domInstance = environment.dom;
-        windowInstance = environment.window;
-        documentInstance = environment.document;
+        const setup = await setupTestDOM();
+        windowInstance = setup.window;
+        documentInstance = setup.document;
 
-        // Navigate to questions view
-        windowInstance.navigateTo('questions-canvas', { instant: true });
-        await waitFor(() => {
-            const catalogList = documentInstance.getElementById('questions-catalog-list');
-            return Boolean(catalogList && catalogList.children.length > 0);
-        });
+        // Wait for IndexedDB initialization and seeding
+        await waitFor(() => windowInstance.getAll && typeof windowInstance.getAll === 'function');
     });
 
-    it('1. Core DB: updateCustomQuestion updates custom question attributes while preserving ID and immutability rules', async () => {
-        const createResult = await createCustomQuestion({
-            text: 'How focused were you today?',
-            shortLabel: 'Focus Level',
-            tags: ['work', 'mind'],
+    it('1. updateCustomQuestion preserves immutable fields (id, originalText, builtIn, createdAt) while updating mutable fields', async () => {
+        const creationOutcome = await windowInstance.createCustomQuestion({
+            text: 'How focused were you on your primary project today?',
+            shortLabel: 'Focus Duration',
+            tags: ['Productivity', 'Work'],
             curve: 'more-is-better',
-            minLabel: 'Low',
-            maxLabel: 'High',
-            addToSet: true
+            minLabel: 'Scattered',
+            maxLabel: 'Deep Flow',
+            addToSet: false
         });
 
-        expect(createResult.status).toBe('added');
-        const questionId = createResult.question.id;
-        const originalCreatedAt = createResult.question.createdAt;
-        const originalText = createResult.question.originalText;
+        expect(creationOutcome.status).toBe('added');
+        const originalQuestion = creationOutcome.question;
 
-        const updated = await updateCustomQuestion(questionId, {
-            text: 'How super focused were you today?',
-            shortLabel: 'Deep Focus',
-            tags: ['productivity', 'flow'],
-            curve: 'less-is-better',
-            minLabel: 'Distracted',
-            maxLabel: 'Locked In'
+        const updated = await windowInstance.updateCustomQuestion(originalQuestion.id, {
+            text: 'How deep was your mental concentration today?',
+            shortLabel: 'Mental Focus',
+            tags: ['Work', 'Cognitive', 'Clarity'],
+            curve: 'middle-is-best',
+            minLabel: 'Brain Fog',
+            midLabel: 'Ideal Flow',
+            maxLabel: 'Hyperfocused / Tunnel'
         });
 
-        expect(updated.id).toBe(questionId);
-        expect(updated.originalText).toBe(originalText);
-        expect(updated.createdAt).toBe(originalCreatedAt);
-        expect(updated.text).toBe('How super focused were you today?');
-        expect(updated.shortLabel).toBe('Deep Focus');
-        expect(updated.tags).toEqual(['productivity', 'flow']);
-        expect(updated.curve).toBe('less-is-better');
-        expect(updated.minLabel).toBe('Distracted');
-        expect(updated.maxLabel).toBe('Locked In');
+        expect(updated.id).toBe(originalQuestion.id);
+        expect(updated.originalText).toBe(originalQuestion.originalText);
+        expect(updated.createdAt).toBe(originalQuestion.createdAt);
         expect(updated.builtIn).toBe(false);
-        expect(updated.archived).toBe(false);
+        expect(updated.text).toBe('How deep was your mental concentration today?');
+        expect(updated.shortLabel).toBe('Mental Focus');
+        expect(updated.tags).toEqual(['Work', 'Cognitive', 'Clarity']);
+        expect(updated.curve).toBe('middle-is-best');
+        expect(updated.minLabel).toBe('Brain Fog');
+        expect(updated.midLabel).toBe('Ideal Flow');
+        expect(updated.maxLabel).toBe('Hyperfocused / Tunnel');
+        expect(new Date(updated.updatedAt).getTime()).toBeGreaterThanOrEqual(new Date(originalQuestion.createdAt).getTime());
 
-        // Verify database persistence
-        const allQuestions = await getAll('questions');
-        const dbRecord = allQuestions.find(q => q.id === questionId);
-        expect(dbRecord.text).toBe('How super focused were you today?');
-        expect(dbRecord.shortLabel).toBe('Deep Focus');
+        // Verify in IndexedDB
+        const retrieved = await windowInstance.get('questions', originalQuestion.id);
+        expect(retrieved.text).toBe('How deep was your mental concentration today?');
+        expect(retrieved.id).toBe(originalQuestion.id);
+        expect(retrieved.originalText).toBe(originalQuestion.originalText);
     });
 
-    it('2. Core DB: Immutability enforcement - built-in questions throw error when attempted to edit or archive', async () => {
-        // Built-in question q_energy
-        await expect(updateCustomQuestion('q_energy', { text: 'New Energy Text', shortLabel: 'Energy' }))
-            .rejects.toThrow('Built-in questions cannot be edited.');
+    it('2. Built-in questions cannot be edited but can be archived/removed', async () => {
+        await expect(windowInstance.updateCustomQuestion('q_energy', { text: 'New energy text' }))
+            .rejects.toThrow(/Built-in questions cannot be edited/);
 
-        await expect(archiveCustomQuestion('q_energy'))
-            .rejects.toThrow('Built-in questions cannot be archived.');
+        const archived = await windowInstance.archiveQuestion('q_energy');
+        expect(archived.archived).toBe(true);
+
+        // Restore for test teardown
+        await windowInstance.restoreQuestion('q_energy');
     });
 
-    it('3. Soft Archiving & Restoring: Soft-archiving marks question archived and removes from active tracker', async () => {
-        const createResult = await createCustomQuestion({
-            text: 'Daily Hydration Intake',
+    it('3. archiveQuestion soft-deletes custom question and removes it from activeQuestionSet', async () => {
+        const creationOutcome = await windowInstance.createCustomQuestion({
+            text: 'How hydrated did you stay today?',
             shortLabel: 'Hydration',
-            tags: ['health'],
+            tags: ['Health'],
             curve: 'more-is-better',
             addToSet: true
         });
-        const questionId = createResult.question.id;
 
-        // Check active set initially contains questionId
-        let activeSet = await getConfig('activeQuestionSet');
+        const questionId = creationOutcome.id;
+
+        // Verify it was added to active set
+        let activeSet = await windowInstance.getConfig('activeQuestionSet');
         expect(activeSet).toContain(questionId);
 
-        // Soft-archive question
-        const archivedQuestion = await archiveCustomQuestion(questionId);
-        expect(archivedQuestion.archived).toBe(true);
+        // Archive question
+        const archived = await windowInstance.archiveQuestion(questionId);
+        expect(archived.archived).toBe(true);
 
-        // Check active set no longer contains questionId
-        activeSet = await getConfig('activeQuestionSet');
+        // Verify active question set no longer contains the archived question
+        activeSet = await windowInstance.getConfig('activeQuestionSet');
         expect(activeSet).not.toContain(questionId);
 
-        // Check DB record still exists and has archived: true
-        const allQuestions = await getAll('questions');
-        const dbRecord = allQuestions.find(q => q.id === questionId);
-        expect(dbRecord).not.toBeUndefined();
-        expect(dbRecord.archived).toBe(true);
-
-        // Restore custom question
-        const restoredQuestion = await restoreCustomQuestion(questionId);
-        expect(restoredQuestion.archived).toBe(false);
-
-        const restoredQuestions = await getAll('questions');
-        const restoredDbRecord = restoredQuestions.find(q => q.id === questionId);
-        expect(restoredDbRecord.archived).toBe(false);
+        // Verify in DB
+        const inDb = await windowInstance.get('questions', questionId);
+        expect(inDb.archived).toBe(true);
     });
 
-    it('4. UI Workflow: Built-in question cards have Copy button and no Archive button', async () => {
-        const activeList = documentInstance.getElementById('questions-active-list');
-        const builtInCard = Array.from(activeList.children).find(card => {
-            const badge = card.querySelector('.question-card-badge');
-            return badge && badge.textContent.trim() === 'Built-in';
-        });
-
-        expect(builtInCard).not.toBeNull();
-        const copyButton = builtInCard.querySelector('.question-copy-button');
-        expect(copyButton).not.toBeNull();
-        expect(copyButton.disabled).toBe(false);
-        expect(copyButton.textContent.trim()).toBe('Copy');
-        expect(copyButton.getAttribute('data-action')).toBe('copy-question');
-
-        const archiveButton = builtInCard.querySelector('.question-archive-button');
-        expect(archiveButton).toBeNull();
-    });
-
-    it('5. UI Workflow: Archiving custom question renders it in Archived section with Restore button', async () => {
-        // Create custom question
-        await createCustomQuestion({
-            text: 'Meditation minutes',
-            shortLabel: 'Meditation',
-            tags: ['mindfulness'],
+    it('4. restoreQuestion sets archived to false', async () => {
+        const creationOutcome = await windowInstance.createCustomQuestion({
+            text: 'Did you spend time outdoors today?',
+            shortLabel: 'Outdoors',
+            tags: ['Nature'],
             curve: 'more-is-better',
             addToSet: false
         });
 
-        // Load view to render newly created question into DOM
-        await loadQuestionsView();
+        const questionId = creationOutcome.id;
+        await windowInstance.archiveQuestion(questionId);
+        let inDb = await windowInstance.get('questions', questionId);
+        expect(inDb.archived).toBe(true);
 
-        const catalogList = documentInstance.getElementById('questions-catalog-list');
-        const customCard = Array.from(catalogList.children).find(card => {
-            const text = card.querySelector('.question-card-text');
-            return text && text.textContent.includes('Meditation minutes');
+        const restored = await windowInstance.restoreQuestion(questionId);
+        expect(restored.archived).toBe(false);
+
+        inDb = await windowInstance.get('questions', questionId);
+        expect(inDb.archived).toBe(false);
+    });
+
+    it('5. UI Flow: Opening edit modal populates question fields, allows saving updates, and updates view', async () => {
+        // Create custom question
+        const customOutcome = await windowInstance.createCustomQuestion({
+            text: 'How creative did you feel today?',
+            shortLabel: 'Creativity',
+            tags: ['Mind', 'Flow'],
+            curve: 'more-is-better',
+            minLabel: 'Stuck',
+            maxLabel: 'Inspired',
+            addToSet: true
         });
-        expect(customCard).not.toBeUndefined();
 
-        const archiveButton = customCard.querySelector('.question-archive-button');
-        expect(archiveButton).not.toBeNull();
+        const questionId = customOutcome.id;
 
-        // Click Archive button
-        archiveButton.click();
-
+        // Navigate to questions view
+        windowInstance.navigateTo('questions-canvas', { instant: true });
         await waitFor(() => {
-            const archivedSection = documentInstance.getElementById('questions-archived-section');
-            return Boolean(archivedSection && !archivedSection.hidden);
+            const activeList = documentInstance.getElementById('questions-active-list');
+            return Boolean(activeList && activeList.querySelector(`[data-question-id="${questionId}"]`));
         });
 
-        const archivedList = documentInstance.getElementById('questions-archived-list');
-        expect(archivedList.children.length).toBeGreaterThan(0);
+        const customCard = documentInstance.querySelector(`#questions-active-list [data-question-id="${questionId}"]`);
+        expect(customCard).not.toBeNull();
 
-        const archivedCard = Array.from(archivedList.children).find(card => {
-            const text = card.querySelector('.question-card-text');
-            return text && text.textContent.includes('Meditation minutes');
+        // Click edit button
+        const editButton = customCard.querySelector('.question-edit-button');
+        expect(editButton).not.toBeNull();
+        editButton.click();
+
+        // Wait for modal to open
+        const overlay = documentInstance.getElementById('question-authoring-dialog-overlay');
+        await waitFor(() => overlay.classList.contains('is-open'));
+        expect(overlay.classList.contains('is-open')).toBe(true);
+
+        const modalTitle = documentInstance.getElementById('question-authoring-dialog-title');
+        expect(modalTitle.textContent).toBe('Edit Custom Question');
+
+        const saveButton = documentInstance.getElementById('button-save-question');
+        expect(saveButton.textContent).toContain('Save Changes');
+
+        const archiveRow = documentInstance.getElementById('archive-question-row');
+        expect(archiveRow.hidden).toBe(false);
+
+        const textInput = documentInstance.getElementById('q-text');
+        expect(textInput.value).toBe('How creative did you feel today?');
+
+        const shortLabelInput = documentInstance.getElementById('q-short-label');
+        expect(shortLabelInput.value).toBe('Creativity');
+
+        // Modify fields and save
+        textInput.value = 'How imaginative was your thinking today?';
+        shortLabelInput.value = 'Imagination';
+        textInput.dispatchEvent(new windowInstance.Event('input'));
+        shortLabelInput.dispatchEvent(new windowInstance.Event('input'));
+
+        await windowInstance.saveQuestionFromAuthoring();
+
+        await waitFor(() => !overlay.classList.contains('is-open'));
+
+        // Verify updated text in DB
+        const updatedDb = await windowInstance.get('questions', questionId);
+        expect(updatedDb.text).toBe('How imaginative was your thinking today?');
+        expect(updatedDb.shortLabel).toBe('Imagination');
+    });
+
+    it('6. UI Flow: Archiving via authoring dialog removes card from active/catalog and renders in archived section with restore button', async () => {
+        const customOutcome = await windowInstance.createCustomQuestion({
+            text: 'How calm was your morning routine?',
+            shortLabel: 'Morning Calm',
+            tags: ['Routine'],
+            curve: 'more-is-better',
+            addToSet: true
         });
-        expect(archivedCard).not.toBeUndefined();
 
-        const badge = archivedCard.querySelector('.question-card-badge');
-        expect(badge.textContent.trim()).toBe('Archived');
+        const questionId = customOutcome.id;
+
+        // Navigate to questions canvas
+        windowInstance.navigateTo('questions-canvas', { instant: true });
+        await waitFor(() => {
+            const activeList = documentInstance.getElementById('questions-active-list');
+            return Boolean(activeList && activeList.querySelector(`[data-question-id="${questionId}"]`));
+        });
+
+        // Open edit modal
+        const customCard = documentInstance.querySelector(`#questions-active-list [data-question-id="${questionId}"]`);
+        const editButton = customCard.querySelector('.question-edit-button');
+        editButton.click();
+
+        const overlay = documentInstance.getElementById('question-authoring-dialog-overlay');
+        await waitFor(() => overlay.classList.contains('is-open'));
+        expect(overlay.classList.contains('is-open')).toBe(true);
+
+        // Execute archive action
+        await windowInstance.archiveQuestionFromAuthoring();
+
+        await waitFor(() => !overlay.classList.contains('is-open'));
+
+        // Check that active list no longer has the question
+        expect(documentInstance.querySelector(`#questions-active-list [data-question-id="${questionId}"]`)).toBeNull();
+        expect(documentInstance.querySelector(`#questions-catalog-list [data-question-id="${questionId}"]`)).toBeNull();
+
+        // Check that archived section shows the question
+        const archivedSection = documentInstance.getElementById('questions-archived-section');
+        expect(archivedSection.hidden).toBe(false);
+
+        const archivedCard = documentInstance.querySelector(`#questions-archived-list [data-question-id="${questionId}"]`);
+        expect(archivedCard).not.toBeNull();
+        expect(archivedCard.querySelector('.question-card-badge').textContent).toBe('Archived');
 
         const restoreButton = archivedCard.querySelector('.question-restore-button');
         expect(restoreButton).not.toBeNull();
+        expect(restoreButton.textContent.trim()).toBe('Restore');
 
         // Click restore button
         restoreButton.click();
 
         await waitFor(() => {
-            const updatedCatalogList = documentInstance.getElementById('questions-catalog-list');
-            return Boolean(Array.from(updatedCatalogList.children).some(card => {
-                const text = card.querySelector('.question-card-text');
-                return text && text.textContent.includes('Meditation minutes');
-            }));
+            const catalogCard = documentInstance.querySelector(`#questions-catalog-list [data-question-id="${questionId}"]`);
+            return Boolean(catalogCard);
         });
+
+        // Verify in DB that it is no longer archived
+        const inDb = await windowInstance.get('questions', questionId);
+        expect(inDb.archived).toBe(false);
     });
 });
