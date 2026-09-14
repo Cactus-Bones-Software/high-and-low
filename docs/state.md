@@ -115,19 +115,21 @@ export const STATE = {
 │   ├── state.md               # Current stack, schemas, config keys, and file layout (THIS FILE)
 │   ├── decisions.md           # Append-only design rationale & locked decision history
 │   ├── todo.md                # Task backlog & development roadmap (source of truth for progress)
-│   └── dataset-guidelines.md  # Synthetic clinical dataset generation specification
+│   ├── dataset-guidelines.md  # Synthetic clinical dataset generation specification
+│   └── versioning.md          # Semantic versioning policy, pre-1.0 rules & bump matrix
 │
 ├── public/                    # Deployable application files (served directly, no build step)
 │   ├── index.html             # Single-page HTML canvas structure and modal dialogs
 │   ├── style.css              # Consolidated stylesheet (tokens, themes, components, layouts)
 │   ├── manifest.json          # PWA web application manifest
 │   ├── sw.js                  # Lightweight offline service worker (precache & cache-first strategy)
-│   ├── favicon.ico            # Desktop favicon
-│   ├── apple-touch-icon.png   # iOS home screen icon
-│   ├── pwa-192x192.png        # Standard PWA application icon (192x192)
-│   ├── pwa-512x512.png        # High-res PWA application icon (512x512)
-│   ├── pwa-maskable-512x512.png # Maskable adaptive icon (512x512)
-│   ├── icons/                 # Legacy icon compatibility directory (icon-192.png, icon-512.png)
+│   ├── icons/                 # PWA and browser icon assets
+│   │   ├── favicon.ico        # Desktop favicon
+│   │   ├── favicon.png        # PNG favicon
+│   │   ├── apple-touch-icon.png # iOS home screen icon
+│   │   ├── pwa-192x192.png    # Standard PWA application icon (192x192)
+│   │   ├── pwa-512x512.png    # High-res PWA application icon (512x512)
+│   │   └── pwa-maskable-512x512.png # Maskable adaptive icon (512x512)
 │   └── js/
 │       ├── main.js            # Entry point: app initialization, event delegation, service worker
 │       ├── state.js           # STATE singleton object definition
