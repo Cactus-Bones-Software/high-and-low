@@ -335,9 +335,8 @@ just native `<script type="module">`, staying within the vanilla-only constraint
 ### Phase 7: Bugs and Issues
 
 - [ ] Buttons in dialogs sometimes have the hold-to-actuate effect, even if they do not need to be held.
-- [ ] 
 
-### Phase 7: Documentation & Final Cleanup
+### Phase 8: Documentation & Final Cleanup
 - [ ] **Task 7.1: Code Base JSDoc & Architectural Comments**
   - Perform a complete documentation pass across all modular ES files in `public/js/` (`storage/db.js`, `checkin.js`, `data-io.js`, `questions.js`, `ui/*.js`), adding JSDoc comments to all core functions (`initDatabase`, `renderCurrentQuestion`, `exportAllDataAndConfig`, `handleFileImport`).
 
