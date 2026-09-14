@@ -2,7 +2,7 @@
 
 Locked design decisions and open questions for High & Low (menu, question store, curves).
 
-## Locked decisions (as of 2026-07-14)
+## As of 2026-07-14
 
 - **Navigation:** Retire the double-tap-header settings gesture. Originally a top-right hamburger menu, now enhanced
   to support user-configurable handedness (`right` default / `left`).
@@ -35,12 +35,12 @@ Locked design decisions and open questions for High & Low (menu, question store,
 - **`config` formalized:** `activeQuestionSet` (ordered id list), `theme`, `contrast`, `menuSide`, `seedVersion`
   (drives adding new built-in defaults on app refresh without touching the user's set).
 
-## Locked decisions (as of 2026-08-06)
+## As of 2026-08-06
 
 - **Navigation:** Hamburger icon with user-configurable side (`right` default / `left`), opening a drawer that
   slides in from the configured side. Handedness preference is persisted in localStorage and config.
 
-## Locked decisions (as of 2026-08-13)
+## As of 2026-08-13
 
 - **No Question Rotation:** There is no automatic rotation. All questions enabled in `config.activeQuestionSet`
   appear directly in the tracker loop. Turning off a question removes it from the active tracker and places it
@@ -62,7 +62,7 @@ Locked design decisions and open questions for High & Low (menu, question store,
   Yes/No questions render as a streamlined 2-button choice deck in the tracker and plot cleanly on the analytics
   timeline.
 
-## Locked decisions (as of 2026-08-14)
+## As of 2026-08-14
 
 - **Intra-Day & Multi-Entry Check-Ins:** Patients often need to record mood check-ins multiple times per day (e.g.,
   morning/evening or during acute symptom spikes). The application fully supports multiple entries per day:
@@ -75,7 +75,7 @@ Locked design decisions and open questions for High & Low (menu, question store,
     check-in if the previous check-in was completed. Users never need to reload the page or restart the PWA to log
     again.
 
-## Locked decisions (as of 2026-08-18)
+## As of 2026-08-18
 
 - **Check-In Persistence & Stale Expiry:**
   - Active check-in progress (current question index, check-in answers, attached check-in note) and current view
@@ -111,5 +111,11 @@ Locked design decisions and open questions for High & Low (menu, question store,
     (`.card-actions-center`) with the Up button on the left and Down button on the right flanking the drag handle.
     Their visibility is styled and toggled via the `.is-reorderable` class, ensuring cards can be dynamically rendered
     with or without reordering affordances while sharing the exact same DOM and style rules.
+
+## As of 2026-09-14
+
+- **Versioning:**
+  - Decided to implement Semantic Versioning.
+  - Reduced version to 0.1.0.
 
 ## Open Questions

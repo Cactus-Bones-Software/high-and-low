@@ -14,8 +14,10 @@
      (`npm test`).
   3. If this task changes the schema, config, or file layout, update `docs/state.md` in the same edit — not as a
      follow-up task.
-  4. Mark the completed task as `[x]` in `docs/todo.md`.
-  5. Prompt the developer/user to inspect the change before proceeding to the next item.
+  4. If this task warrants a version bump per `docs/versioning.md`, update `package.json` and log the bump in
+     `docs/decisions.md` in the same edit — not as a follow-up task.
+  5. Mark the completed task as `[x]` in `docs/todo.md`.
+  6. Prompt the developer/user to inspect the change before proceeding to the next item.
 
 ## Where to Look
 | Question                                 | File                         | Purpose                                           |
@@ -25,6 +27,7 @@
 | What is the next task or what is done?   | `docs/todo.md`               | Task backlog and official roadmap.                |
 | Synthetic dataset specification?         | `docs/dataset-guidelines.md` | Clinical profile & JSON guidelines.               |
 | User pitch, donations, or philosophy?    | `README.md`                  | Non-technical project overview.                   |
+| When should the version number change?   | `docs/versioning.md`         | SemVer policy: what counts as major/minor/patch.  |
 
 ## Code & Formatting Conventions
 - **Line Width Limit**:

@@ -1,7 +1,7 @@
 {
   "name": "high-and-low",
-  "version": "1.0.0",
-  "description": "A local-first, low-friction mood tracking web application built strictly with vanilla HTML, CSS, and JavaScript.",
+  "version": "0.1.0",
+  "description": "A local-first, easy-to-use mood tracker built to be private and low-stress.",
   "main": "public/js/main.js",
   "scripts": {
     "test": "vitest run",
