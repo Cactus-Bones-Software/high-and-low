@@ -59,12 +59,15 @@ describe('Task 5.7: Question Editing & Archiving Workflow', () => {
         expect(retrieved.originalText).toBe(originalQuestion.originalText);
     });
 
-    it('2. Built-in questions cannot be edited or archived', async () => {
+    it('2. Built-in questions cannot be edited but can be archived/removed', async () => {
         await expect(windowInstance.updateCustomQuestion('q_energy', { text: 'New energy text' }))
             .rejects.toThrow(/Built-in questions cannot be edited/);
 
-        await expect(windowInstance.archiveQuestion('q_energy'))
-            .rejects.toThrow(/Built-in questions cannot be archived/);
+        const archived = await windowInstance.archiveQuestion('q_energy');
+        expect(archived.archived).toBe(true);
+
+        // Restore for test teardown
+        await windowInstance.restoreQuestion('q_energy');
     });
 
     it('3. archiveQuestion soft-deletes custom question and removes it from activeQuestionSet', async () => {

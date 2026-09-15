@@ -35,7 +35,7 @@ Current Version: `3`
 | `contrast`          | `string`   | `'standard'` or `'high'`    | Contrast mode                                            |
 | `handedness`        | `string`   | `'right'\|'left'`           | Menu and non-dominant action alignment                   |
 | `holdDelay`         | `string`   | `'enabled'\|'disabled'`     | 1.5s hold-to-confirm barrier on touch actions            |
-| `seedVersion`       | `number`   | Integer (e.g. `3`)          | Tracks built-in default question seeding                 |
+| `seedVersion`       | `number`   | Integer (e.g. `4`)          | Tracks built-in default question seeding                 |
 
 *Note: `handedness` and `holdDelay` preferences are also mirrored in `localStorage` for immediate pre-render access.*
 
@@ -49,6 +49,7 @@ Current Version: `3`
     text: string; // Editable display text
     shortLabel: string; // 2-3 word label for charts, legend, and chips
     tags: string[]; // Category tags (e.g. ["Energy", "Somatic"])
+    responseType: 'scale' | 'boolean'; // Type of answer format ('scale' = 1-5, 'boolean' = Yes/No)
     curve: 'more-is-better' | 'less-is-better' | 'middle-is-best';
     minLabel: string | null; // Label for score 1
     midLabel: string | null; // Label for score 3 (used by middle-is-best)

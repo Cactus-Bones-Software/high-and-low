@@ -54,13 +54,13 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
 
     it('3. Navigating to questions view renders active cards and catalog cards', async () => {
         windowInstance.navigateTo('questions-canvas');
-        await waitFor(() => documentInstance.querySelectorAll('.question-card').length >= 7);
+        await waitFor(() => documentInstance.querySelectorAll('.question-card').length >= 8);
 
         const activeList = documentInstance.getElementById('questions-active-list');
         const catalogList = documentInstance.getElementById('questions-catalog-list');
 
         expect(activeList.querySelectorAll('.question-card').length).toBe(4);
-        expect(catalogList.querySelectorAll('.question-card').length).toBe(7);
+        expect(catalogList.querySelectorAll('.question-card').length).toBe(8);
         expect(activeList.querySelector('.question-card-badge-builtin')).toBeTruthy();
         expect(activeList.querySelector('.question-tag-chip')).toBeTruthy();
         expect(activeList.textContent).toContain('Energy');
@@ -131,7 +131,7 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
 
         await waitFor(() => {
             const catalogCards = documentInstance.getElementById('questions-catalog-list').querySelectorAll('.question-card');
-            return catalogCards.length === 8;
+            return catalogCards.length === 9;
         });
 
         const overlay = documentInstance.getElementById('question-authoring-dialog-overlay');
@@ -143,12 +143,12 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
         const setup = await setupTestDOM({ high_and_low_active_view: 'questions-canvas' });
         const restoredDocument = setup.document;
 
-        await waitFor(() => restoredDocument.querySelectorAll('.question-card').length >= 7);
+        await waitFor(() => restoredDocument.querySelectorAll('.question-card').length >= 8);
 
         const questionsCanvas = restoredDocument.getElementById('questions-canvas');
         expect(questionsCanvas.classList.contains('view-active')).toBe(true);
         expect(restoredDocument.getElementById('questions-active-list').querySelectorAll('.question-card').length).toBe(4);
-        expect(restoredDocument.getElementById('questions-catalog-list').querySelectorAll('.question-card').length).toBe(7);
+        expect(restoredDocument.getElementById('questions-catalog-list').querySelectorAll('.question-card').length).toBe(8);
     });
 
     it('8. Active tracker cards reorder the persisted tracker sequence', async () => {

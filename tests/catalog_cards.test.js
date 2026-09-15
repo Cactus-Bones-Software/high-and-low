@@ -26,7 +26,7 @@ describe('Task 5.6: Catalog Cards & Non-Dominant Edit Actions', () => {
     it('1. Catalog Card Structure: Renders cards with question text, tags, edit button, and toggle switch', () => {
         const catalogList = documentInstance.getElementById('questions-catalog-list');
         expect(catalogList).not.toBeNull();
-        expect(catalogList.children.length).toBe(7);
+        expect(catalogList.children.length).toBe(8);
 
         const firstCard = catalogList.children[0];
         expect(firstCard.classList.contains('question-card')).toBe(true);

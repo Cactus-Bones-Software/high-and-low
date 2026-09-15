@@ -764,6 +764,12 @@ export function setupQuestionAuthoring() {
     const textInput = document.getElementById('q-text');
     const shortLabelInput = document.getElementById('q-short-label');
     const tagsInput = document.getElementById('q-tags');
+    const responseTypeInput = document.getElementById('q-response-type');
+    const scaleOnlyFieldsContainer = document.getElementById('scale-only-fields');
+    const curveField = document.getElementById('field-curve');
+    const maxField = document.getElementById('field-max-label');
+    const minField = document.getElementById('field-min-label');
+    const scaleHint = document.getElementById('field-scale-hint');
     const curveInput = document.getElementById('q-curve');
     const maxInput = document.getElementById('q-max-label');
     const midField = document.getElementById('field-mid-label');
@@ -824,20 +830,56 @@ export function setupQuestionAuthoring() {
         }
     }
 
+    function syncResponseTypeVisibility() {
+        const isBoolean = responseTypeInput ? responseTypeInput.value === 'boolean' : false;
+        if (scaleOnlyFieldsContainer) {
+            scaleOnlyFieldsContainer.hidden = isBoolean;
+        }
+        if (curveField) curveField.hidden = isBoolean;
+        if (maxField) maxField.hidden = isBoolean;
+        if (minField) minField.hidden = isBoolean;
+        if (scaleHint) scaleHint.hidden = isBoolean;
+
+        if (isBoolean) {
+            if (midField) midField.hidden = true;
+        } else {
+            syncMidVisibility();
+        }
+    }
+
     function refreshPreview() {
+        const isBoolean = responseTypeInput ? responseTypeInput.value === 'boolean' : false;
         const curve = curveInput.value;
-        preview.setAttribute('data-curve', curve);
+        preview.setAttribute('data-response-type', isBoolean ? 'boolean' : 'scale');
+        if (isBoolean) {
+            preview.removeAttribute('data-curve');
+        } else {
+            preview.setAttribute('data-curve', curve);
+        }
+
         const shortValue = normalizeQuestionText(shortLabelInput ? shortLabelInput.value : '');
         const fullValue = normalizeQuestionText(textInput ? textInput.value : '');
         if (previewTitleBox) {
             previewTitleBox.textContent = shortValue ? shortValue : (fullValue || 'Short Label Preview');
         }
-        previewStack.innerHTML = buildScoreButtonsHTML({
-            curve,
-            maxLabel: maxInput.value,
-            minLabel: minInput.value,
-            midLabel: midInput.value
-        });
+
+        if (isBoolean) {
+            previewStack.innerHTML = `
+                <button type="button" class="score-button boolean-score-button" data-score="5" data-boolean="yes" aria-label="Yes">
+                    <span class="label-desc">Yes</span>
+                </button>
+                <button type="button" class="score-button boolean-score-button" data-score="1" data-boolean="no" aria-label="No">
+                    <span class="label-desc">No</span>
+                </button>
+            `;
+        } else {
+            previewStack.innerHTML = buildScoreButtonsHTML({
+                curve,
+                maxLabel: maxInput.value,
+                minLabel: minInput.value,
+                midLabel: midInput.value
+            });
+        }
     }
 
     function syncMidVisibility() {
@@ -853,6 +895,7 @@ export function setupQuestionAuthoring() {
     function resetForm() {
         form.reset();
         clearValidationErrors();
+        syncResponseTypeVisibility();
         syncMidVisibility();
         syncSaveEnabled();
         refreshPreview();
@@ -891,12 +934,16 @@ export function setupQuestionAuthoring() {
         textInput.value = question.text;
         if (shortLabelInput) shortLabelInput.value = question.shortLabel || '';
         if (tagsInput) tagsInput.value = Array.isArray(question.tags) ? question.tags.join(', ') : '';
+        if (responseTypeInput) {
+            responseTypeInput.value = question.responseType || 'scale';
+        }
         curveInput.value = question.curve || 'more-is-better';
         maxInput.value = question.maxLabel || '';
         midInput.value = question.midLabel || '';
         minInput.value = question.minLabel || '';
         if (addToSetInput) addToSetInput.checked = false;
 
+        syncResponseTypeVisibility();
         syncMidVisibility();
         syncSaveEnabled();
         refreshPreview();
@@ -926,6 +973,9 @@ export function setupQuestionAuthoring() {
         textInput.value = question.text;
         if (shortLabelInput) shortLabelInput.value = question.shortLabel || '';
         if (tagsInput) tagsInput.value = Array.isArray(question.tags) ? question.tags.join(', ') : '';
+        if (responseTypeInput) {
+            responseTypeInput.value = question.responseType || 'scale';
+        }
         curveInput.value = question.curve || 'more-is-better';
         maxInput.value = question.maxLabel || '';
         midInput.value = question.midLabel || '';
@@ -936,6 +986,7 @@ export function setupQuestionAuthoring() {
             addToSetInput.checked = Array.isArray(activeSet) && activeSet.includes(question.id);
         }
 
+        syncResponseTypeVisibility();
         syncMidVisibility();
         syncSaveEnabled();
         refreshPreview();
@@ -983,12 +1034,15 @@ export function setupQuestionAuthoring() {
         saveButton.disabled = true;
 
         try {
+            const selectedResponseType = responseTypeInput ? responseTypeInput.value : 'scale';
+
             if (currentEditingQuestionId) {
                 const questionId = currentEditingQuestionId;
                 await updateCustomQuestion(questionId, {
                     text: textInput.value,
                     shortLabel: shortLabelInput ? shortLabelInput.value : '',
                     tags: tagsInput ? tagsInput.value : '',
+                    responseType: selectedResponseType,
                     curve: curveInput.value,
                     minLabel: minInput.value,
                     maxLabel: maxInput.value,
@@ -1019,6 +1073,7 @@ export function setupQuestionAuthoring() {
                     text: textInput.value,
                     shortLabel: shortLabelInput ? shortLabelInput.value : '',
                     tags: tagsInput ? tagsInput.value : '',
+                    responseType: selectedResponseType,
                     curve: curveInput.value,
                     minLabel: minInput.value,
                     maxLabel: maxInput.value,
@@ -1132,6 +1187,13 @@ export function setupQuestionAuthoring() {
         event.preventDefault();
     });
 
+    if (responseTypeInput) {
+        responseTypeInput.addEventListener('change', () => {
+            syncResponseTypeVisibility();
+            refreshPreview();
+        });
+    }
+
     curveInput.addEventListener('change', () => {
         syncMidVisibility();
         refreshPreview();
@@ -1161,6 +1223,7 @@ export function setupQuestionAuthoring() {
         }
     });
 
+    syncResponseTypeVisibility();
     syncMidVisibility();
     syncSaveEnabled();
     refreshPreview();

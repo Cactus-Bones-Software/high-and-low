@@ -135,9 +135,9 @@ describe('Task 5.5: Active Tracker Cards, Reordering Handles & In-Tracker Toggle
 
         const initialActiveCount = activeList.children.length;
         const initialCatalogCount = catalogList.children.length;
-        // Catalog contains all 7 default questions, while active list has 4
+        // Catalog contains all 8 default questions, while active list has 4
         expect(initialActiveCount).toBe(4);
-        expect(initialCatalogCount).toBe(7);
+        expect(initialCatalogCount).toBe(8);
 
         const targetCard = activeList.children[0];
         const targetQuestionId = targetCard.getAttribute('data-question-id');

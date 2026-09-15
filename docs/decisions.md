@@ -117,5 +117,14 @@ Locked design decisions and open questions for High & Low (menu, question store,
 - **Versioning:**
   - Decided to implement Semantic Versioning.
   - Reduced version to 0.1.0.
+- **Version Bump 0.2.0 (Task 5.10.1):**
+  - Bumped version to `0.2.0` (MINOR) per `docs/versioning.md` for additive schema enhancement.
+  - Added `responseType: 'scale' | 'boolean'` to question records in `HighAndLowDB` (`questions` store), with automatic
+    backfill to `'scale'` for existing records in `seedDefaults`.
+- **Built-In Binary Question (q_eaten):**
+  - Added "Have you eaten today?" (`q_eaten`) with `responseType: 'boolean'` to `DEFAULT_QUESTIONS`.
+  - Bumped `SEED_VERSION` to `4` so existing client databases automatically ingest the new built-in question into the
+    catalog on next load without disturbing the user's active set.
+  - Retained version `0.2.0` in working copy per user directive.
 
 ## Open Questions

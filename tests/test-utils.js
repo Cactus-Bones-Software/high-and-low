@@ -6,6 +6,7 @@ import { STATE } from '../public/js/state.js';
 import { initApp, resetAppInitialized, registerServiceWorker } from '../public/js/main.js';
 import {
     DEFAULT_QUESTIONS,
+    ALLOWED_RESPONSE_TYPES,
     seedDefaults,
     createCustomQuestion,
     updateCustomQuestion,
@@ -169,6 +170,7 @@ export async function setupTestDOM(customSessionStorage = {}) {
     windowInstance.loadQuestionsView = loadQuestionsView;
     windowInstance.buildActiveQuestionCardHTML = buildActiveQuestionCardHTML;
     windowInstance.DEFAULT_QUESTIONS = DEFAULT_QUESTIONS;
+    windowInstance.ALLOWED_RESPONSE_TYPES = ALLOWED_RESPONSE_TYPES;
     windowInstance.seedDefaults = seedDefaults;
     windowInstance.put = put;
     windowInstance.get = get;

@@ -9,19 +9,102 @@ import { getAll, getConfig, setConfig, getDatabase } from './storage/db.js';
 // Bump this whenever new entries are added to DEFAULT_QUESTIONS so that existing
 // installations pick up the new built-ins on next load (see seedDefaults) without
 // disturbing the user's own active set or authored questions.
-export const SEED_VERSION = 2;
+export const SEED_VERSION = 4;
+
+export const ALLOWED_RESPONSE_TYPES = ['scale', 'boolean'];
 
 // Built-in questions shipped with the app. User-authored questions live in the
 // same 'questions' store but with builtIn:false and a content-addressed id
 // (see makeCustomId). Built-ins use readable slugs for export/debug legibility.
 export const DEFAULT_QUESTIONS = [
-    { id: 'q_energy',       text: 'What is your current energy level?',            shortLabel: 'Energy Level',      tags: ['Energy', 'Somatic'],     curve: 'more-is-better',   minLabel: 'Bedbound/Depleted',      maxLabel: 'Fully Charged',   midLabel: null },
-    { id: 'q_sadness',      text: 'How heavy or deep is your sadness right now?',  shortLabel: 'Sadness Depth',     tags: ['Mood', 'Affect'],        curve: 'less-is-better',   minLabel: 'No Sadness',             maxLabel: 'Overwhelming',    midLabel: null },
-    { id: 'q_worth',        text: 'How is your sense of self-worth and guilt?',    shortLabel: 'Self-Worth',        tags: ['Cognitive', 'Self-Esteem'], curve: 'more-is-better', minLabel: 'Intense Guilt/Worthless', maxLabel: 'At Peace',        midLabel: null },
-    { id: 'q_irritability', text: 'How irritable or easily agitated do you feel?', shortLabel: 'Irritability',      tags: ['Mood', 'Reactivity'],    curve: 'less-is-better',   minLabel: 'Calm & Patient',         maxLabel: 'Highly Snappy',   midLabel: null },
-    { id: 'q_racing',       text: 'How fast are your thoughts moving?',            shortLabel: 'Racing Thoughts',   tags: ['Cognitive', 'Pacing'],   curve: 'less-is-better',   minLabel: 'Quiet & Focused',        maxLabel: 'Unstoppable Racing', midLabel: null },
-    { id: 'q_impulse',      text: 'Are you experiencing restless or reckless urges?', shortLabel: 'Restless Urges', tags: ['Behavioral', 'Impulse'], curve: 'less-is-better', minLabel: 'Deliberate',           maxLabel: 'Highly Impulsive', midLabel: null },
-    { id: 'q_overall',      text: 'Overall, where does your mood sit right now?',  shortLabel: 'Overall Mood',      tags: ['Mood', 'Core'],          curve: 'middle-is-best',   minLabel: 'Deeply Low',             maxLabel: 'Manic/Spiked',    midLabel: 'Stable & Even' }
+    {
+        id: 'q_energy',
+        responseType: 'scale',
+        text: 'What is your current energy level?',
+        shortLabel: 'Energy Level',
+        tags: ['Energy', 'Somatic'],
+        curve: 'more-is-better',
+        minLabel: 'Bedbound/Depleted',
+        maxLabel: 'Fully Charged',
+        midLabel: null
+    },
+    {
+        id: 'q_sadness',
+        responseType: 'scale',
+        text: 'How heavy or deep is your sadness right now?',
+        shortLabel: 'Sadness Depth',
+        tags: ['Mood', 'Affect'],
+        curve: 'less-is-better',
+        minLabel: 'No Sadness',
+        maxLabel: 'Overwhelming',
+        midLabel: null
+    },
+    {
+        id: 'q_worth',
+        responseType: 'scale',
+        text: 'How is your sense of self-worth and guilt?',
+        shortLabel: 'Self-Worth',
+        tags: ['Cognitive', 'Self-Esteem'],
+        curve: 'more-is-better',
+        minLabel: 'Intense Guilt/Worthless',
+        maxLabel: 'At Peace',
+        midLabel: null
+    },
+    {
+        id: 'q_irritability',
+        responseType: 'scale',
+        text: 'How irritable or easily agitated do you feel?',
+        shortLabel: 'Irritability',
+        tags: ['Mood', 'Reactivity'],
+        curve: 'less-is-better',
+        minLabel: 'Calm & Patient',
+        maxLabel: 'Highly Snappy',
+        midLabel: null
+    },
+    {
+        id: 'q_racing',
+        responseType: 'scale',
+        text: 'How fast are your thoughts moving?',
+        shortLabel: 'Racing Thoughts',
+        tags: ['Cognitive', 'Pacing'],
+        curve: 'less-is-better',
+        minLabel: 'Quiet & Focused',
+        maxLabel: 'Unstoppable Racing',
+        midLabel: null
+    },
+    {
+        id: 'q_impulse',
+        responseType: 'scale',
+        text: 'Are you experiencing restless or reckless urges?',
+        shortLabel: 'Restless Urges',
+        tags: ['Behavioral', 'Impulse'],
+        curve: 'less-is-better',
+        minLabel: 'Deliberate',
+        maxLabel: 'Highly Impulsive',
+        midLabel: null
+    },
+    {
+        id: 'q_overall',
+        responseType: 'scale',
+        text: 'Overall, where does your mood sit right now?',
+        shortLabel: 'Overall Mood',
+        tags: ['Mood', 'Core'],
+        curve: 'middle-is-best',
+        minLabel: 'Deeply Low',
+        maxLabel: 'Manic/Spiked',
+        midLabel: 'Stable & Even'
+    },
+    {
+        id: 'q_eaten',
+        responseType: 'boolean',
+        text: 'Have you eaten today?',
+        shortLabel: 'Eaten Today',
+        tags: ['Somatic', 'Physical'],
+        curve: 'more-is-better',
+        minLabel: null,
+        maxLabel: null,
+        midLabel: null
+    }
 ];
 
 // Daily set established on first run (ids into the 'questions' store).
@@ -68,10 +151,13 @@ export async function seedDefaults() {
         await new Promise((resolve, reject) => {
             const transaction = database.transaction(['questions'], 'readwrite');
             const store = transaction.objectStore('questions');
+            const updatedQuestionIds = new Set();
+
             DEFAULT_QUESTIONS.forEach(question => {
                 if (!existingQuestionIds.has(question.id)) {
                     store.add({
                         ...question,
+                        responseType: question.responseType || 'scale',
                         originalText: question.text,
                         tags: Array.isArray(question.tags) ? question.tags : [],
                         builtIn: true,
@@ -82,19 +168,40 @@ export async function seedDefaults() {
                 } else {
                     const existingQuestion = existingQuestions.find(item => item.id === question.id);
                     if (existingQuestion) {
-                        const needsTagUpdate = !Array.isArray(existingQuestion.tags) || existingQuestion.tags.length === 0;
-                        const needsShortLabelUpdate = !existingQuestion.shortLabel || existingQuestion.shortLabel !== question.shortLabel;
-                        if (needsTagUpdate || needsShortLabelUpdate) {
+                        const needsTagUpdate = !Array.isArray(existingQuestion.tags) ||
+                            existingQuestion.tags.length === 0;
+                        const needsShortLabelUpdate = !existingQuestion.shortLabel ||
+                            existingQuestion.shortLabel !== question.shortLabel;
+                        const needsResponseTypeUpdate = !existingQuestion.responseType;
+
+                        if (needsTagUpdate || needsShortLabelUpdate || needsResponseTypeUpdate) {
                             store.put({
                                 ...existingQuestion,
+                                responseType: existingQuestion.responseType || question.responseType || 'scale',
                                 shortLabel: question.shortLabel,
-                                tags: Array.isArray(existingQuestion.tags) && existingQuestion.tags.length > 0 ? existingQuestion.tags : (question.tags || []),
+                                tags: Array.isArray(existingQuestion.tags) && existingQuestion.tags.length > 0
+                                    ? existingQuestion.tags
+                                    : (question.tags || []),
                                 updatedAt: now
                             });
+                            updatedQuestionIds.add(existingQuestion.id);
                         }
                     }
                 }
             });
+
+            // Backfill responseType: "scale" onto any existing stored question records (e.g. custom questions)
+            // that predate this field, keeping all stored records consistent.
+            existingQuestions.forEach(existingQuestion => {
+                if (!updatedQuestionIds.has(existingQuestion.id) && !existingQuestion.responseType) {
+                    store.put({
+                        ...existingQuestion,
+                        responseType: 'scale',
+                        updatedAt: now
+                    });
+                }
+            });
+
             transaction.oncomplete = () => resolve();
             transaction.onerror = () => reject(transaction.error);
         });
@@ -166,11 +273,28 @@ export async function addQuestionToTracker(questionId) {
 }
 
 // Persist a user-authored question.
-export async function createCustomQuestion({ text, shortLabel, tags, curve, minLabel, maxLabel, midLabel, addToSet }) {
+export async function createCustomQuestion({
+                                               text,
+                                               shortLabel,
+                                               tags,
+                                               curve,
+                                               minLabel,
+                                               maxLabel,
+                                               midLabel,
+                                               addToSet,
+                                               responseType = 'scale'
+                                           }) {
     const normalized = normalizeQuestionText(text || '');
     const normalizedShort = normalizeQuestionText(shortLabel || '');
     if (!normalized) throw new Error('Question text is required.');
     if (!normalizedShort) throw new Error('Short label is required.');
+
+    const validatedResponseType = responseType === undefined ? 'scale' : responseType;
+    if (!ALLOWED_RESPONSE_TYPES.includes(validatedResponseType)) {
+        throw new Error(
+            `Invalid responseType: "${responseType}". Must be one of: ${ALLOWED_RESPONSE_TYPES.join(', ')}.`
+        );
+    }
 
     const normalizedTags = Array.isArray(tags)
         ? tags.map(tag => typeof tag === 'string' ? tag.trim() : '').filter(Boolean)
@@ -199,6 +323,7 @@ export async function createCustomQuestion({ text, shortLabel, tags, curve, minL
                         ...existing,
                         shortLabel: normalizedShort,
                         tags: normalizedTags.length > 0 ? normalizedTags : (existing.tags || []),
+                        responseType: validatedResponseType,
                         archived: false,
                         updatedAt: now
                     };
@@ -214,6 +339,7 @@ export async function createCustomQuestion({ text, shortLabel, tags, curve, minL
                     shortLabel: normalizedShort,
                     tags: normalizedTags,
                     originalText: normalized,
+                    responseType: validatedResponseType,
                     curve,
                     minLabel: minLabel || null,
                     maxLabel: maxLabel || null,
@@ -298,6 +424,16 @@ export async function updateCustomQuestion(questionId, updates = {}) {
                 }
             }
 
+            let responseType = existing.responseType || 'scale';
+            if (updates.responseType !== undefined) {
+                if (!ALLOWED_RESPONSE_TYPES.includes(updates.responseType)) {
+                    return reject(new Error(
+                        `Invalid responseType: "${updates.responseType}". Must be one of: ${ALLOWED_RESPONSE_TYPES.join(', ')}.`
+                    ));
+                }
+                responseType = updates.responseType;
+            }
+
             const curve = updates.curve || existing.curve || 'more-is-better';
             const minLabel = updates.minLabel !== undefined ? (updates.minLabel || null) : existing.minLabel;
             const maxLabel = updates.maxLabel !== undefined ? (updates.maxLabel || null) : existing.maxLabel;
@@ -315,6 +451,7 @@ export async function updateCustomQuestion(questionId, updates = {}) {
                 text: normalizedText,
                 shortLabel: normalizedShortLabel,
                 tags,
+                responseType,
                 curve,
                 minLabel,
                 maxLabel,

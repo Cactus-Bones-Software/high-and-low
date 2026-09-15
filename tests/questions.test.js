@@ -13,10 +13,10 @@ describe('Question Schema & Default Tags Tests (Task 5.1)', () => {
         await waitFor(() => windowInstance.getAll && typeof windowInstance.getAll === 'function');
     });
 
-    it('1. Built-in DEFAULT_QUESTIONS constant includes non-empty tags array for all 7 questions', () => {
+    it('1. Built-in DEFAULT_QUESTIONS constant includes non-empty tags array for all built-in questions', () => {
         const defaultQuestions = windowInstance.DEFAULT_QUESTIONS;
         expect(Array.isArray(defaultQuestions)).toBe(true);
-        expect(defaultQuestions.length).toBe(7);
+        expect(defaultQuestions.length).toBe(8);
 
         defaultQuestions.forEach(question => {
             expect(Array.isArray(question.tags)).toBe(true);
@@ -36,11 +36,14 @@ describe('Question Schema & Default Tags Tests (Task 5.1)', () => {
 
         const overallQuestion = defaultQuestions.find(question => question.id === 'q_overall');
         expect(overallQuestion.tags).toEqual(['Mood', 'Core']);
+
+        const eatenQuestion = defaultQuestions.find(question => question.id === 'q_eaten');
+        expect(eatenQuestion.tags).toEqual(['Somatic', 'Physical']);
     });
 
     it('2. Seeded questions in IndexedDB questions store contain tags array', async () => {
         const questionsInStore = await windowInstance.getAll('questions');
-        expect(questionsInStore.length).toBe(7);
+        expect(questionsInStore.length).toBe(8);
 
         questionsInStore.forEach(question => {
             expect(Array.isArray(question.tags)).toBe(true);

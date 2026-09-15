@@ -259,7 +259,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
     - Fields that should be changed should have a red outline.
     - The form should scroll to the first field that needs changed.
 
-- [ ] **Task 5.10.1: Yes/No Question Type — Schema Field**
+- [x] **Task 5.10.1: Yes/No Question Type — Schema Field**
   - In `public/js/questions.js`, add a `responseType` field to the question schema (`"scale" | "boolean"`).
   - Default every entry in `DEFAULT_QUESTIONS` to `responseType: "scale"` explicitly (do not rely on `undefined`).
   - In `createCustomQuestion`, accept an optional `responseType` argument, validate it against the two allowed
@@ -270,7 +270,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - This is a pure data-layer task — no dialog markup or UI wiring here. Do not touch `index.html` or
     `question-view.js`.
 
-- [ ] **Task 5.10.2: Yes/No Question Type — Authoring Dialog Field**
+- [x] **Task 5.10.2: Yes/No Question Type — Authoring Dialog Field**
   - In `index.html`, add a response type selector (5-Point Scale vs. Yes/No) to the custom question authoring modal
     markup (the same modal used for both add and edit, per Task 5.9), using the existing form-field/label
     conventions already used for the curve selector (`#q-curve`).
@@ -279,7 +279,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
     show/hide markup and inline behavior only — do not wire this into save/load logic yet, that is Task 5.10.3.
   - Reflect the selected response type in the live question preview element.
 
-- [ ] **Task 5.10.3: Yes/No Question Type — Wire Selector Into Save/Edit**
+- [x] **Task 5.10.3: Yes/No Question Type — Wire Selector Into Save/Edit**
   - In `../public/js/ui/question-view.js`, read the new response type selector's value on save and pass it through
     to `createCustomQuestion` (Task 5.10.1) as `responseType`.
   - When opening the dialog to edit an existing custom question, populate the selector from that question's stored
@@ -287,6 +287,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
     subsequent `change` events).
   - Confirm the field-hiding behavior from Task 5.10.2 is correctly triggered both by user interaction and by the
     programmatic population step above.
+
 - [ ] **Task 5.11.1: Boolean Score Mapping Constants**
   - In `public/js/questions.js`, add two exported constants for how a boolean answer is stored as a score on the
     existing 1–5 scale, e.g. `BOOLEAN_NO_SCORE = 1` and `BOOLEAN_YES_SCORE = 5`. Answers persist as the mapped
@@ -295,6 +296,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
     questions with zero additional branching there.
   - This is the single source of truth for the mapping — Tasks 5.11.2 and 5.11.4 both import these constants rather
     than hardcoding `1`/`5` again.
+
 - [ ] **Task 5.11.2: Yes/No Tracker Input Deck**
   - Update `renderCurrentQuestion` and `buildScoreButtonsHTML` in `public/js/checkin.js` so that when the current
     question has `responseType: "boolean"`, a clean 2-button (Yes / No) input deck renders in place of the 5-button
@@ -302,6 +304,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - Wire both buttons to the existing `handleScoreSubmission(questionId, score)` call, passing
     `BOOLEAN_YES_SCORE`/`BOOLEAN_NO_SCORE` from Task 5.11.1 — no changes to `handleScoreSubmission` itself or to
     check-in persistence/transition logic are needed.
+
 - [ ] **Task 5.11.3: Boolean Line Rendering — Step Interpolation**
   - In `public/js/ui/history-graph.js`, change the segment-to-`<path>` construction so that a `responseType: "boolean"`
     question's line draws as a horizontal-then-vertical step between consecutive answered points, instead of the
@@ -309,6 +312,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
     answer never has.
   - Standard `responseType: "scale"` questions must render exactly as before; this only changes the `pathData`
     construction taken for boolean series.
+
 - [ ] **Task 5.11.4: Boolean Point Tooltips & Accessible Labels**
   - In the same point-circle rendering block in `public/js/ui/history-graph.js`, replace the `Score ${point.score}/5`
     wording in the `aria-label` and `<title>` tooltip text with `Yes`/`No` (via the Task 5.11.1 constants) whenever

@@ -641,12 +641,18 @@ h3 {
     display: none !important;
 }
 
+fieldset.button-stack,
 .button-stack {
     display: flex;
     flex-direction: column;
     height: 100%;
     gap: 10px;
     justify-content: space-between;
+    border: none;
+    outline: none;
+    margin: 0;
+    padding: 0;
+    min-inline-size: 0;
 }
 
 .completion-view {
@@ -701,6 +707,7 @@ h3 {
     display: flex;
     align-items: center;
     border: none;
+    outline: none;
     border-radius: 14px;
     padding: 0 20px;
     font-size: 1.1rem;
@@ -929,9 +936,9 @@ body[data-contrast="high"] .hold-indicator {
 }
 
 .control-button.is-holding .hold-indicator {
-     width: 100%;
-     transition: width 1500ms cubic-bezier(0.08, 0.82, 0.17, 1);
- }
+    width: 100%;
+    transition: width 1500ms cubic-bezier(0.08, 0.82, 0.17, 1);
+}
 
 body[data-theme="dark"][data-contrast="high"] .hold-indicator {
     background-color: rgba(255, 255, 255, 0.45);
@@ -1029,6 +1036,24 @@ select, .utility-button, .form-input {
     display: flex;
     flex-direction: column;
     gap: 14px;
+}
+
+.scale-only-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.boolean-score-button {
+    justify-content: center;
+    font-size: 1.15rem;
+    font-weight: 600;
+}
+
+.boolean-score-button .label-desc {
+    font-size: 1.15rem;
+    font-weight: 600;
+    opacity: 1;
 }
 
 .form-field {
@@ -2397,6 +2422,10 @@ body[data-contrast="high"] .note-marker:active .note-marker-icon {
         height: 100%;
         gap: 6px;
         justify-content: space-between;
+        border: none;
+        outline: none;
+        margin: 0;
+        padding: 0;
     }
 
     #tracker-canvas .score-button {
@@ -2405,6 +2434,8 @@ body[data-contrast="high"] .note-marker:active .note-marker-icon {
         padding: 0 12px;
         border-radius: 10px;
         font-size: 0.92rem;
+        border: none;
+        outline: none;
     }
 
     #tracker-canvas .score-button .num {
@@ -2484,6 +2515,13 @@ body[data-contrast="high"] textarea:focus-visible,
 body[data-contrast="high"] label[tabindex="0"]:focus-visible {
     outline: 4px solid var(--text-bright);
     outline-offset: 3px;
+}
+
+#tracker-canvas .score-button:focus,
+#tracker-canvas .score-button:focus-visible,
+body[data-contrast="high"] #tracker-canvas .score-button:focus-visible {
+    outline: none;
+    box-shadow: none;
 }
 
 /* ==========================================================================
