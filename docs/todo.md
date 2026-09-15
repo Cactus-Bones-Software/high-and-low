@@ -356,3 +356,78 @@ just native `<script type="module">`, staying within the vanilla-only constraint
 - [x] **Task 7.4: Shared Test Harness & Helper Utilities**
   - Extract repetitive JSDOM bootstrapping, IndexedDB mocking, matchMedia/serviceWorker polyfills, and helper functions into a centralized `tests/test-utils.js` harness.
   - Refactor all test suites (`drawer.test.js`, `graph.test.js`, `session_persistence.test.js`, `transitions.test.js`) to consume the shared harness, eliminating code duplication and WebStorm inspection warnings.
+
+### Phase 9: History View — Uniform Time-Scale Rendering & Gesture Zoom
+
+Design context: the graph currently sizes its total width from `(entryCount - 1) * pointSpacing` (a fixed
+pixel reservation per *entry*), while placing each point by its real elapsed *time* — two unrelated rulers
+layered on top of each other. For bursty/clustered data this produces large blank stretches of genuinely
+empty, unlabeled canvas at the graph's edges, and lets the scroll container scroll into that blank space.
+The tasks below replace this with a single, uniform pixels-per-unit-of-time scale that both native scroll
+and zoom operate on consistently, and add continuous gesture-driven zoom on top of it.
+
+- [ ] **Task 9.1: Uniform Time-to-Pixel Scale Constant**
+  - In `public/js/ui/history-graph.js`, replace the entry-count-driven width formula in `computeGraphLayout()`
+    (`(entryCount - 1) * pointSpacing`) with a single exported base-scale constant expressed as pixels per unit
+    of real elapsed time (e.g. pixels per hour).
+  - Every point's x-position must derive purely from `(entryTime - originTime) * scale`, at the current zoom
+    level — not from entry index or entry count. This is the single source of truth the rest of Phase 9 builds
+    on; keep it a plain exported constant so it stays easy to tune later without touching call sites.
+- [ ] **Task 9.2: Retire Timeframe-Based Entry Filtering**
+  - In `computeGraphLayout()`, remove the `timeRange` cutoff filtering (`filteredEntries` windowing for
+    `7d`/`14d`/`30d`/`90d`/`all`). The full entry history is always included in the rendered/scrollable domain;
+    nothing is excluded from the DOM based on a selected range anymore — users navigate to what they want to see
+    themselves, by panning and zooming.
+  - Update `tests/graph.test.js` (and any other suite asserting on `timeRange`/`filteredEntries` windowing
+    behavior) to match the new always-render-everything model.
+- [ ] **Task 9.3: Repurpose Timeframe Buttons as Zoom-Neighborhood Presets**
+  - Change the behavior wired to the existing 7D/14D/30D/90D/All buttons: instead of filtering entries out of
+    the render (retired in Task 9.2), clicking one sets the current zoom scale such that that many days fill the
+    current viewport width, pivoting the zoom around the horizontal center of the currently visible range (not
+    jumping to a fixed window or changing what's rendered).
+  - Update the buttons' visible labels and `aria-label`s, since "Last 7 days" framing no longer applies — they
+    are now scale shortcuts ("Zoom to ~7 days"), not data filters.
+- [ ] **Task 9.4: Zoom Buttons — Pivot on Viewport Center, No Clamp**
+  - Update the existing `+`/`−` zoom buttons to scale the Task 9.1 time-to-pixel rate around the horizontal
+    center of the *currently visible viewport* (not the whole SVG's midpoint), replacing the current
+    index-based `pointSpacing` multiplier entirely.
+  - Remove the existing `0.5`–`3` zoom clamp (`isZoomOutDisabled`/`isZoomInDisabled`) — zoom range is unbounded
+    in both directions now that Task 9.5's `NOW` button guarantees the user always has a way back to a known,
+    labeled position.
+- [ ] **Task 9.5: `NOW` Return Button**
+  - Add a `NOW` button to the graph header controls (`.graph-header-controls`) that pans — does not change
+    zoom scale — the scroll position so the most recent entry sits at its normal position with the Task 9.6
+    trailing padding, from any current pan/zoom state.
+- [ ] **Task 9.6: Fixed Leading/Trailing Time Padding**
+  - Reserve a static padding equal to 7 real days at the current zoom scale before the first entry and after
+    the later of (last entry, "now"), at all times, so scrolling to either end shows a clear, consistent visual
+    signal ("this is the edge") instead of running into content abruptly or into unlabeled blank canvas.
+  - This is also the default/initial view for the zero-entry and single-entry cases: render a 7-day-wide window
+    of padding ending at "now," rather than the current `isEmpty`/`isTimeframeEmpty` no-graph message states —
+    the axis and padding render even with no data plotted on it.
+- [ ] **Task 9.7: Live Gesture Zoom — Pinch & Ctrl+Scroll Input Handling**
+  - On `.graph-scroll-container`, wire touch pinch gestures (two-pointer `pointermove` distance tracking) and
+    desktop `wheel` events with `ctrlKey`/`metaKey` held (covers both Ctrl+scroll-wheel and trackpad pinch, which
+    browsers report as `wheel` + `ctrlKey`) to a live zoom interaction, distinct from the discrete Task 9.4
+    buttons.
+  - Track gesture start/move/end state and compute a live scale factor relative to gesture start, pivoted at the
+    gesture's current midpoint (touch) or cursor position (wheel/trackpad).
+- [ ] **Task 9.8: Live Gesture Zoom — CSS Transform Rendering Pass**
+  - During an active gesture (Task 9.7), apply `transform: scaleX(...)` plus a compensating `translateX(...)` to
+    keep the pivot point visually fixed, directly to the rendered SVG/graph group via CSS only — no
+    `computeGraphLayout()` recomputation, no `container.innerHTML` rebuild, no listener rebinding — for smooth,
+    low-latency visual response every frame.
+- [ ] **Task 9.9: Live Gesture Zoom — Per-Frame Counter-Scale for Points & Text**
+  - On each animation frame during an active gesture, apply an inverse counter-scale to point circles and text
+    elements (score gridline labels, date tick labels) relative to the Task 9.8 group transform, so they stay
+    visually round/upright and don't stretch or smear with the surrounding horizontal scale.
+  - Apply `vector-effect="non-scaling-stroke"` to plotted lines and point circles so stroke width and dash
+    patterns also stay visually consistent under the live transform, independent of the counter-scale pass.
+- [ ] **Task 9.10: Live Gesture Zoom — Commit on Gesture End**
+  - When a gesture ends (last touch pointer lifts, or wheel/trackpad gesture stops), run a single real
+    `computeGraphLayout()` + redraw pass at the settled scale, then reset the live CSS transform (Task 9.8) and
+    counter-scale (Task 9.9) to identity.
+  - The legend, timeframe/zoom toolbars, guide key, and note-marker listeners must remain untouched (not
+    rebuilt, not rebound) for the entire gesture lifecycle — only the graph/point/text elements are touched, and
+    only once per full gesture, not per frame.
+ 
