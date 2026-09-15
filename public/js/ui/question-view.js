@@ -863,23 +863,13 @@ export function setupQuestionAuthoring() {
             previewTitleBox.textContent = shortValue ? shortValue : (fullValue || 'Short Label Preview');
         }
 
-        if (isBoolean) {
-            previewStack.innerHTML = `
-                <button type="button" class="score-button boolean-score-button" data-score="5" data-boolean="yes" aria-label="Yes">
-                    <span class="label-desc">Yes</span>
-                </button>
-                <button type="button" class="score-button boolean-score-button" data-score="1" data-boolean="no" aria-label="No">
-                    <span class="label-desc">No</span>
-                </button>
-            `;
-        } else {
-            previewStack.innerHTML = buildScoreButtonsHTML({
-                curve,
-                maxLabel: maxInput.value,
-                minLabel: minInput.value,
-                midLabel: midInput.value
-            });
-        }
+        previewStack.innerHTML = buildScoreButtonsHTML({
+            responseType: isBoolean ? 'boolean' : 'scale',
+            curve,
+            maxLabel: maxInput.value,
+            minLabel: minInput.value,
+            midLabel: midInput.value
+        });
     }
 
     function syncMidVisibility() {

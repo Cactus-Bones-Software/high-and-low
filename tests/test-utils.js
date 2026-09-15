@@ -7,6 +7,8 @@ import { initApp, resetAppInitialized, registerServiceWorker } from '../public/j
 import {
     DEFAULT_QUESTIONS,
     ALLOWED_RESPONSE_TYPES,
+    BOOLEAN_NO_SCORE,
+    BOOLEAN_YES_SCORE,
     seedDefaults,
     createCustomQuestion,
     updateCustomQuestion,
@@ -171,6 +173,8 @@ export async function setupTestDOM(customSessionStorage = {}) {
     windowInstance.buildActiveQuestionCardHTML = buildActiveQuestionCardHTML;
     windowInstance.DEFAULT_QUESTIONS = DEFAULT_QUESTIONS;
     windowInstance.ALLOWED_RESPONSE_TYPES = ALLOWED_RESPONSE_TYPES;
+    windowInstance.BOOLEAN_NO_SCORE = BOOLEAN_NO_SCORE;
+    windowInstance.BOOLEAN_YES_SCORE = BOOLEAN_YES_SCORE;
     windowInstance.seedDefaults = seedDefaults;
     windowInstance.put = put;
     windowInstance.get = get;

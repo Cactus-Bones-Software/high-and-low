@@ -5,7 +5,13 @@
 
 import { STATE } from '../state.js';
 import { getAll, getConfig } from '../storage/db.js';
-import { DEFAULT_ACTIVE_SET, getCurveColor, getQuestionDashArray } from '../questions.js';
+import {
+    DEFAULT_ACTIVE_SET,
+    BOOLEAN_NO_SCORE,
+    BOOLEAN_YES_SCORE,
+    getCurveColor,
+    getQuestionDashArray
+} from '../questions.js';
 import { escapeHTML } from '../utils.js';
 import { showNoticeDialog } from './dialogs.js';
 
@@ -320,6 +326,7 @@ export function computeGraphLayout({
         if (!isVisible) {
             series.push({
                 question,
+                responseType: question.responseType || 'scale',
                 questionIndex,
                 color,
                 dashArray,
@@ -365,7 +372,8 @@ export function computeGraphLayout({
                     timestamp: entry.timestamp,
                     formattedDate: formatEntryDateTime(entry.timestamp),
                     questionTitle,
-                    color
+                    color,
+                    responseType: question.responseType || 'scale'
                 };
                 currentSegment.push(pointItem);
                 questionPoints.push(pointItem);
@@ -404,6 +412,7 @@ export function computeGraphLayout({
 
         series.push({
             question,
+            responseType: question.responseType || 'scale',
             questionIndex,
             color,
             dashArray,
@@ -537,7 +546,8 @@ export function renderGraphSVG(layout) {
     series.forEach(seriesItem => {
         if (!seriesItem.isVisible) return;
 
-        const { color, dashArray, questionTitle, segments, points, skips } = seriesItem;
+        const { color, dashArray, questionTitle, segments, points, skips, question, responseType } = seriesItem;
+        const isBoolean = responseType === 'boolean' || question?.responseType === 'boolean';
         const dashAttribute = dashArray !== 'none' ? ` stroke-dasharray="${dashArray}"` : '';
         const escapedQuestionTitle = escapeHTML(questionTitle);
 
@@ -546,7 +556,14 @@ export function renderGraphSVG(layout) {
             if (segment.length >= 2) {
                 let pathData = `M ${segment[0].x} ${segment[0].y}`;
                 for (let segmentIndex = 1; segmentIndex < segment.length; segmentIndex++) {
-                    pathData += ` L ${segment[segmentIndex].x} ${segment[segmentIndex].y}`;
+                    if (isBoolean) {
+                        const previousY = segment[segmentIndex - 1].y;
+                        const currentX = segment[segmentIndex].x;
+                        const currentY = segment[segmentIndex].y;
+                        pathData += ` L ${currentX} ${previousY} L ${currentX} ${currentY}`;
+                    } else {
+                        pathData += ` L ${segment[segmentIndex].x} ${segment[segmentIndex].y}`;
+                    }
                 }
                 linesHTML += `<path d="${pathData}" fill="none" stroke="${color}" stroke-width="2.5"${dashAttribute} stroke-linejoin="round" stroke-linecap="round" />`;
             }
@@ -555,9 +572,20 @@ export function renderGraphSVG(layout) {
         // Draw data point circles with accessible tooltips
         points.forEach(point => {
             const escapedDate = escapeHTML(point.formattedDate);
+            const isPointBoolean = isBoolean || point.responseType === 'boolean';
+            let valueLabel = `Score ${point.score}`;
+            let titleValueLabel = `Score ${point.score}/5`;
+            if (isPointBoolean) {
+                const booleanText = point.score === BOOLEAN_YES_SCORE
+                    ? 'Yes'
+                    : (point.score === BOOLEAN_NO_SCORE ? 'No' : `Score ${point.score}`);
+                valueLabel = booleanText;
+                titleValueLabel = booleanText;
+            }
             pointsHTML += `
-                <circle cx="${point.x}" cy="${point.y}" r="4" fill="${color}" stroke="var(--box-bg)" stroke-width="1.5" aria-label="${escapedQuestionTitle}: Score ${point.score} (${escapedDate})">
-                    <title>${escapedQuestionTitle}: Score ${point.score}/5 (${escapedDate})</title>
+                <circle cx="${point.x}" cy="${point.y}" r="4" fill="${color}" stroke="var(--box-bg)"
+                    stroke-width="1.5" aria-label="${escapedQuestionTitle}: ${valueLabel} (${escapedDate})">
+                    <title>${escapedQuestionTitle}: ${titleValueLabel} (${escapedDate})</title>
                 </circle>
             `;
         });

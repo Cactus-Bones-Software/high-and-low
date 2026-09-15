@@ -71,11 +71,16 @@ Current Version: `3`
     note: string | null; // Optional free-text check-in note
     answers: Array<{
       questionId: string;
-      score: number | null; // 1-5 for scale answers; null if skipped
+      score: number | null; // 1-5 for scale; BOOLEAN_NO_SCORE (1) or BOOLEAN_YES_SCORE (5) for boolean; null if skipped
       status: 'answered' | 'skipped'; // Explicit status flag
     }>;
   }
   ```
+
+* **Boolean Score Mapping (`public/js/questions.js`)**:
+  * `BOOLEAN_NO_SCORE = 1`: Mapped score persisted for "No" answers on boolean questions.
+  * `BOOLEAN_YES_SCORE = 5`: Mapped score persisted for "Yes" answers on boolean questions.
+  * Allows graph pipelines, grid lines, and score aggregations to handle boolean questions without schema divergence.
 
 ---
 
@@ -162,6 +167,7 @@ export const STATE = {
     ├── question_copying.test.js
     ├── question_editing.test.js
     ├── question_editing_archiving.test.js
+    ├── question_response_type.test.js
     ├── questions.test.js
     ├── questions-view.test.js
     ├── removed_questions.test.js

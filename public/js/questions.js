@@ -13,6 +13,11 @@ export const SEED_VERSION = 4;
 
 export const ALLOWED_RESPONSE_TYPES = ['scale', 'boolean'];
 
+// Single source of truth for how boolean (Yes/No) responses map onto the 1–5 scale.
+// Stored as mapped numeric scores so existing persistence and graph pipelines work uniformly.
+export const BOOLEAN_NO_SCORE = 1;
+export const BOOLEAN_YES_SCORE = 5;
+
 // Built-in questions shipped with the app. User-authored questions live in the
 // same 'questions' store but with builtIn:false and a content-addressed id
 // (see makeCustomId). Built-ins use readable slugs for export/debug legibility.

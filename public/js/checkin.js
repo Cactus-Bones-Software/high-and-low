@@ -3,15 +3,33 @@
  * Scoring, question rendering, transitions, response persistence, and check-in lifecycle.
  */
 
-import { loadActiveQuestions } from './questions.js';
+import {
+    BOOLEAN_NO_SCORE,
+    BOOLEAN_YES_SCORE,
+    loadActiveQuestions
+} from './questions.js';
 import { STATE } from './state.js';
 import { getDatabase, put } from './storage/db.js';
 import { clearActiveCheckin, saveActiveCheckin } from './storage/session.js';
-import {updateNotesButtonLabel} from "./ui/dialogs.js";
+import { updateNotesButtonLabel } from './ui/dialogs.js';
 import { escapeHTML, safeRAF } from './utils.js';
 
 export function buildScoreButtonsHTML(question) {
     if (!question) return '';
+
+    if (question.responseType === 'boolean') {
+        return `
+      <button type="button" class="score-button boolean-score-button"
+        data-score="${BOOLEAN_YES_SCORE}" data-boolean="yes" aria-label="Yes">
+        <span class="label-desc">Yes</span>
+      </button>
+      <button type="button" class="score-button boolean-score-button"
+        data-score="${BOOLEAN_NO_SCORE}" data-boolean="no" aria-label="No">
+        <span class="label-desc">No</span>
+      </button>
+    `;
+    }
+
     let buttonsHTML = '';
     for (let score = 5; score >= 1; score--) {
         let rawContextLabel = '';
@@ -54,14 +72,23 @@ export function renderCurrentQuestion() {
     const inputBox = document.getElementById('input-box');
     if (inputBox) {
         inputBox.setAttribute('data-curve', currentQuestion.curve);
+        inputBox.setAttribute('data-response-type', currentQuestion.responseType || 'scale');
     }
 
     const buttonStack = document.getElementById('button-stack');
     if (buttonStack) {
+        buttonStack.setAttribute(
+            'aria-label',
+            currentQuestion.responseType === 'boolean' ? 'Select Yes or No' : 'Select score from 1 to 5'
+        );
         buttonStack.innerHTML = buildScoreButtonsHTML(currentQuestion);
     }
 
-    document.querySelectorAll('.score-button').forEach(button => {
+    const scoreButtons = buttonStack
+        ? buttonStack.querySelectorAll('.score-button')
+        : document.querySelectorAll('.score-button');
+
+    scoreButtons.forEach(button => {
         button.addEventListener('click', (event) => {
             const targetScore = parseInt(event.currentTarget.getAttribute('data-score'), 10);
             handleScoreSubmission(currentQuestion.id, targetScore);

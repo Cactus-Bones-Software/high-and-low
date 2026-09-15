@@ -288,7 +288,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - Confirm the field-hiding behavior from Task 5.10.2 is correctly triggered both by user interaction and by the
     programmatic population step above.
 
-- [ ] **Task 5.11.1: Boolean Score Mapping Constants**
+- [x] **Task 5.11.1: Boolean Score Mapping Constants**
   - In `public/js/questions.js`, add two exported constants for how a boolean answer is stored as a score on the
     existing 1–5 scale, e.g. `BOOLEAN_NO_SCORE = 1` and `BOOLEAN_YES_SCORE = 5`. Answers persist as the mapped
     number, not as a separate `true`/`false` field, so every existing `score`-based read path (`handleScoreSubmission`,
@@ -297,7 +297,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - This is the single source of truth for the mapping — Tasks 5.11.2 and 5.11.4 both import these constants rather
     than hardcoding `1`/`5` again.
 
-- [ ] **Task 5.11.2: Yes/No Tracker Input Deck**
+- [x] **Task 5.11.2: Yes/No Tracker Input Deck**
   - Update `renderCurrentQuestion` and `buildScoreButtonsHTML` in `public/js/checkin.js` so that when the current
     question has `responseType: "boolean"`, a clean 2-button (Yes / No) input deck renders in place of the 5-button
     scale deck.
@@ -305,7 +305,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
     `BOOLEAN_YES_SCORE`/`BOOLEAN_NO_SCORE` from Task 5.11.1 — no changes to `handleScoreSubmission` itself or to
     check-in persistence/transition logic are needed.
 
-- [ ] **Task 5.11.3: Boolean Line Rendering — Step Interpolation**
+- [x] **Task 5.11.3: Boolean Line Rendering — Step Interpolation**
   - In `public/js/ui/history-graph.js`, change the segment-to-`<path>` construction so that a `responseType: "boolean"`
     question's line draws as a horizontal-then-vertical step between consecutive answered points, instead of the
     diagonal straight line currently produced for every question — a diagonal implies in-between values a Yes/No
@@ -313,7 +313,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - Standard `responseType: "scale"` questions must render exactly as before; this only changes the `pathData`
     construction taken for boolean series.
 
-- [ ] **Task 5.11.4: Boolean Point Tooltips & Accessible Labels**
+- [x] **Task 5.11.4: Boolean Point Tooltips & Accessible Labels**
   - In the same point-circle rendering block in `public/js/ui/history-graph.js`, replace the `Score ${point.score}/5`
     wording in the `aria-label` and `<title>` tooltip text with `Yes`/`No` (via the Task 5.11.1 constants) whenever
     the point belongs to a `responseType: "boolean"` question, so a psychiatrist reading a tooltip never sees a raw
@@ -339,6 +339,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
 ### Phase 7: Bugs and Issues
 
 - [ ] Buttons in dialogs sometimes have the hold-to-actuate effect, even if they do not need to be held.
+- [ ] Viewing history often has lots of dead space at different zoom levels and cutoff points. 
 
 ### Phase 8: Documentation & Final Cleanup
 - [ ] **Task 7.1: Code Base JSDoc & Architectural Comments**
