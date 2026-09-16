@@ -102,7 +102,7 @@ export const STATE = {
   deviceMode: 'mouse', // 'mouse' | 'touch'
   historyVisibleQuestionIds: null, // Set<string> | null (null = show all active)
   historyTimeRange: 'all', // '7d' | '14d' | '30d' | '90d' | 'all'
-  historyZoomScale: 1, // Timeline zoom scale (0.5x to 3.0x)
+  historyZoomScale: 1, // Timeline zoom scale (unbounded continuous scale, default 1.0)
   historyScrollLeft: 0 // Timeline scroll anchor retained during zoom
 };
 ```

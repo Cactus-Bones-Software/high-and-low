@@ -476,7 +476,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         expect(overlayElement.classList.contains('is-open')).toBe(false);
     });
 
-    it('renders timeframe presets toolbar and filters data points by selected window (Task 3.10)', async () => {
+    it('renders timeframe presets toolbar and keeps all data points rendered across timeframe selection (Task 3.10, Task 9.2)', async () => {
         const container = documentInstance.createElement('div');
         const questions = [
             { id: 'q1', text: 'Overall Mood', shortLabel: 'Mood', curve: 'more-is-better' }
@@ -520,17 +520,25 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         const timeframeButtons = Array.from(container.querySelectorAll('.graph-timeframe-button'));
         expect(timeframeButtons.length).toBe(5);
         expect(timeframeButtons.map(button => button.dataset.range)).toEqual(['7d', '14d', '30d', '90d', 'all']);
+        expect(timeframeButtons.map(button => button.textContent.trim())).toEqual(['~7D', '~14D', '~30D', '~90D', 'All']);
+        expect(timeframeButtons.map(button => button.getAttribute('aria-label'))).toEqual([
+            'Zoom to ~7 days',
+            'Zoom to ~14 days',
+            'Zoom to ~30 days',
+            'Zoom to ~90 days',
+            'Zoom to all entries'
+        ]);
 
         // Default 'all' range should render all 5 points
         let points = container.querySelectorAll('svg g.points circle');
         expect(points.length).toBe(5);
 
-        // 2. Test timeframe filtering for preset intervals
+        // 2. Test timeframe selection maintains all points rendered (always-render-everything model)
         const timeframeTestCases = [
-            { range: '7d', expectedPoints: 2, assertActive: true },
-            { range: '14d', expectedPoints: 3 },
-            { range: '30d', expectedPoints: 4 },
-            { range: 'all', expectedPoints: 5 }
+            { range: '7d', assertActive: true },
+            { range: '14d' },
+            { range: '30d' },
+            { range: 'all' }
         ];
 
         for (const testCase of timeframeTestCases) {
@@ -538,8 +546,9 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             button.click();
             await sleep(50);
 
+            // Under Task 9.2, full history is always included in the rendered SVG domain
             points = container.querySelectorAll('svg g.points circle');
-            expect(points.length).toBe(testCase.expectedPoints);
+            expect(points.length).toBe(5);
             if (testCase.assertActive) {
                 expect(container.querySelector(`.graph-timeframe-button[data-range="${testCase.range}"]`).classList.contains('is-active')).toBe(true);
             }
@@ -717,14 +726,14 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
                 }
             ];
 
-            // 7-day window layout
+            // Always-render-everything model (Task 9.2): full entry history is always included in the rendered/scrollable domain
             const sevenDayLayout = windowInstance.computeGraphLayout({
                 entries,
                 questions,
                 timeRange: '7d'
             });
             expect(sevenDayLayout.isEmpty).toBe(false);
-            expect(sevenDayLayout.filteredEntries.length).toBe(2);
+            expect(sevenDayLayout.filteredEntries.length).toBe(4);
 
             // All-time window layout
             const allTimeLayout = windowInstance.computeGraphLayout({
@@ -795,6 +804,357 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             expect(layout.notes[0].entryIndex).toBe(0);
             expect(layout.notes[1].note).toBe('Great day');
             expect(layout.notes[1].entryIndex).toBe(2);
+        });
+
+        it('derives every point x-position purely from elapsed time and BASE_PIXELS_PER_HOUR scale (Task 9.1)', () => {
+            const baseTime = new Date('2026-08-01T12:00:00.000Z').getTime();
+            const questions = [
+                { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' }
+            ];
+
+            // 4 logs at 0h, 3h, 6h, 12h: non-uniform elapsed times
+            const entries = [
+                {
+                    timestamp: new Date(baseTime).toISOString(),
+                    answers: [{ questionId: 'q1', score: 3, status: 'answered' }]
+                },
+                {
+                    timestamp: new Date(baseTime + 3 * 3600 * 1000).toISOString(),
+                    answers: [{ questionId: 'q1', score: 4, status: 'answered' }]
+                },
+                {
+                    timestamp: new Date(baseTime + 6 * 3600 * 1000).toISOString(),
+                    answers: [{ questionId: 'q1', score: 2, status: 'answered' }]
+                },
+                {
+                    timestamp: new Date(baseTime + 12 * 3600 * 1000).toISOString(),
+                    answers: [{ questionId: 'q1', score: 5, status: 'answered' }]
+                }
+            ];
+
+            expect(windowInstance.BASE_PIXELS_PER_HOUR).toBe(2);
+
+            const layout = windowInstance.computeGraphLayout({ entries, questions, zoomScale: 1 });
+            const paddingLeft = layout.dimensions.paddingLeft;
+            const points = layout.series[0].points;
+            expect(points.length).toBe(4);
+
+            // Point 0 (0h): paddingLeft + 0 * 2 = paddingLeft
+            expect(points[0].x).toBe(paddingLeft);
+            // Point 1 (3h): paddingLeft + 3 * 2 = paddingLeft + 6
+            expect(points[1].x).toBe(paddingLeft + 6);
+            // Point 2 (6h): paddingLeft + 6 * 2 = paddingLeft + 12
+            expect(points[2].x).toBe(paddingLeft + 12);
+            // Point 3 (12h): paddingLeft + 12 * 2 = paddingLeft + 24
+            expect(points[3].x).toBe(paddingLeft + 24);
+
+            // Verify with zoomScale = 1.5
+            const zoomedLayout = windowInstance.computeGraphLayout({ entries, questions, zoomScale: 1.5 });
+            const zoomedPoints = zoomedLayout.series[0].points;
+            // Point 1 (3h): paddingLeft + 3 * (2 * 1.5) = paddingLeft + 9
+            expect(zoomedPoints[1].x).toBe(paddingLeft + 9);
+            // Point 3 (12h): paddingLeft + 12 * (2 * 1.5) = paddingLeft + 36
+            expect(zoomedPoints[3].x).toBe(paddingLeft + 36);
+        });
+
+        it('never excludes entries based on timeRange parameter, keeping full history rendered (Task 9.2)', () => {
+            const now = Date.now();
+            const questions = [
+                { id: 'q1', text: 'Energy', shortLabel: 'Energy', curve: 'more-is-better' }
+            ];
+            // Entries spanning 180 days ago to now
+            const entries = [
+                {
+                    timestamp: new Date(now - 180 * 86400000).toISOString(),
+                    answers: [{ questionId: 'q1', score: 2, status: 'answered' }]
+                },
+                {
+                    timestamp: new Date(now - 60 * 86400000).toISOString(),
+                    answers: [{ questionId: 'q1', score: 3, status: 'answered' }]
+                },
+                {
+                    timestamp: new Date(now - 20 * 86400000).toISOString(),
+                    answers: [{ questionId: 'q1', score: 4, status: 'answered' }]
+                },
+                {
+                    timestamp: new Date(now - 2 * 86400000).toISOString(),
+                    answers: [{ questionId: 'q1', score: 5, status: 'answered' }]
+                }
+            ];
+
+            ['7d', '14d', '30d', '90d', 'all'].forEach(timeRange => {
+                const layout = windowInstance.computeGraphLayout({ entries, questions, timeRange });
+                expect(layout.isEmpty).toBe(false);
+                expect(layout.isTimeframeEmpty).toBe(false);
+                expect(layout.filteredEntries.length).toBe(4);
+                expect(layout.series[0].points.length).toBe(4);
+            });
+        });
+    });
+
+    describe('Timeframe Buttons as Zoom Presets & Viewport Center Pivoting (Task 9.3)', () => {
+        it('calculates preset zoom scale multipliers to span viewport width', () => {
+            const viewportWidth = 600;
+            // 7d: 168 hours * 2 px/h = 336 px base -> scale = 600 / 336 = 1.79
+            expect(windowInstance.calculateTimeframePresetZoomScale('7d', { viewportWidth })).toBe(1.79);
+            // 14d: 336 hours * 2 px/h = 672 px base -> scale = 600 / 672 = 0.89
+            expect(windowInstance.calculateTimeframePresetZoomScale('14d', { viewportWidth })).toBe(0.89);
+            // 30d: 720 hours * 2 px/h = 1440 px base -> scale = 600 / 1440 = 0.42
+            expect(windowInstance.calculateTimeframePresetZoomScale('30d', { viewportWidth })).toBe(0.42);
+            // 90d: 2160 hours * 2 px/h = 4320 px base -> scale = 600 / 4320 = 0.14
+            expect(windowInstance.calculateTimeframePresetZoomScale('90d', { viewportWidth })).toBe(0.14);
+
+            // 'all': entries spanning 5 days (120 hours) -> 120 * 2 = 240 px base -> scale = 600 / 240 = 2.5
+            const baseTime = Date.now();
+            const entries = [
+                { timestamp: new Date(baseTime - 5 * 24 * 3600 * 1000).toISOString() },
+                { timestamp: new Date(baseTime).toISOString() }
+            ];
+            expect(windowInstance.calculateTimeframePresetZoomScale('all', { entries, viewportWidth })).toBe(2.5);
+        });
+
+        it('pivots horizontal scroll position around the viewport center', () => {
+            // Previous center = 100 + 400 / 2 = 300
+            // Padding = 32
+            // Scale increases 1.0 -> 2.0 (zoom in 2x)
+            // New center coordinate = 32 + (300 - 32) * 2 = 32 + 536 = 568
+            // Target scroll left = 568 - 400 / 2 = 368
+            // The coordinate at the viewport center (offset 200 in viewport) is 568 - 368 = 200 (exact match)
+            const targetScrollLeft = windowInstance.calculateZoomPivotScrollLeft({
+                previousScrollLeft: 100,
+                viewportWidth: 400,
+                previousZoomScale: 1,
+                nextZoomScale: 2,
+                paddingLeft: 32
+            });
+            expect(targetScrollLeft).toBe(368);
+
+            // Clamps at 0 if target would be negative
+            const zeroClampedScroll = windowInstance.calculateZoomPivotScrollLeft({
+                previousScrollLeft: 0,
+                viewportWidth: 600,
+                previousZoomScale: 2,
+                nextZoomScale: 0.5,
+                paddingLeft: 32
+            });
+            expect(zeroClampedScroll).toBe(0);
+        });
+
+        it('updates zoom scale and scroll position when clicking preset button in DOM', async () => {
+            const container = documentInstance.createElement('div');
+            const questions = [{ id: 'q1', text: 'Energy', shortLabel: 'Energy', curve: 'more-is-better' }];
+            const now = Date.now();
+            const entries = [
+                { timestamp: new Date(now - 14 * 86400000).toISOString(), answers: [{ questionId: 'q1', score: 2 }] },
+                { timestamp: new Date(now).toISOString(), answers: [{ questionId: 'q1', score: 5 }] }
+            ];
+
+            windowInstance.renderLineGraph(container, { entries, questions });
+            const scrollContainer = container.querySelector('.graph-scroll-container');
+            Object.defineProperty(scrollContainer, 'clientWidth', { value: 600, configurable: true });
+            Object.defineProperty(scrollContainer, 'scrollWidth', { value: 2000, configurable: true });
+            scrollContainer.scrollLeft = 200;
+
+            const sevenDayButton = container.querySelector('.graph-timeframe-button[data-range="7d"]');
+            expect(sevenDayButton.textContent.trim()).toBe('~7D');
+            expect(sevenDayButton.getAttribute('aria-label')).toBe('Zoom to ~7 days');
+
+            sevenDayButton.click();
+            await sleep(50);
+
+            expect(windowInstance.STATE.historyZoomScale).toBe(1.79);
+            expect(windowInstance.STATE.historyTimeRange).toBe('7d');
+            const updatedButton = container.querySelector('.graph-timeframe-button[data-range="7d"]');
+            expect(updatedButton.classList.contains('is-active')).toBe(true);
+        });
+    });
+
+    describe('Zoom Buttons — Pivot on Viewport Center, No Clamp (Task 9.4)', () => {
+        it('renders zoom in and zoom out buttons without disabled attributes regardless of scale', () => {
+            const container = documentInstance.createElement('div');
+            const questions = [{ id: 'q1', text: 'Energy', shortLabel: 'Energy', curve: 'more-is-better' }];
+            const now = Date.now();
+            const entries = [
+                { timestamp: new Date(now - 86400000).toISOString(), answers: [{ questionId: 'q1', score: 3 }] },
+                { timestamp: new Date(now).toISOString(), answers: [{ questionId: 'q1', score: 4 }] }
+            ];
+
+            // Render at scale 0.5 (which previously had zoom-out disabled)
+            windowInstance.renderLineGraph(container, { entries, questions, zoomScale: 0.5 });
+            let zoomOutButton = container.querySelector('#button-graph-zoom-out');
+            let zoomInButton = container.querySelector('#button-graph-zoom-in');
+            expect(zoomOutButton.disabled).toBe(false);
+            expect(zoomInButton.disabled).toBe(false);
+
+            // Render at scale 3.0 (which previously had zoom-in disabled)
+            windowInstance.renderLineGraph(container, { entries, questions, zoomScale: 3.0 });
+            zoomOutButton = container.querySelector('#button-graph-zoom-out');
+            zoomInButton = container.querySelector('#button-graph-zoom-in');
+            expect(zoomOutButton.disabled).toBe(false);
+            expect(zoomInButton.disabled).toBe(false);
+
+            // Render at extreme high scale 5.0
+            windowInstance.renderLineGraph(container, { entries, questions, zoomScale: 5.0 });
+            zoomOutButton = container.querySelector('#button-graph-zoom-out');
+            zoomInButton = container.querySelector('#button-graph-zoom-in');
+            expect(zoomOutButton.disabled).toBe(false);
+            expect(zoomInButton.disabled).toBe(false);
+        });
+
+        it('zooms in beyond 3.0 without clamp', async () => {
+            const container = documentInstance.createElement('div');
+            const questions = [{ id: 'q1', text: 'Energy', shortLabel: 'Energy', curve: 'more-is-better' }];
+            const now = Date.now();
+            const entries = [
+                { timestamp: new Date(now - 86400000).toISOString(), answers: [{ questionId: 'q1', score: 3 }] },
+                { timestamp: new Date(now).toISOString(), answers: [{ questionId: 'q1', score: 4 }] }
+            ];
+
+            windowInstance.renderLineGraph(container, { entries, questions, zoomScale: 3.0 });
+            const zoomInButton = container.querySelector('#button-graph-zoom-in');
+            zoomInButton.click();
+            await sleep(50);
+
+            expect(windowInstance.STATE.historyZoomScale).toBe(3.25);
+            const zoomValue = container.querySelector('.graph-zoom-value');
+            expect(zoomValue.textContent).toBe('3.25×');
+        });
+
+        it('zooms out beyond 0.5 without clamp', async () => {
+            const container = documentInstance.createElement('div');
+            const questions = [{ id: 'q1', text: 'Energy', shortLabel: 'Energy', curve: 'more-is-better' }];
+            const now = Date.now();
+            const entries = [
+                { timestamp: new Date(now - 86400000).toISOString(), answers: [{ questionId: 'q1', score: 3 }] },
+                { timestamp: new Date(now).toISOString(), answers: [{ questionId: 'q1', score: 4 }] }
+            ];
+
+            windowInstance.renderLineGraph(container, { entries, questions, zoomScale: 0.5 });
+            const zoomOutButton = container.querySelector('#button-graph-zoom-out');
+            zoomOutButton.click();
+            await sleep(50);
+
+            expect(windowInstance.STATE.historyZoomScale).toBe(0.25);
+            const zoomValue = container.querySelector('.graph-zoom-value');
+            expect(zoomValue.textContent).toBe('0.25×');
+
+            // Zoom out again from 0.25
+            const nextZoomOutButton = container.querySelector('#button-graph-zoom-out');
+            nextZoomOutButton.click();
+            await sleep(50);
+
+            expect(windowInstance.STATE.historyZoomScale).toBe(0.13);
+            expect(windowInstance.STATE.historyZoomScale).toBeGreaterThan(0);
+        });
+
+        it('pivots scroll position around viewport center when clicking zoom buttons', async () => {
+            const container = documentInstance.createElement('div');
+            const questions = [{ id: 'q1', text: 'Energy', shortLabel: 'Energy', curve: 'more-is-better' }];
+            const now = Date.now();
+            const entries = [
+                { timestamp: new Date(now - 14 * 86400000).toISOString(), answers: [{ questionId: 'q1', score: 2 }] },
+                { timestamp: new Date(now).toISOString(), answers: [{ questionId: 'q1', score: 5 }] }
+            ];
+
+            windowInstance.renderLineGraph(container, { entries, questions, zoomScale: 1.0 });
+            const scrollContainer = container.querySelector('.graph-scroll-container');
+            Object.defineProperty(scrollContainer, 'clientWidth', { value: 600, configurable: true });
+            Object.defineProperty(scrollContainer, 'scrollWidth', { value: 3000, configurable: true });
+            scrollContainer.scrollLeft = 200;
+
+            const zoomInButton = container.querySelector('#button-graph-zoom-in');
+            zoomInButton.click();
+            await sleep(50);
+
+            // Previous center = 200 + 600 / 2 = 500
+            // paddingLeft = 42
+            // Next scale = 1.25, zoomRatio = 1.25
+            // Next center coordinate = 42 + (500 - 42) * 1.25 = 42 + 572.5 = 614.5
+            // Target scroll left = 614.5 - 600 / 2 = 314.5
+            expect(windowInstance.STATE.historyZoomScale).toBe(1.25);
+            expect(windowInstance.STATE.historyScrollLeft).toBeCloseTo(314.5, 1);
+        });
+    });
+
+    describe('NOW Return Button Tests (Task 9.5)', () => {
+        it('calculates target scroll position to bring latest entries into normal position', () => {
+            // Container with scrollWidth > viewportWidth
+            const scrollPosition = windowInstance.calculateNowScrollLeft({
+                scrollWidth: 2400,
+                viewportWidth: 600
+            });
+            expect(scrollPosition).toBe(1800);
+
+            // Container where content fits in viewport
+            const fittedScroll = windowInstance.calculateNowScrollLeft({
+                scrollWidth: 500,
+                viewportWidth: 600
+            });
+            expect(fittedScroll).toBe(0);
+
+            // Fallback to svgWidth when scrollWidth is 0
+            const fallbackScroll = windowInstance.calculateNowScrollLeft({
+                scrollWidth: 0,
+                svgWidth: 1500,
+                viewportWidth: 500
+            });
+            expect(fallbackScroll).toBe(1000);
+
+            // Zero / negative dimensions
+            expect(windowInstance.calculateNowScrollLeft({})).toBe(0);
+        });
+
+        it('renders NOW button in .graph-header-controls with accessible labels', () => {
+            const container = documentInstance.createElement('div');
+            const questions = [{ id: 'q1', text: 'Mood', shortLabel: 'Mood', curve: 'more-is-better' }];
+            const now = Date.now();
+            const entries = [
+                { timestamp: new Date(now).toISOString(), answers: [{ questionId: 'q1', score: 4 }] }
+            ];
+
+            windowInstance.renderLineGraph(container, { entries, questions });
+
+            const headerControls = container.querySelector('.graph-header-controls');
+            expect(headerControls).toBeTruthy();
+
+            const nowButton = headerControls.querySelector('#button-graph-now');
+            expect(nowButton).toBeTruthy();
+            expect(nowButton.textContent.trim()).toBe('NOW');
+            expect(nowButton.getAttribute('aria-label')).toBe('Pan timeline to latest entries');
+        });
+
+        it('pans scroll position to end without changing zoom scale from arbitrary pan/zoom state', async () => {
+            const container = documentInstance.createElement('div');
+            const questions = [{ id: 'q1', text: 'Energy', shortLabel: 'Energy', curve: 'more-is-better' }];
+            const now = Date.now();
+            const entries = [
+                { timestamp: new Date(now - 14 * 86400000).toISOString(), answers: [{ questionId: 'q1', score: 2 }] },
+                { timestamp: new Date(now).toISOString(), answers: [{ questionId: 'q1', score: 5 }] }
+            ];
+
+            // Render with non-default zoom scale 2.0
+            windowInstance.renderLineGraph(container, { entries, questions, zoomScale: 2.0 });
+            const scrollContainer = container.querySelector('.graph-scroll-container');
+            Object.defineProperty(scrollContainer, 'clientWidth', { value: 600, configurable: true });
+            Object.defineProperty(scrollContainer, 'scrollWidth', { value: 3200, configurable: true });
+
+            // User has panned far back in time (scrollLeft = 150)
+            scrollContainer.scrollLeft = 150;
+            windowInstance.STATE.historyScrollLeft = 150;
+            windowInstance.STATE.historyZoomScale = 2.0;
+
+            const nowButton = container.querySelector('#button-graph-now');
+            expect(nowButton).toBeTruthy();
+
+            nowButton.click();
+            await sleep(50);
+
+            // Zoom scale must remain unchanged
+            expect(windowInstance.STATE.historyZoomScale).toBe(2.0);
+
+            // Scroll position must be panned to end: 3200 - 600 = 2600
+            expect(scrollContainer.scrollLeft).toBe(2600);
+            expect(windowInstance.STATE.historyScrollLeft).toBe(2600);
         });
     });
 });

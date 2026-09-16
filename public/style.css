@@ -1899,6 +1899,42 @@ body[data-handedness="left"] .card-action-restore {
     border-color: var(--border-color);
 }
 
+.graph-now-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 8px;
+    min-height: 28px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background-color: var(--box-bg);
+    color: var(--text-bright);
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: background-color 150ms var(--transition-curve),
+    color 150ms var(--transition-curve),
+    border-color 150ms var(--transition-curve);
+    user-select: none;
+}
+
+.graph-now-button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+@media (hover: hover) {
+    .graph-now-button:hover {
+        background-color: var(--button-default);
+        border-color: var(--border-color);
+    }
+}
+
+.graph-now-button:active {
+    background-color: var(--button-active);
+}
+
 .graph-scroll-container {
     width: 100%;
     overflow-x: auto;
@@ -1940,6 +1976,10 @@ body[data-contrast="high"] .graph-timeframe-button.is-active {
 }
 
 body[data-contrast="high"] .graph-zoom-toolbar {
+    border: 2px solid var(--text-bright);
+}
+
+body[data-contrast="high"] .graph-now-button {
     border: 2px solid var(--text-bright);
 }
 

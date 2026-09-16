@@ -15,9 +15,99 @@ import {
 import { escapeHTML } from '../utils.js';
 import { showNoticeDialog } from './dialogs.js';
 
+export const BASE_PIXELS_PER_HOUR = 2;
+export const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;
+
 export function formatZoomValue(zoomScale) {
     const formatted = Number(zoomScale).toFixed(2).replace(/0+$/, '');
     return formatted.endsWith('.') ? `${formatted}0` : formatted;
+}
+
+/**
+ * Computes the zoom scale required for a given timeframe preset to span the viewport width.
+ *
+ * @param {string} rangeKey - Timeframe preset key ('7d', '14d', '30d', '90d', 'all')
+ * @param {Object} options - Layout options
+ * @param {Array<Object>} [options.entries=[]] - Complete list of history entries
+ * @param {number} [options.viewportWidth=600] - Visible width of the timeline container in pixels
+ * @returns {number} Calculated zoom scale multiplier
+ */
+export function calculateTimeframePresetZoomScale(rangeKey, { entries = [], viewportWidth = 600 } = {}) {
+    const resolvedWidth = Number.isFinite(Number(viewportWidth)) && Number(viewportWidth) > 0
+        ? Number(viewportWidth)
+        : 600;
+
+    let targetHours;
+    if (rangeKey === 'all') {
+        const validTimestamps = (Array.isArray(entries) ? entries : [])
+            .map(entry => new Date(entry.timestamp).getTime())
+            .filter(timestamp => !Number.isNaN(timestamp));
+        if (validTimestamps.length > 1) {
+            const minimumTimestamp = Math.min(...validTimestamps);
+            const maximumTimestamp = Math.max(...validTimestamps);
+            const elapsedHours = (maximumTimestamp - minimumTimestamp) / MILLISECONDS_PER_HOUR;
+            targetHours = Math.max(24, elapsedHours);
+        } else {
+            targetHours = 7 * 24;
+        }
+    } else {
+        const daysMap = { '7d': 7, '14d': 14, '30d': 30, '90d': 90 };
+        const numberOfDays = daysMap[rangeKey] || 7;
+        targetHours = numberOfDays * 24;
+    }
+
+    const calculatedScale = resolvedWidth / (targetHours * BASE_PIXELS_PER_HOUR);
+    return Math.max(0.01, Math.round(calculatedScale * 100) / 100);
+}
+
+/**
+ * Calculates the new horizontal scroll position when changing zoom scales, pivoting around
+ * the horizontal center of the currently visible viewport.
+ *
+ * @param {Object} options - Pivot options
+ * @param {number} [options.previousScrollLeft=0] - Scroll position prior to zoom change
+ * @param {number} [options.viewportWidth=600] - Visible container width in pixels
+ * @param {number} [options.previousZoomScale=1] - Zoom scale before the change
+ * @param {number} [options.nextZoomScale=1] - Target zoom scale after the change
+ * @param {number} [options.paddingLeft=32] - Left chart padding in pixels
+ * @returns {number} Target horizontal scroll position in pixels
+ */
+export function calculateZoomPivotScrollLeft({
+                                                 previousScrollLeft = 0,
+                                                 viewportWidth = 600,
+                                                 previousZoomScale = 1,
+                                                 nextZoomScale = 1,
+                                                 paddingLeft = 42
+                                             } = {}) {
+    const safePreviousScale = Number(previousZoomScale) > 0 ? Number(previousZoomScale) : 1;
+    const safeNextScale = Number(nextZoomScale) > 0 ? Number(nextZoomScale) : 1;
+    const zoomRatio = safeNextScale / safePreviousScale;
+    const previousCenterCoordinate = previousScrollLeft + viewportWidth / 2;
+    const nextCenterCoordinate = paddingLeft + (previousCenterCoordinate - paddingLeft) * zoomRatio;
+    return Math.max(0, nextCenterCoordinate - viewportWidth / 2);
+}
+
+/**
+ * Calculates the target horizontal scroll position to pan the mood timeline to the most recent
+ * entries ("NOW"), placing the latest entry at its normal position with trailing padding.
+ *
+ * @param {Object} [options]
+ * @param {number} [options.scrollWidth=0] - Total scrollable width of the timeline container
+ * @param {number} [options.viewportWidth=0] - Viewport client width of the timeline container
+ * @param {number} [options.svgWidth=0] - Rendered SVG width from layout dimensions
+ * @returns {number} Target horizontal scroll position in pixels
+ */
+export function calculateNowScrollLeft({
+                                           scrollWidth = 0,
+                                           viewportWidth = 0,
+                                           svgWidth = 0
+                                       } = {}) {
+    const totalWidth = Number(scrollWidth) > 0 ? Number(scrollWidth) : Number(svgWidth);
+    const safeViewportWidth = Number(viewportWidth) > 0 ? Number(viewportWidth) : 0;
+    if (totalWidth <= 0 || safeViewportWidth <= 0) {
+        return Math.max(0, totalWidth);
+    }
+    return Math.max(0, totalWidth - safeViewportWidth);
 }
 
 export async function loadHistoryView() {
@@ -196,40 +286,9 @@ export function computeGraphLayout({
         };
     }
 
-    // Filter entries according to active timeframe
-    let filteredEntries = rawAllEntries;
-    if (currentTimeRange !== 'all' && rawAllEntries.length > 0) {
-        const rangeDaysMap = { '7d': 7, '14d': 14, '30d': 30, '90d': 90 };
-        const numberOfDays = rangeDaysMap[currentTimeRange] || 30;
-        const millisecondsInWindow = numberOfDays * 24 * 60 * 60 * 1000;
-
-        let latestTimestampNumber = -Infinity;
-        for (const entry of rawAllEntries) {
-            const time = new Date(entry.timestamp).getTime();
-            if (!Number.isNaN(time) && time > latestTimestampNumber) {
-                latestTimestampNumber = time;
-            }
-        }
-        const referenceTime = latestTimestampNumber === -Infinity ? Date.now() : latestTimestampNumber;
-        const cutoffTime = referenceTime - millisecondsInWindow;
-
-        filteredEntries = rawAllEntries.filter(entry => {
-            const entryTime = new Date(entry.timestamp).getTime();
-            return !Number.isNaN(entryTime) && entryTime >= cutoffTime;
-        });
-    }
-
-    if (filteredEntries.length === 0) {
-        return {
-            isEmpty: false,
-            isTimeframeEmpty: true,
-            rawAllEntries,
-            filteredEntries: [],
-            questions: questionList,
-            visibleQuestionIds: currentVisibleSet,
-            timeRange: currentTimeRange
-        };
-    }
+    // Always include the full entry history in the rendered domain;
+    // timeframe-based entry filtering is retired in favor of always-render-everything.
+    const filteredEntries = rawAllEntries;
 
     const entryCount = filteredEntries.length;
     const entryTimes = filteredEntries.map(entry => {
@@ -248,19 +307,21 @@ export function computeGraphLayout({
     if (maxTime === -Infinity) maxTime = 0;
     const timeDuration = maxTime - minTime;
 
-    const pointSpacing = resolvedMinimumSpacing * resolvedZoomScale;
+    const originTime = minTime;
+    const timeScale = (BASE_PIXELS_PER_HOUR * resolvedZoomScale) / MILLISECONDS_PER_HOUR;
+    const pointSpacing = 24 * BASE_PIXELS_PER_HOUR * resolvedZoomScale;
     const paddingTop = 24;
     const paddingBottom = 60;
     const paddingLeft = 42;
     const paddingRight = 24;
 
-    const calculatedWidth = entryCount > 1
-        ? paddingLeft + paddingRight + (entryCount - 1) * pointSpacing
-        : paddingLeft + paddingRight + pointSpacing;
+    const chartWidth = timeDuration > 0
+        ? timeDuration * timeScale
+        : (24 * MILLISECONDS_PER_HOUR) * timeScale;
+    const calculatedWidth = paddingLeft + paddingRight + chartWidth;
     const width = calculatedWidth;
     const height = 320;
 
-    const chartWidth = width - paddingLeft - paddingRight;
     const chartHeight = height - paddingTop - paddingBottom;
 
     function getY(score) {
@@ -272,11 +333,21 @@ export function computeGraphLayout({
     const skipBaselineY = height - paddingBottom + 16;
     const noteBaselineY = height - paddingBottom + 32;
 
-    function getX(index) {
-        if (entryCount === 1) return paddingLeft + chartWidth / 2;
-        if (timeDuration <= 0) return paddingLeft + (index / (entryCount - 1)) * chartWidth;
-        const ratio = (entryTimes[index] - minTime) / timeDuration;
-        return paddingLeft + ratio * chartWidth;
+    function getX(entryTimeOrIndex) {
+        let entryTime;
+        if (typeof entryTimeOrIndex === 'number' && entryTimeOrIndex >= 0 && entryTimeOrIndex < entryTimes.length && entryTimeOrIndex < 1000000) {
+            entryTime = entryTimes[entryTimeOrIndex];
+        } else if (typeof entryTimeOrIndex === 'number') {
+            entryTime = entryTimeOrIndex;
+        } else if (entryTimeOrIndex) {
+            entryTime = new Date(entryTimeOrIndex).getTime();
+        } else {
+            entryTime = originTime;
+        }
+        if (Number.isNaN(entryTime) || entryTime === undefined) {
+            entryTime = originTime;
+        }
+        return paddingLeft + (entryTime - originTime) * timeScale;
     }
 
     // Grid lines for scores 1-5
@@ -291,22 +362,16 @@ export function computeGraphLayout({
 
     // Time-Scaled X-Axis Gridlines & Tick Labels
     const xTicks = [];
-    if (entryCount === 1) {
-        const xPosition = paddingLeft + chartWidth / 2;
+    if (entryCount === 1 || timeDuration <= 0) {
+        const xPosition = getX(minTime);
         const dateString = formatTickDate(minTime, true);
         xTicks.push({ x: xPosition, time: minTime, label: dateString });
-    } else if (timeDuration <= 0) {
-        filteredEntries.forEach((_entry, entryIndex) => {
-            const xPosition = getX(entryIndex);
-            const dateString = formatTickDate(entryTimes[entryIndex], true);
-            xTicks.push({ x: xPosition, time: entryTimes[entryIndex], label: dateString });
-        });
     } else {
         const isShortRange = timeDuration <= 36 * 3600 * 1000;
         const tickDensity = Math.max(3, Math.min(entryCount, Math.round(chartWidth / 90)));
         for (let tickIndex = 0; tickIndex < tickDensity; tickIndex++) {
             const tickTime = minTime + (tickIndex / (tickDensity - 1)) * timeDuration;
-            const xPosition = paddingLeft + (tickIndex / (tickDensity - 1)) * chartWidth;
+            const xPosition = getX(tickTime);
             const dateString = formatTickDate(tickTime, isShortRange);
             xTicks.push({ x: xPosition, time: tickTime, label: dateString });
         }
@@ -362,7 +427,7 @@ export function computeGraphLayout({
             const isSkipped = answer && (answer.status === 'skipped' || answer.score === null);
 
             if (isAnswered && answer) {
-                const x = getX(entryIndex);
+                const x = getX(entryTimes[entryIndex]);
                 const y = getY(answer.score);
                 const pointItem = {
                     x,
@@ -385,7 +450,7 @@ export function computeGraphLayout({
                 }
 
                 if (isSkipped) {
-                    const rawXPosition = getX(entryIndex);
+                    const rawXPosition = getX(entryTimes[entryIndex]);
                     const fannedXPosition = (entryCount === 1 || questionList.length === 1)
                         ? rawXPosition
                         : rawXPosition + (questionIndex - (questionList.length - 1) / 2) * 6;
@@ -430,7 +495,7 @@ export function computeGraphLayout({
         const hasNote = Boolean(entry.note && typeof entry.note === 'string' && entry.note.trim().length > 0);
         if (!hasNote) return;
 
-        const noteXPosition = getX(entryIndex);
+        const noteXPosition = getX(entryTimes[entryIndex]);
         const formattedDateString = formatEntryDateTime(entry.timestamp);
         const rawNoteText = entry.note.trim();
 
@@ -474,7 +539,10 @@ export function computeGraphLayout({
         },
         scales: {
             getY,
-            pointSpacing
+            pointSpacing,
+            timeScale,
+            originTime,
+            basePixelsPerHour: BASE_PIXELS_PER_HOUR
         },
         gridLines,
         xTicks,
@@ -675,11 +743,11 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
     }
 
     const timeframeRanges = [
-        { key: '7d', label: '7D', ariaLabel: 'Last 7 days' },
-        { key: '14d', label: '14D', ariaLabel: 'Last 14 days' },
-        { key: '30d', label: '30D', ariaLabel: 'Last 30 days' },
-        { key: '90d', label: '90D', ariaLabel: 'Last 90 days' },
-        { key: 'all', label: 'All', ariaLabel: 'All time' }
+        { key: '7d', label: '~7D', ariaLabel: 'Zoom to ~7 days' },
+        { key: '14d', label: '~14D', ariaLabel: 'Zoom to ~14 days' },
+        { key: '30d', label: '~30D', ariaLabel: 'Zoom to ~30 days' },
+        { key: '90d', label: '~90D', ariaLabel: 'Zoom to ~90 days' },
+        { key: 'all', label: 'All', ariaLabel: 'Zoom to all entries' }
     ];
 
     const timeframeButtonsHTML = timeframeRanges.map(rangeItem => {
@@ -690,27 +758,30 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
     }).join('');
 
     const timeframeToolbarHTML = `
-        <div class="graph-timeframe-toolbar" role="toolbar" aria-label="Timeline time range filter">
-            <span class="graph-timeframe-title">Timeframe</span>
-            <div class="graph-timeframe-buttons" role="radiogroup" aria-label="Select date range">
+        <div class="graph-timeframe-toolbar" role="toolbar" aria-label="Timeline zoom scale presets">
+            <span class="graph-timeframe-title">Scale</span>
+            <div class="graph-timeframe-buttons" role="radiogroup" aria-label="Select zoom preset">
                 ${timeframeButtonsHTML}
             </div>
         </div>
     `;
 
-    const isZoomOutDisabled = currentZoomScale <= 0.5;
-    const isZoomInDisabled = currentZoomScale >= 3;
     const isZoomResetDisabled = Math.abs(currentZoomScale - 1) < 0.01;
     const zoomToolbarHTML = `
         <div class="graph-zoom-toolbar" role="toolbar" aria-label="Timeline zoom controls">
             <button type="button" id="button-graph-zoom-out" class="graph-zoom-button"
-                    data-zoom-action="zoom-out" aria-label="Zoom out timeline"${isZoomOutDisabled ? ' disabled' : ''}>−</button>
+                    data-zoom-action="zoom-out" aria-label="Zoom out timeline">−</button>
             <button type="button" id="button-graph-zoom-reset" class="graph-zoom-button graph-zoom-button-reset"
                     data-zoom-action="reset" aria-label="Reset timeline zoom"${isZoomResetDisabled ? ' disabled' : ''}>Reset</button>
             <button type="button" id="button-graph-zoom-in" class="graph-zoom-button"
-                    data-zoom-action="zoom-in" aria-label="Zoom in timeline"${isZoomInDisabled ? ' disabled' : ''}>+</button>
+                    data-zoom-action="zoom-in" aria-label="Zoom in timeline">+</button>
             <span class="graph-zoom-value" aria-live="polite">${formatZoomValue(currentZoomScale)}×</span>
         </div>
+    `;
+
+    const nowButtonHTML = `
+        <button type="button" id="button-graph-now" class="graph-now-button"
+                aria-label="Pan timeline to latest entries" title="Pan timeline to latest entries">NOW</button>
     `;
 
     const quickActionsHTML = `
@@ -788,17 +859,39 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
         timeframeButtonElements.forEach(timeframeButtonElement => {
             timeframeButtonElement.addEventListener('click', () => {
                 const selectedRange = timeframeButtonElement.getAttribute('data-range');
-                if (selectedRange && selectedRange !== currentTimeRange) {
-                    STATE.historyTimeRange = selectedRange;
-                    renderLineGraph(container, {
-                        entries: rawAllEntries,
-                        allEntries: rawAllEntries,
-                        questions: questionList,
-                        visibleQuestionIds: currentVisibleSet,
-                        timeRange: selectedRange,
-                        zoomScale: STATE.historyZoomScale
-                    });
-                }
+                if (!selectedRange) return;
+
+                const scrollContainer = container.querySelector('.graph-scroll-container');
+                const previousScrollLeft = scrollContainer ? scrollContainer.scrollLeft : 0;
+                const viewportWidth = (scrollContainer && scrollContainer.clientWidth > 0)
+                    ? scrollContainer.clientWidth
+                    : (container.clientWidth > 0 ? container.clientWidth : 600);
+
+                const nextZoomScale = calculateTimeframePresetZoomScale(selectedRange, {
+                    entries: rawAllEntries,
+                    viewportWidth
+                });
+
+                const targetScrollLeft = calculateZoomPivotScrollLeft({
+                    previousScrollLeft,
+                    viewportWidth,
+                    previousZoomScale: currentZoomScale,
+                    nextZoomScale,
+                    paddingLeft: layout.dimensions.paddingLeft
+                });
+
+                STATE.historyTimeRange = selectedRange;
+                STATE.historyZoomScale = nextZoomScale;
+                STATE.historyScrollLeft = targetScrollLeft;
+
+                renderLineGraph(container, {
+                    entries: rawAllEntries,
+                    allEntries: rawAllEntries,
+                    questions: questionList,
+                    visibleQuestionIds: currentVisibleSet,
+                    timeRange: selectedRange,
+                    zoomScale: nextZoomScale
+                });
             });
         });
 
@@ -806,19 +899,30 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
             zoomButton.addEventListener('click', () => {
                 const scrollContainer = container.querySelector('.graph-scroll-container');
                 const previousScrollLeft = scrollContainer ? scrollContainer.scrollLeft : 0;
-                const viewportWidth = scrollContainer ? scrollContainer.clientWidth : 0;
+                const viewportWidth = (scrollContainer && scrollContainer.clientWidth > 0)
+                    ? scrollContainer.clientWidth
+                    : (container.clientWidth > 0 ? container.clientWidth : 600);
                 const zoomAction = zoomButton.dataset.zoomAction;
                 let nextZoomScale = currentZoomScale;
-                if (zoomAction === 'zoom-in') nextZoomScale = Math.min(3, currentZoomScale + 0.25);
-                if (zoomAction === 'zoom-out') nextZoomScale = Math.max(0.5, currentZoomScale - 0.25);
+                if (zoomAction === 'zoom-in') nextZoomScale = currentZoomScale + 0.25;
+                if (zoomAction === 'zoom-out') {
+                    nextZoomScale = currentZoomScale > 0.25
+                        ? currentZoomScale - 0.25
+                        : Math.max(0.01, Math.round(currentZoomScale * 0.5 * 100) / 100);
+                }
                 if (zoomAction === 'reset') nextZoomScale = 1;
                 nextZoomScale = Math.round(nextZoomScale * 100) / 100;
                 if (nextZoomScale === currentZoomScale) return;
 
-                const zoomRatio = nextZoomScale / currentZoomScale;
-                const oldCenter = previousScrollLeft + viewportWidth / 2;
-                const targetScrollLeft = oldCenter * zoomRatio - viewportWidth / 2;
-                STATE.historyScrollLeft = Math.max(0, targetScrollLeft);
+                const targetScrollLeft = calculateZoomPivotScrollLeft({
+                    previousScrollLeft,
+                    viewportWidth,
+                    previousZoomScale: currentZoomScale,
+                    nextZoomScale,
+                    paddingLeft: layout.dimensions.paddingLeft
+                });
+                STATE.historyScrollLeft = targetScrollLeft;
+                STATE.historyZoomScale = nextZoomScale;
 
                 const currentZoomValueElement = container.querySelector('.graph-zoom-value');
                 if (currentZoomValueElement) {
@@ -839,6 +943,30 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
                 });
             });
         });
+
+        const nowButtonElement = container.querySelector('#button-graph-now');
+        if (nowButtonElement) {
+            nowButtonElement.addEventListener('click', () => {
+                const scrollContainer = container.querySelector('.graph-scroll-container');
+                if (!scrollContainer) return;
+                const viewportWidth = (scrollContainer.clientWidth > 0)
+                    ? scrollContainer.clientWidth
+                    : (container.clientWidth > 0 ? container.clientWidth : 600);
+                const scrollWidth = (scrollContainer.scrollWidth > 0)
+                    ? scrollContainer.scrollWidth
+                    : (layout.dimensions ? layout.dimensions.width : 0);
+                const targetScrollLeft = calculateNowScrollLeft({
+                    scrollWidth,
+                    viewportWidth,
+                    svgWidth: layout.dimensions ? layout.dimensions.width : 0
+                });
+                if (typeof scrollContainer.scrollTo === 'function') {
+                    scrollContainer.scrollTo({ left: targetScrollLeft, behavior: 'smooth' });
+                }
+                scrollContainer.scrollLeft = targetScrollLeft;
+                STATE.historyScrollLeft = targetScrollLeft;
+            });
+        }
 
         const showAllButton = container.querySelector('#button-legend-show-all');
         if (showAllButton) {
@@ -879,7 +1007,7 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
             <div class="history-graph-wrapper">
                 <div class="graph-header-row" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 6px;">
                     <h3 style="margin: 0;">Mood Timeline</h3>
-                    <div class="graph-header-controls">${timeframeToolbarHTML}${zoomToolbarHTML}</div>
+                    <div class="graph-header-controls">${timeframeToolbarHTML}${zoomToolbarHTML}${nowButtonHTML}</div>
                 </div>
                 <div style="padding: 32px 16px; text-align: center; color: var(--text-muted); font-size: 0.92rem; background: var(--box-bg); border: 1px solid var(--border-color); border-radius: 8px; margin: 12px 0;">
                     No check-ins found in the selected timeframe (${getTimeframeLabel(currentTimeRange)}).<br>
@@ -900,7 +1028,7 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
         <div class="history-graph-wrapper">
             <div class="graph-header-row" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 6px;">
                 <h3 style="margin: 0;">Mood Timeline</h3>
-                <div class="graph-header-controls">${timeframeToolbarHTML}${zoomToolbarHTML}</div>
+                <div class="graph-header-controls">${timeframeToolbarHTML}${zoomToolbarHTML}${nowButtonHTML}</div>
             </div>
             <div class="graph-scroll-container" tabindex="0" role="region" aria-label="Interactive mood timeline chart, scroll horizontally to view earlier dates">
                 <div class="graph-scroll-content">${svgHTML}</div>
@@ -913,12 +1041,24 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
 
     const scrollContainerElement = container.querySelector('.graph-scroll-container');
     if (scrollContainerElement) {
-        const maximumScroll = Math.max(0, scrollContainerElement.scrollWidth - scrollContainerElement.clientWidth);
+        const hasLayoutDimensions = scrollContainerElement.scrollWidth > 0 || scrollContainerElement.clientWidth > 0;
+        const maximumScroll = hasLayoutDimensions
+            ? Math.max(0, scrollContainerElement.scrollWidth - scrollContainerElement.clientWidth)
+            : Infinity;
         const targetScroll = hadPreviousTimeline && Number.isFinite(Number(STATE.historyScrollLeft))
             ? STATE.historyScrollLeft
-            : maximumScroll;
-        scrollContainerElement.scrollLeft = Math.min(Math.max(0, targetScroll), maximumScroll);
-        STATE.historyScrollLeft = scrollContainerElement.scrollLeft;
+            : (hasLayoutDimensions ? maximumScroll : 0);
+        scrollContainerElement.scrollLeft = Number.isFinite(maximumScroll)
+            ? Math.min(Math.max(0, targetScroll), maximumScroll)
+            : Math.max(0, targetScroll);
+        STATE.historyScrollLeft = hasLayoutDimensions
+            ? scrollContainerElement.scrollLeft
+            : targetScroll;
+
+        // Keep STATE.historyScrollLeft synchronized as user pans or scrolls
+        scrollContainerElement.addEventListener('scroll', () => {
+            STATE.historyScrollLeft = scrollContainerElement.scrollLeft;
+        }, { passive: true });
 
         // Map mouse wheel delta to horizontal scrolling when cursor is over the timeline
         scrollContainerElement.addEventListener('wheel', (event) => {

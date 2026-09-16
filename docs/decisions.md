@@ -127,4 +127,45 @@ Locked design decisions and open questions for High & Low (menu, question store,
     catalog on next load without disturbing the user's active set.
   - Retained version `0.2.0` in working copy per user directive.
 
+## As of 2026-09-16
+
+- **Version Bump 0.2.1 (Task 9.1):**
+  - Bumped version to `0.2.1` (PATCH) per `docs/versioning.md` for internal graph timeline coordinate refactor.
+  - Replaced entry-count-driven width calculations in `computeGraphLayout()` with an exported base-scale constant
+    (`BASE_PIXELS_PER_HOUR = 2`), deriving point and note horizontal positions directly from elapsed time
+    `paddingLeft + (entryTime - originTime) * timeScale`.
+- **Retire Timeframe Entry Filtering (Task 9.2):**
+  - Removed timeframe cutoff filtering (`7d`/`14d`/`30d`/`90d`/`all` entry slicing) from `computeGraphLayout()`.
+  - Full entry history is always included in the rendered and scrollable SVG domain; navigation and viewing windows
+    are handled via panning and zoom scale presets (Task 9.3) rather than DOM data exclusion.
+  - No version bump required (internal graph layout behavior refactor, retaining version `0.2.1`).
+- **Version Bump 0.2.2: Repurpose Timeframe Buttons as Zoom Presets (Task 9.3):**
+  - Bumped version to `0.2.2` (PATCH) per `docs/versioning.md` for UI and accessibility updates to zoom shortcuts.
+  - Repurposed the timeframe toolbar buttons (`~7D`, `~14D`, `~30D`, `~90D`, `All`) as scale shortcuts rather than data
+    filters. Clicking a preset calculates the zoom scale multiplier needed to span the target duration across the
+    active viewport width: `calculateTimeframePresetZoomScale(rangeKey, { entries, viewportWidth })`.
+  - Zoom adjustments dynamically preserve user context by pivoting around the horizontal center of the visible
+    viewport: `calculateZoomPivotScrollLeft({ previousScrollLeft, viewportWidth, previousZoomScale, nextZoomScale, paddingLeft })`.
+  - Updated button accessible names (`Zoom to ~7 days`, `Zoom to all entries`) and toolbar role descriptions to
+    accurately convey zoom scale behavior.
+
+- **Version Bump 0.2.3: Zoom Buttons — Pivot on Viewport Center, No Clamp (Task 9.4):**
+  - Bumped version to `0.2.3` (PATCH) per `docs/versioning.md` for UI and zoom button behavior updates.
+  - Updated `+`/`−` zoom button handlers to scale the time-to-pixel rate around the horizontal center of the
+    currently visible viewport using `calculateZoomPivotScrollLeft`, seamlessly retaining the user's visual center.
+  - Removed the previous `0.5`–`3.0` zoom scale clamp (`isZoomOutDisabled`/`isZoomInDisabled`), allowing unbounded
+    continuous zoom in both directions.
+  - Hardened horizontal scroll position restoration across re-renders to preserve scroll anchors when container layout
+    dimensions are pending or unmeasured.
+
+- **Version Bump 0.3.0: `NOW` Return Button (Task 9.5):**
+  - Bumped version to `0.3.0` (MINOR) per `docs/versioning.md` for adding a new interactive control to the timeline
+    header.
+  - Added a `NOW` return button (`#button-graph-now`, `.graph-now-button`) to `.graph-header-controls` that pans
+    the horizontal scroll position to the rightmost edge (`calculateNowScrollLeft`) so the most recent entry sits
+    at its normal position with trailing padding from any current pan/zoom state.
+  - Preserves the current zoom scale (`STATE.historyZoomScale`) without alteration during panning.
+  - Wired live `scroll` event listener on `.graph-scroll-container` to continuously keep `STATE.historyScrollLeft`
+    synchronized with user panning and smooth scrolling.
+
 ## Open Questions

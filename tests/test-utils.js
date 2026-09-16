@@ -26,7 +26,16 @@ import {
     cancelQuestionAuthoring
 } from '../public/js/ui/question-view.js';
 import { startNewCheckIn, finalizeCheckin, renderCurrentQuestion, buildScoreButtonsHTML } from '../public/js/checkin.js';
-import { renderLineGraph, loadHistoryView, computeGraphLayout, renderGraphSVG } from '../public/js/ui/history-graph.js';
+import {
+    renderLineGraph,
+    loadHistoryView,
+    computeGraphLayout,
+    renderGraphSVG,
+    BASE_PIXELS_PER_HOUR,
+    calculateTimeframePresetZoomScale,
+    calculateZoomPivotScrollLeft,
+    calculateNowScrollLeft
+} from '../public/js/ui/history-graph.js';
 import { navigateTo, setCurrentViewId } from '../public/js/ui/navigation.js';
 import { get, getAll, put, getConfig, setConfig, deleteConfig } from '../public/js/storage/db.js';
 import { saveActiveCheckin, clearActiveCheckin, restoreActiveCheckin, saveActiveView, getStoredActiveView } from '../public/js/storage/session.js';
@@ -146,6 +155,10 @@ export async function setupTestDOM(customSessionStorage = {}) {
     windowInstance.renderLineGraph = renderLineGraph;
     windowInstance.computeGraphLayout = computeGraphLayout;
     windowInstance.renderGraphSVG = renderGraphSVG;
+    windowInstance.BASE_PIXELS_PER_HOUR = BASE_PIXELS_PER_HOUR;
+    windowInstance.calculateTimeframePresetZoomScale = calculateTimeframePresetZoomScale;
+    windowInstance.calculateZoomPivotScrollLeft = calculateZoomPivotScrollLeft;
+    windowInstance.calculateNowScrollLeft = calculateNowScrollLeft;
     windowInstance.loadHistoryView = loadHistoryView;
     windowInstance.navigateTo = navigateTo;
     windowInstance.finalizeCheckin = finalizeCheckin;
