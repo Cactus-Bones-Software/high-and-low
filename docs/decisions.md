@@ -168,4 +168,22 @@ Locked design decisions and open questions for High & Low (menu, question store,
   - Wired live `scroll` event listener on `.graph-scroll-container` to continuously keep `STATE.historyScrollLeft`
     synchronized with user panning and smooth scrolling.
 
+## As of 2026-09-16
+
+- **Version Bump 0.3.1: Fixed Leading/Trailing Time Padding (Task 9.6):**
+  - Bumped version to `0.3.1` (PATCH) per `docs/versioning.md` for graph layout timeline padding refactor.
+  - Reserved a static timeline padding equal to 7 real days at the active zoom scale before the first entry and after
+    the later of (last entry, "now") at all times, providing a clear visual edge buffer without abrupt boundary stops.
+  - Defined the zero-entry and single-entry states to render a 7-day-wide padding window ending at "now" with full
+    SVG axis gridlines and timeline controls rather than rendering an empty/no-graph message state.
+
+- **Version Bump 0.3.2: Accessible Backup File Import Activation & Drop Zone:**
+  - Bumped version to `0.3.2` (PATCH) per `docs/versioning.md` for fixing file import activation.
+  - Fixed `#button-import` click handler to forward activation to the hidden `#file-import` input while clearing its
+    previous value so repeat imports of the same file trigger change events reliably.
+  - Excluded the hidden `#file-import` input from accessibility/focus trees (`tabindex="-1"`, `aria-hidden="true"`)
+    ensuring screen readers focus cleanly on the semantic `<button id="button-import">` without Biome a11y violations.
+  - Added drag-and-drop file support to `.file-import-zone` with visual feedback (`.drag-over`) allowing direct file
+    drops into the import workflow.
+
 ## Open Questions

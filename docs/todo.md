@@ -366,35 +366,35 @@ empty, unlabeled canvas at the graph's edges, and lets the scroll container scro
 The tasks below replace this with a single, uniform pixels-per-unit-of-time scale that both native scroll
 and zoom operate on consistently, and add continuous gesture-driven zoom on top of it.
 
-- [ ] **Task 9.1: Uniform Time-to-Pixel Scale Constant**
+- [x] **Task 9.1: Uniform Time-to-Pixel Scale Constant**
   - In `public/js/ui/history-graph.js`, replace the entry-count-driven width formula in `computeGraphLayout()`
     (`(entryCount - 1) * pointSpacing`) with a single exported base-scale constant expressed as pixels per unit
     of real elapsed time (e.g. pixels per hour).
   - Every point's x-position must derive purely from `(entryTime - originTime) * scale`, at the current zoom
     level — not from entry index or entry count. This is the single source of truth the rest of Phase 9 builds
     on; keep it a plain exported constant so it stays easy to tune later without touching call sites.
-- [ ] **Task 9.2: Retire Timeframe-Based Entry Filtering**
+- [x] **Task 9.2: Retire Timeframe-Based Entry Filtering**
   - In `computeGraphLayout()`, remove the `timeRange` cutoff filtering (`filteredEntries` windowing for
     `7d`/`14d`/`30d`/`90d`/`all`). The full entry history is always included in the rendered/scrollable domain;
     nothing is excluded from the DOM based on a selected range anymore — users navigate to what they want to see
     themselves, by panning and zooming.
   - Update `tests/graph.test.js` (and any other suite asserting on `timeRange`/`filteredEntries` windowing
     behavior) to match the new always-render-everything model.
-- [ ] **Task 9.3: Repurpose Timeframe Buttons as Zoom-Neighborhood Presets**
+- [x] **Task 9.3: Repurpose Timeframe Buttons as Zoom-Neighborhood Presets**
   - Change the behavior wired to the existing 7D/14D/30D/90D/All buttons: instead of filtering entries out of
     the render (retired in Task 9.2), clicking one sets the current zoom scale such that that many days fill the
     current viewport width, pivoting the zoom around the horizontal center of the currently visible range (not
     jumping to a fixed window or changing what's rendered).
   - Update the buttons' visible labels and `aria-label`s, since "Last 7 days" framing no longer applies — they
     are now scale shortcuts ("Zoom to ~7 days"), not data filters.
-- [ ] **Task 9.4: Zoom Buttons — Pivot on Viewport Center, No Clamp**
+- [x] **Task 9.4: Zoom Buttons — Pivot on Viewport Center, No Clamp**
   - Update the existing `+`/`−` zoom buttons to scale the Task 9.1 time-to-pixel rate around the horizontal
     center of the *currently visible viewport* (not the whole SVG's midpoint), replacing the current
     index-based `pointSpacing` multiplier entirely.
   - Remove the existing `0.5`–`3` zoom clamp (`isZoomOutDisabled`/`isZoomInDisabled`) — zoom range is unbounded
     in both directions now that Task 9.5's `NOW` button guarantees the user always has a way back to a known,
     labeled position.
-- [ ] **Task 9.5: `NOW` Return Button**
+- [x] **Task 9.5: `NOW` Return Button**
   - Add a `NOW` button to the graph header controls (`.graph-header-controls`) that pans — does not change
     zoom scale — the scroll position so the most recent entry sits at its normal position with the Task 9.6
     trailing padding, from any current pan/zoom state.

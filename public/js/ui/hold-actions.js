@@ -130,20 +130,6 @@ export function setupHoldActions() {
             }
         });
     });
-
-    // Support Enter / Space keypress on the custom file import label
-    const importLabel = document.querySelector('label[for="file-import"]');
-    if (importLabel) {
-        importLabel.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                const fileImportElement = document.getElementById('file-import');
-                if (fileImportElement) {
-                    fileImportElement.click();
-                }
-            }
-        });
-    }
 }
 
 export function resetHold(element) {

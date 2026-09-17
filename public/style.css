@@ -978,6 +978,17 @@ select, .utility-button, .form-input {
     margin-bottom: 12px;
 }
 
+.file-import-zone {
+    display: flex;
+    margin-top: 4px;
+}
+
+.file-import-zone.drag-over .utility-button {
+    outline: 2px dashed var(--accent-primary, #6b8afd);
+    outline-offset: 2px;
+    background-color: var(--border-color);
+}
+
 .utility-button {
     flex: 1;
     cursor: pointer;

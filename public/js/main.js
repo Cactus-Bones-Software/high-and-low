@@ -117,6 +117,44 @@ export function initApp() {
         });
     }
 
+    const importButton = document.getElementById('button-import');
+    if (importButton && importFileInput) {
+        importButton.addEventListener('click', () => {
+            importFileInput.value = '';
+            importFileInput.click();
+        });
+    }
+
+    const importZone = document.querySelector('.file-import-zone');
+    if (importZone) {
+        const preventDefaultAction = (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+        };
+
+        ['dragenter', 'dragover'].forEach((eventName) => {
+            importZone.addEventListener(eventName, (event) => {
+                preventDefaultAction(event);
+                importZone.classList.add('drag-over');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach((eventName) => {
+            importZone.addEventListener(eventName, (event) => {
+                preventDefaultAction(event);
+                importZone.classList.remove('drag-over');
+            });
+        });
+
+        importZone.addEventListener('drop', (event) => {
+            preventDefaultAction(event);
+            const droppedFile = event.dataTransfer?.files?.[0];
+            if (droppedFile) {
+                openImportDialog(droppedFile);
+            }
+        });
+    }
+
     return initDatabase()
         .then(seedDefaults)
         .then(() => Promise.all([applyStoredDisplay(), loadActiveQuestions()]))
