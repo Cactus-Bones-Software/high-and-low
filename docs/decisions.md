@@ -186,4 +186,22 @@ Locked design decisions and open questions for High & Low (menu, question store,
   - Added drag-and-drop file support to `.file-import-zone` with visual feedback (`.drag-over`) allowing direct file
     drops into the import workflow.
 
+## As of 2026-09-17
+
+- **Version Bump 0.3.3: Graph Viewport Padding & Ending on Most Recent Record:**
+  - Bumped version to `0.3.3` (PATCH) per `docs/versioning.md` for graph timeline domain and layout padding refactor.
+  - Replaced the hardcoded 7-day JavaScript timeline padding with CSS-based viewport padding (10% on left and right of
+    `.graph-scroll-content`, paired with `scroll-padding-inline: 10%` on `.graph-scroll-container`).
+  - Updated graph timeline bounds in `computeGraphLayout` so multiple entries start on the earliest record and end
+    on the most recent record (not on the current date/now).
+  - Single entries end on that record with a 24-hour baseline window; zero-entry case renders a 24-hour baseline window
+    ending at now.
+
+- **Version Bump 0.3.4: Elimination of Baked-in SVG Deadspace:**
+  - Bumped version to `0.3.4` (PATCH) per `docs/versioning.md` for removing residual timeline deadspace from the SVG.
+  - Eliminated the 24-hour artificial baseline window previously added to single-entry and zero-entry cases,
+    anchoring domain duration directly to `0` with `leadingPaddingMs: 0` and `trailingPaddingMs: 0`.
+  - Prevents the SVG width from scaling empty deadspace when zooming in, ensuring all horizontal padding and margins
+    are driven strictly by CSS (`padding-left: 10%` and `padding-right: 10%`).
+
 ## Open Questions
