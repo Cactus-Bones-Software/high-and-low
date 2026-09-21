@@ -1954,11 +1954,15 @@ body[data-handedness="left"] .card-action-restore {
     position: relative;
     border-radius: 8px;
     outline: none;
+    scroll-padding-inline: 10%;
 }
 
 .graph-scroll-content {
     width: max-content;
     min-width: 100%;
+    box-sizing: border-box;
+    padding-left: 10%;
+    padding-right: 10%;
 }
 
 .graph-scroll-container:focus-visible {
@@ -1968,7 +1972,8 @@ body[data-handedness="left"] .card-action-restore {
 .graph-svg {
     display: block;
     height: auto;
-    max-height: 280px;
+    width: auto;
+    max-height: 320px;
     overflow: visible;
 }
 

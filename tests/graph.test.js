@@ -115,7 +115,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         const zoomInButton = container.querySelector('#button-graph-zoom-in');
         const resetButton = container.querySelector('#button-graph-zoom-reset');
         const zoomValue = container.querySelector('.graph-zoom-value');
-        const getWidth = () => Number(container.querySelector('svg').getAttribute('viewBox').split(' ')[2]);
+        const getWidth = () => Number(container.querySelector('svg.graph-svg').getAttribute('viewBox').split(' ')[2]);
 
         expect(zoomInButton.getAttribute('aria-label')).toBe('Zoom in timeline');
         expect(resetButton.getAttribute('aria-label')).toBe('Reset timeline zoom');
@@ -640,9 +640,10 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         const viewBox = svgElement.getAttribute('viewBox');
         expect(viewBox).toBeTruthy();
         const [, , width] = viewBox.split(' ').map(Number);
-        // With 25 entries: 42 + 24 + 24 * 48 = 1218px
+        // With 25 entries spanning 24 days without SVG internal padding (24 days = 576h):
+        // 0 (paddingLeft) + 0 (paddingRight) + 576 * 2 = 1152px
         expect(width).toBeGreaterThan(600);
-        expect(width).toBe(42 + 24 + 24 * 48);
+        expect(width).toBe(24 * 24 * windowInstance.BASE_PIXELS_PER_HOUR);
     });
 
     it('includes all answered questions from entries in addition to active questions when loading history view', async () => {
@@ -788,7 +789,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
                 timeRange: '7d'
             });
             expect(sevenDayLayout.isEmpty).toBe(false);
-            expect(sevenDayLayout.entries.length).toBe(4);
+            expect(sevenDayLayout.filteredEntries.length).toBe(4);
 
             // All-time window layout
             const allTimeLayout = windowInstance.computeGraphLayout({
@@ -796,7 +797,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
                 questions,
                 timeRange: 'all'
             });
-            expect(allTimeLayout.entries.length).toBe(4);
+            expect(allTimeLayout.filteredEntries.length).toBe(4);
 
             // Verify coordinate calculations
             // paddingTop = 24, paddingBottom = 60, height = 320 -> chartHeight = 236
@@ -941,7 +942,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
                 const layout = windowInstance.computeGraphLayout({ entries, questions, timeRange });
                 expect(layout.isEmpty).toBe(false);
                 expect(layout.isTimeframeEmpty).toBe(false);
-                expect(layout.entries.length).toBe(4);
+                expect(layout.filteredEntries.length).toBe(4);
                 expect(layout.series[0].points.length).toBe(4);
             });
         });
@@ -1122,12 +1123,12 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             await sleep(50);
 
             // Previous center = 200 + 600 / 2 = 500
-            // paddingLeft = 42
+            // paddingLeft = 0
             // Next scale = 1.25, zoomRatio = 1.25
-            // Next center coordinate = 42 + (500 - 42) * 1.25 = 42 + 572.5 = 614.5
-            // Target scroll left = 614.5 - 600 / 2 = 314.5
+            // Next center coordinate = 0 + (500 - 0) * 1.25 = 625
+            // Target scroll left = 625 - 600 / 2 = 325
             expect(windowInstance.STATE.historyZoomScale).toBe(1.25);
-            expect(windowInstance.STATE.historyScrollLeft).toBeCloseTo(314.5, 1);
+            expect(windowInstance.STATE.historyScrollLeft).toBeCloseTo(325, 1);
         });
     });
 
@@ -1215,7 +1216,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
 
     describe('SVG Width Tightness — No Dead Space Beyond Intended Padding (Task 9.6 diagnosis)', () => {
         function buildDeadSpaceRegressionEntries() {
-            // Entries spread across real, unevenly spaced days so that content position depends
+            // Entries spread across real, unevenly-spaced days so that content position depends
             // purely on elapsed time, not on entry index or entry count.
             const now = Date.now();
             return [
