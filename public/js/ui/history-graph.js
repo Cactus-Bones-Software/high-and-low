@@ -234,7 +234,7 @@ export function getTimeframeLabel(rangeKey) {
  * @returns {Object} Layout object containing computed dimensions, scales, points, paths, and series data.
  */
 export function computeGraphLayout({
-                                       entries,
+                                       entries: entriesInput,
                                        allEntries,
                                        questions = [],
                                        visibleQuestionIds,
@@ -242,9 +242,9 @@ export function computeGraphLayout({
                                        minimumSpacingPerPoint = 48,
                                        zoomScale = 1
                                    } = {}) {
-    const rawAllEntries = Array.isArray(allEntries)
+    const entries = Array.isArray(allEntries)
         ? allEntries
-        : (Array.isArray(entries) ? entries : []);
+        : (Array.isArray(entriesInput) ? entriesInput : []);
 
     const questionList = Array.isArray(questions) ? questions : [];
     const currentTimeRange = timeRange || 'all';
@@ -262,12 +262,11 @@ export function computeGraphLayout({
         currentVisibleSet = new Set(questionList.map(question => question.id));
     }
 
-    if (!rawAllEntries || rawAllEntries.length === 0) {
+    if (!entries || entries.length === 0) {
         return {
             isEmpty: true,
             reason: 'no-entries',
-            rawAllEntries: [],
-            filteredEntries: [],
+            entries: [],
             questions: questionList,
             visibleQuestionIds: currentVisibleSet,
             timeRange: currentTimeRange
@@ -278,8 +277,7 @@ export function computeGraphLayout({
         return {
             isEmpty: true,
             reason: 'no-questions',
-            rawAllEntries,
-            filteredEntries: [],
+            entries,
             questions: [],
             visibleQuestionIds: currentVisibleSet,
             timeRange: currentTimeRange
@@ -288,10 +286,8 @@ export function computeGraphLayout({
 
     // Always include the full entry history in the rendered domain;
     // timeframe-based entry filtering is retired in favor of always-render-everything.
-    const filteredEntries = rawAllEntries;
-
-    const entryCount = filteredEntries.length;
-    const entryTimes = filteredEntries.map(entry => {
+    const entryCount = entries.length;
+    const entryTimes = entries.map(entry => {
         const time = new Date(entry.timestamp).getTime();
         return Number.isNaN(time) ? 0 : time;
     });
@@ -410,7 +406,7 @@ export function computeGraphLayout({
         const questionSkips = [];
         const questionPoints = [];
 
-        filteredEntries.forEach((entry, entryIndex) => {
+        entries.forEach((entry, entryIndex) => {
             let answer = null;
             if (Array.isArray(entry.answers)) {
                 answer = entry.answers.find(answerItem => answerItem.questionId === question.id);
@@ -491,7 +487,7 @@ export function computeGraphLayout({
     });
 
     const notes = [];
-    filteredEntries.forEach((entry, entryIndex) => {
+    entries.forEach((entry, entryIndex) => {
         const hasNote = Boolean(entry.note && typeof entry.note === 'string' && entry.note.trim().length > 0);
         if (!hasNote) return;
 
@@ -512,8 +508,7 @@ export function computeGraphLayout({
     return {
         isEmpty: false,
         isTimeframeEmpty: false,
-        rawAllEntries,
-        filteredEntries,
+        entries,
         questions: questionList,
         visibleQuestionIds: currentVisibleSet,
         timeRange: currentTimeRange,
@@ -726,7 +721,7 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
     let currentVisibleSet = layout.visibleQuestionIds;
     STATE.historyVisibleQuestionIds = currentVisibleSet;
 
-    const rawAllEntries = layout.rawAllEntries;
+    const layoutEntries = layout.entries;
     const questionList = layout.questions;
 
     if (layout.isEmpty) {
@@ -868,7 +863,7 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
                     : (container.clientWidth > 0 ? container.clientWidth : 600);
 
                 const nextZoomScale = calculateTimeframePresetZoomScale(selectedRange, {
-                    entries: rawAllEntries,
+                    entries: layoutEntries,
                     viewportWidth
                 });
 
@@ -885,8 +880,8 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
                 STATE.historyScrollLeft = targetScrollLeft;
 
                 renderLineGraph(container, {
-                    entries: rawAllEntries,
-                    allEntries: rawAllEntries,
+                    entries: layoutEntries,
+                    allEntries: layoutEntries,
                     questions: questionList,
                     visibleQuestionIds: currentVisibleSet,
                     timeRange: selectedRange,
@@ -934,8 +929,8 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
                 }
 
                 renderLineGraph(container, {
-                    entries: rawAllEntries,
-                    allEntries: rawAllEntries,
+                    entries: layoutEntries,
+                    allEntries: layoutEntries,
                     questions: questionList,
                     visibleQuestionIds: currentVisibleSet,
                     timeRange: currentTimeRange,
@@ -975,8 +970,8 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
                 currentVisibleSet = new Set(allQuestionIds);
                 STATE.historyVisibleQuestionIds = currentVisibleSet;
                 renderLineGraph(container, {
-                    entries: rawAllEntries,
-                    allEntries: rawAllEntries,
+                    entries: layoutEntries,
+                    allEntries: layoutEntries,
                     questions: questionList,
                     visibleQuestionIds: currentVisibleSet,
                     timeRange: currentTimeRange,
@@ -991,8 +986,8 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
                 currentVisibleSet = new Set();
                 STATE.historyVisibleQuestionIds = currentVisibleSet;
                 renderLineGraph(container, {
-                    entries: rawAllEntries,
-                    allEntries: rawAllEntries,
+                    entries: layoutEntries,
+                    allEntries: layoutEntries,
                     questions: questionList,
                     visibleQuestionIds: currentVisibleSet,
                     timeRange: currentTimeRange,
@@ -1086,8 +1081,8 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
         function displayNoteDialog() {
             const entryIndexAttribute = noteMarkerElement.getAttribute('data-entry-index');
             const entryIndex = entryIndexAttribute !== null ? parseInt(entryIndexAttribute, 10) : -1;
-            const targetEntry = Number.isInteger(entryIndex) && layout.filteredEntries?.[entryIndex]
-                ? layout.filteredEntries[entryIndex]
+            const targetEntry = Number.isInteger(entryIndex) && layout.entries?.[entryIndex]
+                ? layout.entries[entryIndex]
                 : null;
             const rawNoteContent = targetEntry?.note
                 ? targetEntry.note.trim()
@@ -1155,8 +1150,8 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
                 }
             }
             renderLineGraph(container, {
-                entries: rawAllEntries,
-                allEntries: rawAllEntries,
+                entries: layoutEntries,
+                allEntries: layoutEntries,
                 questions: questionList,
                 visibleQuestionIds: currentVisibleSet,
                 timeRange: currentTimeRange
@@ -1240,8 +1235,8 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
 
             STATE.historyVisibleQuestionIds = currentVisibleSet;
             renderLineGraph(container, {
-                entries: rawAllEntries,
-                allEntries: rawAllEntries,
+                entries: layoutEntries,
+                allEntries: layoutEntries,
                 questions: questionList,
                 visibleQuestionIds: currentVisibleSet,
                 timeRange: currentTimeRange

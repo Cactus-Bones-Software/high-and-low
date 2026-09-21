@@ -22,6 +22,61 @@ function expectGraphLegendAndLines(container, checkedStates, expectedPathsCount,
     return items;
 }
 
+/**
+ * Computes the rightmost x-coordinate reached by any rendered, data-driven graph content
+ * element (x-axis tick lines, plotted data-line paths, point circles, skip markers, and note
+ * icon markers) inside a rendered `<svg class="graph-svg">`. Used to detect unaccounted-for
+ * dead space: the SVG's declared `width` should never exceed this content edge by more than
+ * the chart's own designed `paddingRight`, at any zoom level.
+ *
+ * Deliberately excludes the `.grid` group (the score gridlines and skip/note baseline lines):
+ * those are drawn from `paddingLeft` to `width - paddingRight` by design, so they always
+ * stretch to fill whatever `width` the layout produces. Measuring them would make this check
+ * tautological — it would "pass" even if `width` itself were wrong, because the gridlines
+ * would simply stretch to match. Every element measured here derives its position purely
+ * from entry timestamps/padding, independent of the layout's own `width` value, so it can
+ * actually catch `width` drifting away from where the real content ends.
+ *
+ * jsdom does not implement SVG geometry APIs (`getBBox()` etc.), so bounds are derived
+ * directly from the rendered attributes instead of relying on layout measurement.
+ *
+ * @param {SVGElement} svgElement
+ * @returns {number} The maximum x-coordinate covered by any data-driven content element.
+ */
+function getSvgContentRightEdge(svgElement) {
+    let maxX = -Infinity;
+
+    function consider(value) {
+        if (Number.isFinite(value) && value > maxX) maxX = value;
+    }
+
+    const contentSelector = '.x-axis line, .lines path, .points circle, .skips circle, .skips line, .notes rect, .notes path';
+
+    svgElement.querySelectorAll(contentSelector).forEach(element => {
+        if (element.tagName === 'circle') {
+            const cx = Number(element.getAttribute('cx'));
+            const r = Number(element.getAttribute('r')) || 0;
+            const strokeWidth = Number(element.getAttribute('stroke-width')) || 0;
+            consider(cx + r + strokeWidth / 2);
+        } else if (element.tagName === 'line') {
+            consider(Number(element.getAttribute('x1')));
+            consider(Number(element.getAttribute('x2')));
+        } else if (element.tagName === 'rect') {
+            const x = Number(element.getAttribute('x'));
+            const width = Number(element.getAttribute('width')) || 0;
+            consider(x + width);
+        } else if (element.tagName === 'path') {
+            const pathData = element.getAttribute('d') || '';
+            const coordinatePattern = /[ML]\s*(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)/g;
+            for (const match of pathData.matchAll(coordinatePattern)) {
+                consider(Number(match[1]));
+            }
+        }
+    });
+
+    return maxX;
+}
+
 async function simulateLongPress(windowInstance, element, durationMs = 500) {
     const pointerDownEvent = new windowInstance.PointerEvent('pointerdown', {
         bubbles: true,
@@ -733,7 +788,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
                 timeRange: '7d'
             });
             expect(sevenDayLayout.isEmpty).toBe(false);
-            expect(sevenDayLayout.filteredEntries.length).toBe(4);
+            expect(sevenDayLayout.entries.length).toBe(4);
 
             // All-time window layout
             const allTimeLayout = windowInstance.computeGraphLayout({
@@ -741,7 +796,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
                 questions,
                 timeRange: 'all'
             });
-            expect(allTimeLayout.filteredEntries.length).toBe(4);
+            expect(allTimeLayout.entries.length).toBe(4);
 
             // Verify coordinate calculations
             // paddingTop = 24, paddingBottom = 60, height = 320 -> chartHeight = 236
@@ -886,7 +941,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
                 const layout = windowInstance.computeGraphLayout({ entries, questions, timeRange });
                 expect(layout.isEmpty).toBe(false);
                 expect(layout.isTimeframeEmpty).toBe(false);
-                expect(layout.filteredEntries.length).toBe(4);
+                expect(layout.entries.length).toBe(4);
                 expect(layout.series[0].points.length).toBe(4);
             });
         });
@@ -1155,6 +1210,78 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             // Scroll position must be panned to end: 3200 - 600 = 2600
             expect(scrollContainer.scrollLeft).toBe(2600);
             expect(windowInstance.STATE.historyScrollLeft).toBe(2600);
+        });
+    });
+
+    describe('SVG Width Tightness — No Dead Space Beyond Intended Padding (Task 9.6 diagnosis)', () => {
+        function buildDeadSpaceRegressionEntries() {
+            // Entries spread across real, unevenly spaced days so that content position depends
+            // purely on elapsed time, not on entry index or entry count.
+            const now = Date.now();
+            return [
+                { timestamp: new Date(now - 20 * 86400000).toISOString(), answers: [{ questionId: 'q1', score: 2, status: 'answered' }] },
+                { timestamp: new Date(now - 13 * 86400000).toISOString(), answers: [{ questionId: 'q1', score: 5, status: 'answered' }] },
+                { timestamp: new Date(now - 9 * 86400000).toISOString(), answers: [{ questionId: 'q1', score: 1, status: 'answered' }] },
+                { timestamp: new Date(now - 4 * 86400000).toISOString(), answers: [{ questionId: 'q1', score: 3, status: 'answered' }] },
+                {
+                    // Final entry carries a note, so the rightmost content element on the timeline
+                    // is the note marker rather than a plain point circle.
+                    timestamp: new Date(now).toISOString(),
+                    answers: [{ questionId: 'q1', score: 4, status: 'answered' }],
+                    note: 'Last check-in of the window.'
+                }
+            ];
+        }
+
+        it('never renders an SVG wider than its rightmost content plus the designed paddingRight, at any zoom level', () => {
+            const container = documentInstance.createElement('div');
+            const questions = [{ id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' }];
+            const entries = buildDeadSpaceRegressionEntries();
+
+            [0.25, 0.5, 1, 1.5, 2, 3, 4].forEach(zoomScale => {
+                windowInstance.renderLineGraph(container, { entries, questions, zoomScale });
+
+                const svgElement = container.querySelector('svg.graph-svg');
+                expect(svgElement).toBeTruthy();
+
+                const declaredWidth = Number(svgElement.getAttribute('width'));
+                const [, , viewBoxWidth] = svgElement.getAttribute('viewBox').split(' ').map(Number);
+                expect(declaredWidth).toBe(viewBoxWidth);
+
+                // Ground truth for "how much right-side padding is intentional" comes straight from
+                // the layout function, not a hard-coded number, so this test tracks the real design
+                // constant instead of drifting out of sync with it.
+                const layout = windowInstance.computeGraphLayout({ entries, questions, zoomScale });
+                const { paddingRight } = layout.dimensions;
+
+                const contentRightEdge = getSvgContentRightEdge(svgElement);
+                const roundingSlack = 0.5;
+
+                expect(declaredWidth).toBeLessThanOrEqual(contentRightEdge + paddingRight + roundingSlack);
+            });
+        });
+
+        it('keeps the dead space between content and the SVG edge constant (in pixels) rather than growing with zoom', () => {
+            const container = documentInstance.createElement('div');
+            const questions = [{ id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' }];
+            const entries = buildDeadSpaceRegressionEntries();
+
+            const deadSpaceByZoom = [0.5, 1, 2, 4].map(zoomScale => {
+                windowInstance.renderLineGraph(container, { entries, questions, zoomScale });
+                const svgElement = container.querySelector('svg.graph-svg');
+                const declaredWidth = Number(svgElement.getAttribute('width'));
+                const contentRightEdge = getSvgContentRightEdge(svgElement);
+                return declaredWidth - contentRightEdge;
+            });
+
+            // The gap between the last rendered element and the SVG's right edge is a fixed
+            // design constant (paddingRight); it must not scale up as zoomScale increases. A
+            // regression that multiplies dead space by zoom would blow this tolerance well past
+            // ~1px of floating point/rounding slack.
+            const [baseline, ...rest] = deadSpaceByZoom;
+            rest.forEach(deadSpace => {
+                expect(Math.abs(deadSpace - baseline)).toBeLessThan(1);
+            });
         });
     });
 });
