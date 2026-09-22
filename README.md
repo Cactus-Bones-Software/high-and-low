@@ -77,11 +77,11 @@ Funding will be spent on the following:
   supportive. I consider this my moral obligation to fellow humans.
   - Initial self-assessments based on American Psychiatric Association app evaluation guidelines look promising,
     but I want a formal review conducted with a licensed psychologist.
-  - Quote needed
+  - Cost: quote needed
 - **Accessibility & Usability Review:** A core principle of the app is that it should be usable by anyone, including
   those in the lowest of low moods. I want a professional accessibility and usability audit to ensure the app is
   truly effortless for everyone.
-  - Quote needed
+  - Cost: quote needed
 - **Domain Names:** I have reserved the domain names `high-and-low.app` (primary, easy to read) and `highandlow.app`
   (secondary, easy to type and remember) to provide easy web access to the app.
   - Cost: about USD $60 per year.
