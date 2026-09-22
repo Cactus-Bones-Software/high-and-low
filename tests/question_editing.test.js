@@ -7,7 +7,7 @@ import {
     openQuestionAuthoringDialog
 } from './test-utils.js';
 
-describe('Task 5.7: Question Editing & Archiving Workflow', () => {
+describe('Task 5.7: Question Editing Workflow', () => {
     let windowInstance;
     let documentInstance;
 
@@ -64,18 +64,12 @@ describe('Task 5.7: Question Editing & Archiving Workflow', () => {
         expect(retrieved.originalText).toBe(originalQuestion.originalText);
     });
 
-    it('2. Built-in questions cannot be edited but can be archived/removed', async () => {
+    it('2. Built-in questions cannot be edited', async () => {
         await expect(windowInstance.updateCustomQuestion('q_energy', { text: 'New energy text' }))
             .rejects.toThrow(/Built-in questions cannot be edited/);
-
-        const archived = await windowInstance.archiveQuestion('q_energy');
-        expect(archived.archived).toBe(true);
-
-        // Restore for test teardown
-        await windowInstance.restoreQuestion('q_energy');
     });
 
-    it('3. archiveQuestion soft-deletes custom question and removes it from activeQuestionSet', async () => {
+    it('3. removeQuestion soft-deletes custom question and removes it from activeQuestionSet', async () => {
         const creationOutcome = await windowInstance.createCustomQuestion({
             text: 'How hydrated did you stay today?',
             shortLabel: 'Hydration',
@@ -90,11 +84,11 @@ describe('Task 5.7: Question Editing & Archiving Workflow', () => {
         let activeSet = await windowInstance.getConfig('activeQuestionSet');
         expect(activeSet).toContain(questionId);
 
-        // Archive question
-        const archived = await windowInstance.archiveQuestion(questionId);
-        expect(archived.archived).toBe(true);
+        // Remove question
+        const removed = await windowInstance.removeQuestion(questionId);
+        expect(removed.archived).toBe(true);
 
-        // Verify active question set no longer contains the archived question
+        // Verify active question set no longer contains the removed question
         activeSet = await windowInstance.getConfig('activeQuestionSet');
         expect(activeSet).not.toContain(questionId);
 
@@ -103,7 +97,7 @@ describe('Task 5.7: Question Editing & Archiving Workflow', () => {
         expect(inDb.archived).toBe(true);
     });
 
-    it('4. restoreQuestion sets archived to false', async () => {
+    it('4. restoreQuestion restores removed question and sets archived to false', async () => {
         const creationOutcome = await windowInstance.createCustomQuestion({
             text: 'Did you spend time outdoors today?',
             shortLabel: 'Outdoors',
@@ -113,7 +107,7 @@ describe('Task 5.7: Question Editing & Archiving Workflow', () => {
         });
 
         const questionId = creationOutcome.id;
-        await windowInstance.archiveQuestion(questionId);
+        await windowInstance.removeQuestion(questionId);
         let inDb = await windowInstance.get('questions', questionId);
         expect(inDb.archived).toBe(true);
 
@@ -149,8 +143,8 @@ describe('Task 5.7: Question Editing & Archiving Workflow', () => {
         const saveButton = documentInstance.getElementById('button-save-question');
         expect(saveButton.textContent).toContain('Save Changes');
 
-        const archiveRow = documentInstance.getElementById('archive-question-row');
-        expect(archiveRow.hidden).toBe(false);
+        const removeRow = documentInstance.getElementById('archive-question-row');
+        expect(removeRow.hidden).toBe(false);
 
         const textInput = documentInstance.getElementById('q-text');
         expect(textInput.value).toBe('How creative did you feel today?');
@@ -174,7 +168,7 @@ describe('Task 5.7: Question Editing & Archiving Workflow', () => {
         expect(updatedDb.shortLabel).toBe('Imagination');
     });
 
-    it('6. UI Flow: Archiving via authoring dialog removes card from active/catalog and renders in archived section with restore button', async () => {
+    it('6. UI Flow: Removing via authoring dialog removes card from active/catalog and renders in removed questions section with restore button', async () => {
         const customOutcome = await windowInstance.createCustomQuestion({
             text: 'How calm was your morning routine?',
             shortLabel: 'Morning Calm',
@@ -190,8 +184,8 @@ describe('Task 5.7: Question Editing & Archiving Workflow', () => {
         const overlay = await openQuestionAuthoringDialog(documentInstance, questionId, 'edit');
         expect(overlay.classList.contains('is-open')).toBe(true);
 
-        // Execute archive action
-        await windowInstance.archiveQuestionFromAuthoring();
+        // Execute remove action
+        await windowInstance.removeQuestionFromAuthoring();
 
         await waitFor(() => !overlay.classList.contains('is-open'));
 
@@ -199,15 +193,15 @@ describe('Task 5.7: Question Editing & Archiving Workflow', () => {
         expect(documentInstance.querySelector(`#questions-active-list [data-question-id="${questionId}"]`)).toBeNull();
         expect(documentInstance.querySelector(`#questions-catalog-list [data-question-id="${questionId}"]`)).toBeNull();
 
-        // Check that archived section shows the question
-        const archivedSection = documentInstance.getElementById('questions-archived-section');
-        expect(archivedSection.hidden).toBe(false);
+        // Check that removed section shows the question
+        const removedSection = documentInstance.getElementById('questions-archived-section');
+        expect(removedSection.hidden).toBe(false);
 
-        const archivedCard = documentInstance.querySelector(`#questions-archived-list [data-question-id="${questionId}"]`);
-        expect(archivedCard).not.toBeNull();
-        expect(archivedCard.querySelector('.question-card-badge').textContent).toBe('Archived');
+        const removedCard = documentInstance.querySelector(`#questions-archived-list [data-question-id="${questionId}"]`);
+        expect(removedCard).not.toBeNull();
+        expect(removedCard.querySelector('.question-card-badge').textContent).toBe('Removed');
 
-        const restoreButton = archivedCard.querySelector('.question-restore-button');
+        const restoreButton = removedCard.querySelector('.question-restore-button');
         expect(restoreButton).not.toBeNull();
         expect(restoreButton.textContent.trim()).toBe('Restore');
 
@@ -219,9 +213,30 @@ describe('Task 5.7: Question Editing & Archiving Workflow', () => {
             return Boolean(catalogCard);
         });
 
-        // Verify in DB that it is no longer archived
+        // Verify in DB that it is no longer removed
         const inDb = await windowInstance.get('questions', questionId);
         expect(inDb.archived).toBe(false);
+    });
+
+    it('7. updateCustomQuestion validates input parameters', async () => {
+        await expect(windowInstance.updateCustomQuestion('', { text: 'Valid' }))
+            .rejects.toThrow(/Valid question ID is required/);
+
+        const custom = await windowInstance.createCustomQuestion({
+            text: 'Valid text for validation test',
+            shortLabel: 'Valid',
+            tags: ['Test'],
+            curve: 'more-is-better'
+        });
+
+        await expect(windowInstance.updateCustomQuestion(custom.id, { text: '   ' }))
+            .rejects.toThrow(/Question text cannot be empty/);
+
+        await expect(windowInstance.updateCustomQuestion(custom.id, { shortLabel: '   ' }))
+            .rejects.toThrow(/Short label cannot be empty/);
+
+        await expect(windowInstance.updateCustomQuestion(custom.id, { responseType: 'invalid-type' }))
+            .rejects.toThrow(/Invalid responseType/);
     });
 });
 

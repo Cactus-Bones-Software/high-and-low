@@ -14,6 +14,8 @@ import {
     updateCustomQuestion,
     archiveQuestion,
     restoreQuestion,
+    removeQuestion,
+    removeCustomQuestion,
     moveActiveQuestion,
     removeQuestionFromTracker,
     addQuestionToTracker
@@ -22,6 +24,7 @@ import {
     loadQuestionsView,
     buildActiveQuestionCardHTML,
     archiveQuestionFromAuthoring,
+    removeQuestionFromAuthoring,
     saveQuestionFromAuthoring,
     cancelQuestionAuthoring
 } from '../public/js/ui/question-view.js';
@@ -172,7 +175,10 @@ export async function setupTestDOM(customSessionStorage = {}) {
     windowInstance.updateCustomQuestion = updateCustomQuestion;
     windowInstance.archiveQuestion = archiveQuestion;
     windowInstance.restoreQuestion = restoreQuestion;
+    windowInstance.removeQuestion = removeQuestion;
+    windowInstance.removeCustomQuestion = removeCustomQuestion;
     windowInstance.archiveQuestionFromAuthoring = archiveQuestionFromAuthoring;
+    windowInstance.removeQuestionFromAuthoring = removeQuestionFromAuthoring;
     windowInstance.saveQuestionFromAuthoring = saveQuestionFromAuthoring;
     windowInstance.cancelQuestionAuthoring = cancelQuestionAuthoring;
     windowInstance.moveActiveQuestion = moveActiveQuestion;
@@ -438,12 +444,12 @@ export function renderGraphToContainer(windowInstance, documentInstance, options
 }
 
 /**
- * Helper to create and immediately archive a custom question for removed question tests.
+ * Helper to create and immediately remove a custom question for removed question tests.
  * @param {Window} windowInstance
  * @param {Record<string, unknown>} [options={}]
  * @returns {Promise<{ id: string, outcome: Record<string, unknown> }>}
  */
-export async function createAndArchiveCustomQuestion(windowInstance, options = {}) {
+export async function createAndRemoveCustomQuestion(windowInstance, options = {}) {
     const outcome = await windowInstance.createCustomQuestion({
         text: 'Sample custom question for removal',
         shortLabel: 'Sample',
@@ -452,7 +458,9 @@ export async function createAndArchiveCustomQuestion(windowInstance, options = {
         addToSet: false,
         ...options
     });
-    await windowInstance.archiveQuestion(outcome.id);
+    await windowInstance.removeQuestion(outcome.id);
     return { id: outcome.id, outcome };
 }
+
+export const createAndArchiveCustomQuestion = createAndRemoveCustomQuestion;
 

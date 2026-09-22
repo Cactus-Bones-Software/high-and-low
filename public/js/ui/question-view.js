@@ -112,7 +112,7 @@ export function buildQuestionCardHTML(question, options = {}) {
     let statusLabel = question.builtIn ? 'Built-in' : 'Custom';
     let statusClass = question.builtIn ? 'question-card-badge-builtin' : 'question-card-badge-custom';
     if (isArchived) {
-        statusLabel = 'Archived';
+        statusLabel = 'Removed';
         statusClass = 'question-card-badge-archived';
     }
 
@@ -1089,7 +1089,7 @@ export function setupQuestionAuthoring() {
                 } else if (outcome.status === 'restored') {
                     showNoticeDialog(
                         'Question Restored',
-                        'That question already existed in your archived items and has been restored.',
+                        'That question already existed in your removed items and has been restored.',
                         addQuestionButton
                     );
                 } else {
