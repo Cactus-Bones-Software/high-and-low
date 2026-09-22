@@ -1,6 +1,6 @@
 # High & Low
 
-**High & Low** is an easy-to-use, private mood tracker designed specifically for individuals navigating bipolar
+**High & Low** is a private mood tracker designed specifically for individuals navigating bipolar
 and unipolar mood cycles (both depressive lows and manic/hypomanic highs).
 
 It is a lightweight, easy-to-use web app built to make mood tracking feel effortless—especially on exhausting
