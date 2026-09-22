@@ -3,11 +3,7 @@
 **High & Low** is an easy-to-use, private mood tracker designed specifically for individuals navigating bipolar
 and unipolar mood cycles (both depressive lows and manic/hypomanic highs).
 
----
-
-## What It Is
-
-High & Low is a lightweight, easy-to-use web app built to make mood tracking feel effortless—especially on exhausting
+It is a lightweight, easy-to-use web app built to make mood tracking feel effortless—especially on exhausting
 or low-energy days. It uses simple 1–5 rating scales and quick Yes/No questions presented one card at a time,
 keeping mental effort as low as possible.
 
@@ -30,13 +26,15 @@ keeping mental effort as low as possible.
 
 ## Why It Exists
 
-Most mood tracking apps demand too much effort: long lists of questions, mandatory journal entries, visual clutter,
-or required cloud accounts. During deep depressive lows or restless manic phases, these hurdles often cause tracking
+Some mood tracking apps demand too much effort: long lists of questions, mandatory journal entries, visual clutter,
+or required cloud accounts. During deep depressive lows or restless manic phases, these hurdles can cause tracking
 habits to stop completely.
 
 High & Low was created to remove those obstacles. By focusing on quick one-tap answers, comfortable one-handed
 controls, a skip button for bad days, and complete privacy, High & Low helps you keep track of your well-being even on
 your hardest days.
+
+It is also private by default, removing anxiety about theft and leaks of data. You can share with your psychologist or other carers, but you do not have to. 
 
 ---
 
@@ -103,12 +101,13 @@ updates to stay useful. Just as you do not need continuous updates for a screwdr
 to complete the core design and then step back from adding unnecessary new features.
 
 If it is ever no longer possible for me to maintain the app, I will do my best to post an update here in this README
-file. The app will continue working on your device because it runs locally in your browser and does not depend on
-central servers to function.
+file. The app will continue working on your device because it runs entirely inside your web browser and doesn't rely
+on any company's computers to keep functioning.
 
-Because High & Low is released under an open-source license (the AGPL), anyone or any group is free to inspect,
-improve, or continue maintaining this work, provided their changes are also shared openly under the same license
-terms. If I ever have to step aside, others can pick up where I left off. It also means that if anyone wants a
+High & Low's underlying code is published publicly and free for anyone to use, under a license called the AGPL
+(a legal document that governs how the code may be reused). In practice, this means anyone or any group is free to
+inspect, improve, or continue maintaining this work, as long as their changes are also shared publicly under those
+same terms. If I ever have to step aside, others can pick up where I left off. It also means that if anyone wants a
 feature that I chose not to include (such as cloud syncing), they are free to build their own version as long as
 their code remains publicly accessible.
 
@@ -116,14 +115,13 @@ their code remains publicly accessible.
 
 High & Low is built to be straightforward, fast, and completely independent of the cloud:
 
-- **Plain Web Standards**: Built using standard HTML, CSS, and modern JavaScript without complex runtime
-  dependencies.
-- **Saved on Your Device**: All your entries, notes, and settings are saved directly inside your browser's private
-  storage on your device.
+- **Plain Web Standards**: Built using standard HTML, CSS, and modern JavaScript, with no extra add-on software
+  needed to make it run.
+- **Saved on Your Device**: All your entries, notes, and settings are saved directly on your device, in a private
+  storage space that only this app can access—nothing is sent anywhere else.
 - **Works Everywhere Offline**: You can install it on your home screen or desktop like an app, and it works
   seamlessly without an internet connection.
 
 For technical contributors who want to explore the architecture, data structures, and design history:
 - **[`docs/state.md`](docs/state.md)**: Current technical specifications, storage schemas, and settings keys.
 - **[`docs/decisions.md`](docs/decisions.md)**: Chronological record of architectural decisions and rationale.
-
