@@ -166,7 +166,6 @@ export const STATE = {
     ├── hold_actions.test.js
     ├── question_copying.test.js
     ├── question_editing.test.js
-    ├── question_editing_archiving.test.js
     ├── question_response_type.test.js
     ├── questions.test.js
     ├── questions-view.test.js
