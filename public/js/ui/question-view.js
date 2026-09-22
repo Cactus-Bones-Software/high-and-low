@@ -4,22 +4,22 @@
  */
 
 import {
-    normalizeQuestionText,
-    createCustomQuestion,
-    updateCustomQuestion,
+    addQuestionToTracker,
     archiveQuestion,
-    restoreQuestion,
+    createCustomQuestion,
     loadActiveQuestions,
     moveActiveQuestion,
-    reorderActiveQuestions,
+    normalizeQuestionText,
     removeQuestionFromTracker,
-    addQuestionToTracker
+    reorderActiveQuestions,
+    restoreQuestion,
+    updateCustomQuestion
 } from '../questions.js';
-import { getAll, getConfig } from '../storage/db.js';
-import { buildScoreButtonsHTML, renderCurrentQuestion } from '../checkin.js';
-import { showNoticeDialog } from './dialogs.js';
-import { resetHold } from './hold-actions.js';
-import { escapeHTML, html, rawHTML } from '../utils.js';
+import {getAll, getConfig} from '../storage/db.js';
+import {buildScoreButtonsHTML, renderCurrentQuestion} from '../checkin.js';
+import {showNoticeDialog} from './dialogs.js';
+import {resetHold} from './hold-actions.js';
+import {escapeHTML, html, rawHTML} from '../utils.js';
 
 let cancelAuthoringHandler = null;
 let saveAuthoringHandler = null;
@@ -161,7 +161,7 @@ export function buildQuestionCardHTML(question, options = {}) {
         </button>`;
 
     const isBuiltIn = Boolean(question.builtIn);
-    let actionButtonsHTML = '';
+    let actionButtonsHTML;
     if (isArchived) {
         actionButtonsHTML = `<button type="button" class="question-restore-button card-action-restore" data-action="restore-question" data-question-id="${question.id}" aria-label="Restore question: ${questionTitle}">
             Restore
@@ -316,7 +316,7 @@ export function setupActiveQuestionsListeners(activeList) {
                 await removeQuestionFromTracker(questionId);
                 await loadQuestionsView();
             }
-            return;
+
         }
     });
 
@@ -605,7 +605,7 @@ export function setupCatalogQuestionsListeners(catalogList) {
                 }
                 await loadQuestionsView();
             }
-            return;
+
         }
     });
 }
@@ -636,7 +636,7 @@ export function setupArchivedQuestionsListeners(archivedList) {
                 detail: { questionId }
             });
             editButton.dispatchEvent(customEvent);
-            return;
+
         }
     });
 }
@@ -1114,8 +1114,7 @@ export function setupQuestionAuthoring() {
     archiveAuthoringHandler = async () => {
         if (!currentEditingQuestionId) return;
         try {
-            const questionId = currentEditingQuestionId;
-            await archiveQuestion(questionId);
+            await archiveQuestion(currentEditingQuestionId);
             isRemovedQuestionsExpanded = true;
             await loadActiveQuestions();
             await loadQuestionsView();

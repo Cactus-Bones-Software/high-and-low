@@ -1,8 +1,13 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
-import { setupTestDOM, waitFor } from './test-utils.js';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import {
+    setupTestDOM,
+    waitFor,
+    navigateToQuestionsCanvas,
+    createAndArchiveCustomQuestion
+} from './test-utils.js';
 
 describe('Task 5.8: Removed Questions Section & Search Visibility', () => {
     let windowInstance;
@@ -16,6 +21,19 @@ describe('Task 5.8: Removed Questions Section & Search Visibility', () => {
         // Wait for IndexedDB initialization and seeding
         await waitFor(() => windowInstance.getAll && typeof windowInstance.getAll === 'function');
     });
+
+    /**
+     * Navigates to questions canvas and waits for the toggle removed questions button to appear.
+     * @returns {Promise<HTMLElement>}
+     */
+    async function waitForRemovedToggleButton() {
+        windowInstance.navigateTo('questions-canvas', { instant: true });
+        await waitFor(() => {
+            const button = documentInstance.getElementById('button-toggle-removed-questions');
+            return Boolean(button && !button.hidden);
+        });
+        return documentInstance.getElementById('button-toggle-removed-questions');
+    }
 
     it('1. Removed questions are placed inside the catalog without a separate section header', async () => {
         // Verify no removed/archived section header exists in DOM
@@ -36,11 +54,7 @@ describe('Task 5.8: Removed Questions Section & Search Visibility', () => {
     });
 
     it('2. Toggle button is hidden when there are no removed questions, and section is normally hidden', async () => {
-        windowInstance.navigateTo('questions-canvas', { instant: true });
-        await waitFor(() => {
-            const activeList = documentInstance.getElementById('questions-active-list');
-            return Boolean(activeList && activeList.children.length > 0);
-        });
+        await navigateToQuestionsCanvas(windowInstance, documentInstance);
 
         const toggleButton = documentInstance.getElementById('button-toggle-removed-questions');
         const removedSection = documentInstance.getElementById('questions-archived-section');
@@ -95,30 +109,19 @@ describe('Task 5.8: Removed Questions Section & Search Visibility', () => {
     });
 
     it('4. Toggle button shows and hides removed questions below it', async () => {
-        // Create and remove a custom question
-        const creationOutcome = await windowInstance.createCustomQuestion({
+        const { id: questionId } = await createAndArchiveCustomQuestion(windowInstance, {
             text: 'Did you practice guitar chords today?',
             shortLabel: 'Guitar Practice',
             tags: ['Music'],
-            curve: 'more-is-better',
-            addToSet: false
+            curve: 'more-is-better'
         });
-
-        const questionId = creationOutcome.id;
-        await windowInstance.archiveQuestion(questionId);
 
         // Reset visibility state so we test normally hidden state
         if (typeof windowInstance.setRemovedQuestionsExpanded === 'function') {
             windowInstance.setRemovedQuestionsExpanded(false);
         }
 
-        windowInstance.navigateTo('questions-canvas', { instant: true });
-        await waitFor(() => {
-            const toggleButton = documentInstance.getElementById('button-toggle-removed-questions');
-            return Boolean(toggleButton && !toggleButton.hidden);
-        });
-
-        const toggleButton = documentInstance.getElementById('button-toggle-removed-questions');
+        const toggleButton = await waitForRemovedToggleButton();
         const removedSection = documentInstance.getElementById('questions-archived-section');
 
         // Initially normally hidden
@@ -150,31 +153,21 @@ describe('Task 5.8: Removed Questions Section & Search Visibility', () => {
     });
 
     it('5. Search only shows removed questions if the removed questions section is being shown', async () => {
-        const creationOutcome = await windowInstance.createCustomQuestion({
+        const { id: questionId } = await createAndArchiveCustomQuestion(windowInstance, {
             text: 'How much caffeine did you consume today?',
             shortLabel: 'Caffeine Intake',
             tags: ['Habits'],
-            curve: 'less-is-better',
-            addToSet: false
+            curve: 'less-is-better'
         });
-
-        const questionId = creationOutcome.id;
-        await windowInstance.archiveQuestion(questionId);
 
         // Reset visibility so removed section is hidden
         if (typeof windowInstance.setRemovedQuestionsExpanded === 'function') {
             windowInstance.setRemovedQuestionsExpanded(false);
         }
 
-        windowInstance.navigateTo('questions-canvas', { instant: true });
-        await waitFor(() => {
-            const toggleButton = documentInstance.getElementById('button-toggle-removed-questions');
-            return Boolean(toggleButton && !toggleButton.hidden);
-        });
-
+        const toggleButton = await waitForRemovedToggleButton();
         const searchInput = documentInstance.getElementById('questions-search-input');
         const removedSection = documentInstance.getElementById('questions-archived-section');
-        const toggleButton = documentInstance.getElementById('button-toggle-removed-questions');
 
         // Verify removed section is hidden
         expect(removedSection.hidden).toBe(true);
@@ -219,24 +212,14 @@ describe('Task 5.8: Removed Questions Section & Search Visibility', () => {
     });
 
     it('6. Restoring all removed questions hides the toggle button and collapses the section', async () => {
-        const creationOutcome = await windowInstance.createCustomQuestion({
+        const { id: questionId } = await createAndArchiveCustomQuestion(windowInstance, {
             text: 'How restful was your afternoon break?',
             shortLabel: 'Afternoon Rest',
             tags: ['Rest'],
-            curve: 'more-is-better',
-            addToSet: false
+            curve: 'more-is-better'
         });
 
-        const questionId = creationOutcome.id;
-        await windowInstance.archiveQuestion(questionId);
-
-        windowInstance.navigateTo('questions-canvas', { instant: true });
-        await waitFor(() => {
-            const toggleButton = documentInstance.getElementById('button-toggle-removed-questions');
-            return Boolean(toggleButton && !toggleButton.hidden);
-        });
-
-        const toggleButton = documentInstance.getElementById('button-toggle-removed-questions');
+        const toggleButton = await waitForRemovedToggleButton();
         toggleButton.click();
 
         const removedSection = documentInstance.getElementById('questions-archived-section');
@@ -281,11 +264,7 @@ describe('Task 5.8: Removed Questions Section & Search Visibility', () => {
     });
 
     it('8. Built-in questions can be removed and restored in the UI', async () => {
-        windowInstance.navigateTo('questions-canvas', { instant: true });
-        await waitFor(() => {
-            const activeList = documentInstance.getElementById('questions-active-list');
-            return Boolean(activeList && activeList.children.length > 0);
-        });
+        await navigateToQuestionsCanvas(windowInstance, documentInstance);
 
         const activeList = documentInstance.getElementById('questions-active-list');
         const builtInCard = activeList.querySelector('[data-question-id="q_energy"]');
@@ -330,3 +309,4 @@ describe('Task 5.8: Removed Questions Section & Search Visibility', () => {
         });
     });
 });
+

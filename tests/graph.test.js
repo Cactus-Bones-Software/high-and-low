@@ -1,10 +1,26 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
-import { setupTestDOM, sleep, createSampleGraphQuestions, createSampleTwoDayLogs } from './test-utils.js';
+import {
+    setupTestDOM,
+    sleep,
+    createSampleGraphQuestions,
+    createSampleTwoDayLogs,
+    createSingleSampleQuestion,
+    createSampleOneDayRecentEntries,
+    createSampleFourteenDayEntries,
+    mockScrollDimensions
+} from './test-utils.js';
 
-let domInstance;
 let windowInstance;
 let documentInstance;
+
+function renderSampleTwoDayGraph() {
+    const container = documentInstance.createElement('div');
+    const questions = createSampleGraphQuestions();
+    const logs = createSampleTwoDayLogs();
+    windowInstance.renderLineGraph(container, { entries: logs, questions });
+    return { container, questions, logs };
+}
 
 function expectGraphLegendAndLines(container, checkedStates, expectedPathsCount, expectedPointsCount) {
     const items = Array.from(container.querySelectorAll('.legend-checklist-item'));
@@ -92,7 +108,6 @@ async function simulateLongPress(windowInstance, element, durationMs = 500) {
 describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
     beforeEach(async () => {
         const environment = await setupTestDOM();
-        domInstance = environment.dom;
         windowInstance = environment.window;
         documentInstance = environment.document;
     });
@@ -337,11 +352,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
     });
 
     it('toggles question line visibility when tapping legend checklist rows and prevents toggling to zero (Task 3.6)', () => {
-        const container = documentInstance.createElement('div');
-        const questions = createSampleGraphQuestions();
-        const logs = createSampleTwoDayLogs();
-
-        windowInstance.renderLineGraph(container, { entries: logs, questions });
+        const { container } = renderSampleTwoDayGraph();
 
         // Initial state: 3 lines, 3 legend checklist buttons with aria-checked="true"
         let items = expectGraphLegendAndLines(container, [true, true, true], 3, 6);
@@ -364,11 +375,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
     });
 
     it('isolates a single question on long-press (450ms) and restores all on second long-press (Task 3.7)', async () => {
-        const container = documentInstance.createElement('div');
-        const questions = createSampleGraphQuestions();
-        const logs = createSampleTwoDayLogs();
-
-        windowInstance.renderLineGraph(container, { entries: logs, questions });
+        const { container } = renderSampleTwoDayGraph();
 
         let items = expectGraphLegendAndLines(container, [true, true, true], 3, 6);
 
@@ -385,11 +392,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
     });
 
     it('isolates and restores questions via accessible per-row isolate button (Task 3.8)', () => {
-        const container = documentInstance.createElement('div');
-        const questions = createSampleGraphQuestions();
-        const logs = createSampleTwoDayLogs();
-
-        windowInstance.renderLineGraph(container, { entries: logs, questions });
+        const { container } = renderSampleTwoDayGraph();
 
         let isolateButtons = Array.from(container.querySelectorAll('.legend-isolate-button'));
         expect(isolateButtons.length).toBe(3);
@@ -414,11 +417,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
     });
 
     it('provides Show all and Clear all quick action buttons for fast timeline filter reset (Task 3.8)', () => {
-        const container = documentInstance.createElement('div');
-        const questions = createSampleGraphQuestions();
-        const logs = createSampleTwoDayLogs();
-
-        windowInstance.renderLineGraph(container, { entries: logs, questions });
+        const { container } = renderSampleTwoDayGraph();
 
         const showAllButton = container.querySelector('#button-legend-show-all');
         const clearAllButton = container.querySelector('#button-legend-clear-all');
@@ -998,17 +997,11 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
 
         it('updates zoom scale and scroll position when clicking preset button in DOM', async () => {
             const container = documentInstance.createElement('div');
-            const questions = [{ id: 'q1', text: 'Energy', shortLabel: 'Energy', curve: 'more-is-better' }];
-            const now = Date.now();
-            const entries = [
-                { timestamp: new Date(now - 14 * 86400000).toISOString(), answers: [{ questionId: 'q1', score: 2 }] },
-                { timestamp: new Date(now).toISOString(), answers: [{ questionId: 'q1', score: 5 }] }
-            ];
+            const questions = createSingleSampleQuestion();
+            const entries = createSampleFourteenDayEntries();
 
             windowInstance.renderLineGraph(container, { entries, questions });
-            const scrollContainer = container.querySelector('.graph-scroll-container');
-            Object.defineProperty(scrollContainer, 'clientWidth', { value: 600, configurable: true });
-            Object.defineProperty(scrollContainer, 'scrollWidth', { value: 2000, configurable: true });
+            const scrollContainer = mockScrollDimensions(container.querySelector('.graph-scroll-container'), 600, 2000);
             scrollContainer.scrollLeft = 200;
 
             const sevenDayButton = container.querySelector('.graph-timeframe-button[data-range="7d"]');
@@ -1028,12 +1021,8 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
     describe('Zoom Buttons — Pivot on Viewport Center, No Clamp (Task 9.4)', () => {
         it('renders zoom in and zoom out buttons without disabled attributes regardless of scale', () => {
             const container = documentInstance.createElement('div');
-            const questions = [{ id: 'q1', text: 'Energy', shortLabel: 'Energy', curve: 'more-is-better' }];
-            const now = Date.now();
-            const entries = [
-                { timestamp: new Date(now - 86400000).toISOString(), answers: [{ questionId: 'q1', score: 3 }] },
-                { timestamp: new Date(now).toISOString(), answers: [{ questionId: 'q1', score: 4 }] }
-            ];
+            const questions = createSingleSampleQuestion();
+            const entries = createSampleOneDayRecentEntries();
 
             // Render at scale 0.5 (which previously had zoom-out disabled)
             windowInstance.renderLineGraph(container, { entries, questions, zoomScale: 0.5 });
@@ -1059,12 +1048,8 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
 
         it('zooms in beyond 3.0 without clamp', async () => {
             const container = documentInstance.createElement('div');
-            const questions = [{ id: 'q1', text: 'Energy', shortLabel: 'Energy', curve: 'more-is-better' }];
-            const now = Date.now();
-            const entries = [
-                { timestamp: new Date(now - 86400000).toISOString(), answers: [{ questionId: 'q1', score: 3 }] },
-                { timestamp: new Date(now).toISOString(), answers: [{ questionId: 'q1', score: 4 }] }
-            ];
+            const questions = createSingleSampleQuestion();
+            const entries = createSampleOneDayRecentEntries();
 
             windowInstance.renderLineGraph(container, { entries, questions, zoomScale: 3.0 });
             const zoomInButton = container.querySelector('#button-graph-zoom-in');
@@ -1078,12 +1063,8 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
 
         it('zooms out beyond 0.5 without clamp', async () => {
             const container = documentInstance.createElement('div');
-            const questions = [{ id: 'q1', text: 'Energy', shortLabel: 'Energy', curve: 'more-is-better' }];
-            const now = Date.now();
-            const entries = [
-                { timestamp: new Date(now - 86400000).toISOString(), answers: [{ questionId: 'q1', score: 3 }] },
-                { timestamp: new Date(now).toISOString(), answers: [{ questionId: 'q1', score: 4 }] }
-            ];
+            const questions = createSingleSampleQuestion();
+            const entries = createSampleOneDayRecentEntries();
 
             windowInstance.renderLineGraph(container, { entries, questions, zoomScale: 0.5 });
             const zoomOutButton = container.querySelector('#button-graph-zoom-out');
@@ -1105,17 +1086,11 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
 
         it('pivots scroll position around viewport center when clicking zoom buttons', async () => {
             const container = documentInstance.createElement('div');
-            const questions = [{ id: 'q1', text: 'Energy', shortLabel: 'Energy', curve: 'more-is-better' }];
-            const now = Date.now();
-            const entries = [
-                { timestamp: new Date(now - 14 * 86400000).toISOString(), answers: [{ questionId: 'q1', score: 2 }] },
-                { timestamp: new Date(now).toISOString(), answers: [{ questionId: 'q1', score: 5 }] }
-            ];
+            const questions = createSingleSampleQuestion();
+            const entries = createSampleFourteenDayEntries();
 
             windowInstance.renderLineGraph(container, { entries, questions, zoomScale: 1.0 });
-            const scrollContainer = container.querySelector('.graph-scroll-container');
-            Object.defineProperty(scrollContainer, 'clientWidth', { value: 600, configurable: true });
-            Object.defineProperty(scrollContainer, 'scrollWidth', { value: 3000, configurable: true });
+            const scrollContainer = mockScrollDimensions(container.querySelector('.graph-scroll-container'), 600, 3000);
             scrollContainer.scrollLeft = 200;
 
             const zoomInButton = container.querySelector('#button-graph-zoom-in');
@@ -1181,18 +1156,12 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
 
         it('pans scroll position to end without changing zoom scale from arbitrary pan/zoom state', async () => {
             const container = documentInstance.createElement('div');
-            const questions = [{ id: 'q1', text: 'Energy', shortLabel: 'Energy', curve: 'more-is-better' }];
-            const now = Date.now();
-            const entries = [
-                { timestamp: new Date(now - 14 * 86400000).toISOString(), answers: [{ questionId: 'q1', score: 2 }] },
-                { timestamp: new Date(now).toISOString(), answers: [{ questionId: 'q1', score: 5 }] }
-            ];
+            const questions = createSingleSampleQuestion();
+            const entries = createSampleFourteenDayEntries();
 
             // Render with non-default zoom scale 2.0
             windowInstance.renderLineGraph(container, { entries, questions, zoomScale: 2.0 });
-            const scrollContainer = container.querySelector('.graph-scroll-container');
-            Object.defineProperty(scrollContainer, 'clientWidth', { value: 600, configurable: true });
-            Object.defineProperty(scrollContainer, 'scrollWidth', { value: 3200, configurable: true });
+            const scrollContainer = mockScrollDimensions(container.querySelector('.graph-scroll-container'), 600, 3200);
 
             // User has panned far back in time (scrollLeft = 150)
             scrollContainer.scrollLeft = 150;
@@ -1234,18 +1203,22 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             ];
         }
 
-        it('never renders an SVG wider than its rightmost content plus the designed paddingRight, at any zoom level', () => {
+        function renderDeadSpaceSvg(zoomScale) {
             const container = documentInstance.createElement('div');
             const questions = [{ id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' }];
             const entries = buildDeadSpaceRegressionEntries();
+            windowInstance.renderLineGraph(container, { entries, questions, zoomScale });
+            const svgElement = container.querySelector('svg.graph-svg');
+            const declaredWidth = Number(svgElement.getAttribute('width'));
+            const contentRightEdge = getSvgContentRightEdge(svgElement);
+            return { container, questions, entries, svgElement, declaredWidth, contentRightEdge };
+        }
 
+        it('never renders an SVG wider than its rightmost content plus the designed paddingRight, at any zoom level', () => {
             [0.25, 0.5, 1, 1.5, 2, 3, 4].forEach(zoomScale => {
-                windowInstance.renderLineGraph(container, { entries, questions, zoomScale });
-
-                const svgElement = container.querySelector('svg.graph-svg');
+                const { svgElement, declaredWidth, contentRightEdge, entries, questions } = renderDeadSpaceSvg(zoomScale);
                 expect(svgElement).toBeTruthy();
 
-                const declaredWidth = Number(svgElement.getAttribute('width'));
                 const [, , viewBoxWidth] = svgElement.getAttribute('viewBox').split(' ').map(Number);
                 expect(declaredWidth).toBe(viewBoxWidth);
 
@@ -1255,23 +1228,14 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
                 const layout = windowInstance.computeGraphLayout({ entries, questions, zoomScale });
                 const { paddingRight } = layout.dimensions;
 
-                const contentRightEdge = getSvgContentRightEdge(svgElement);
                 const roundingSlack = 0.5;
-
                 expect(declaredWidth).toBeLessThanOrEqual(contentRightEdge + paddingRight + roundingSlack);
             });
         });
 
         it('keeps the dead space between content and the SVG edge constant (in pixels) rather than growing with zoom', () => {
-            const container = documentInstance.createElement('div');
-            const questions = [{ id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' }];
-            const entries = buildDeadSpaceRegressionEntries();
-
             const deadSpaceByZoom = [0.5, 1, 2, 4].map(zoomScale => {
-                windowInstance.renderLineGraph(container, { entries, questions, zoomScale });
-                const svgElement = container.querySelector('svg.graph-svg');
-                const declaredWidth = Number(svgElement.getAttribute('width'));
-                const contentRightEdge = getSvgContentRightEdge(svgElement);
+                const { declaredWidth, contentRightEdge } = renderDeadSpaceSvg(zoomScale);
                 return declaredWidth - contentRightEdge;
             });
 

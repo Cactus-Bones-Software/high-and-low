@@ -3,17 +3,17 @@
  * SVG mood timeline rendering, continuous time scaling, question curve paths, note indicators, and timeframe filters.
  */
 
-import { STATE } from '../state.js';
-import { getAll, getConfig } from '../storage/db.js';
+import {STATE} from '../state.js';
+import {getAll, getConfig} from '../storage/db.js';
 import {
-    DEFAULT_ACTIVE_SET,
     BOOLEAN_NO_SCORE,
     BOOLEAN_YES_SCORE,
+    DEFAULT_ACTIVE_SET,
     getCurveColor,
     getQuestionDashArray
 } from '../questions.js';
-import { escapeHTML } from '../utils.js';
-import { showNoticeDialog } from './dialogs.js';
+import {escapeHTML} from '../utils.js';
+import {showNoticeDialog} from './dialogs.js';
 
 export const BASE_PIXELS_PER_HOUR = 2;
 export const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;
@@ -77,7 +77,7 @@ export function calculateZoomPivotScrollLeft({
                                                  viewportWidth = 600,
                                                  previousZoomScale = 1,
                                                  nextZoomScale = 1,
-                                                 paddingLeft = 42
+                                                 paddingLeft = 0
                                              } = {}) {
     const safePreviousScale = Number(previousZoomScale) > 0 ? Number(previousZoomScale) : 1;
     const safeNextScale = Number(nextZoomScale) > 0 ? Number(nextZoomScale) : 1;
@@ -267,6 +267,8 @@ export function computeGraphLayout({
             isEmpty: true,
             reason: 'no-entries',
             entries: [],
+            filteredEntries: [],
+            rawAllEntries: [],
             questions: questionList,
             visibleQuestionIds: currentVisibleSet,
             timeRange: currentTimeRange
@@ -278,6 +280,8 @@ export function computeGraphLayout({
             isEmpty: true,
             reason: 'no-questions',
             entries,
+            filteredEntries: entries,
+            rawAllEntries: entries,
             questions: [],
             visibleQuestionIds: currentVisibleSet,
             timeRange: currentTimeRange
@@ -308,8 +312,8 @@ export function computeGraphLayout({
     const pointSpacing = 24 * BASE_PIXELS_PER_HOUR * resolvedZoomScale;
     const paddingTop = 24;
     const paddingBottom = 60;
-    const paddingLeft = 42;
-    const paddingRight = 24;
+    const paddingLeft = 0;
+    const paddingRight = 0;
 
     const chartWidth = timeDuration > 0
         ? timeDuration * timeScale
@@ -509,6 +513,8 @@ export function computeGraphLayout({
         isEmpty: false,
         isTimeframeEmpty: false,
         entries,
+        filteredEntries: entries,
+        rawAllEntries: entries,
         questions: questionList,
         visibleQuestionIds: currentVisibleSet,
         timeRange: currentTimeRange,
@@ -909,14 +915,13 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
                 nextZoomScale = Math.round(nextZoomScale * 100) / 100;
                 if (nextZoomScale === currentZoomScale) return;
 
-                const targetScrollLeft = calculateZoomPivotScrollLeft({
+                STATE.historyScrollLeft = calculateZoomPivotScrollLeft({
                     previousScrollLeft,
                     viewportWidth,
                     previousZoomScale: currentZoomScale,
                     nextZoomScale,
                     paddingLeft: layout.dimensions.paddingLeft
                 });
-                STATE.historyScrollLeft = targetScrollLeft;
                 STATE.historyZoomScale = nextZoomScale;
 
                 const currentZoomValueElement = container.querySelector('.graph-zoom-value');

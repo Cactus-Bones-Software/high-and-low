@@ -1,26 +1,22 @@
 // @vitest-environment jsdom
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { setupTestDOM, waitFor } from './test-utils.js';
+import { setupTestDOM, waitFor, navigateToQuestionsCanvas } from './test-utils.js';
 
-let domInstance;
+let _domInstance;
 let windowInstance;
 let documentInstance;
 
 describe('Task 5.6: Catalog Cards & Non-Dominant Edit Actions', () => {
     beforeEach(async () => {
         const environment = await setupTestDOM();
-        domInstance = environment.dom;
+        _domInstance = environment.dom;
         windowInstance = environment.window;
         documentInstance = environment.document;
 
         // Navigate to questions view to populate the lists
-        windowInstance.navigateTo('questions-canvas', { instant: true });
-        await waitFor(() => {
-            const catalogList = documentInstance.getElementById('questions-catalog-list');
-            return Boolean(catalogList && catalogList.children.length > 0);
-        });
+        await navigateToQuestionsCanvas(windowInstance, documentInstance);
     });
 
     it('1. Catalog Card Structure: Renders cards with question text, tags, edit button, and toggle switch', () => {

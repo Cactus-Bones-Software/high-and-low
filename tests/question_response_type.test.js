@@ -1,6 +1,15 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { setupTestDOM, waitFor } from './test-utils.js';
-import { BOOLEAN_NO_SCORE, BOOLEAN_YES_SCORE } from '../public/js/questions.js';
+import {beforeEach, describe, expect, it} from 'vitest';
+import {
+    createSampleBooleanEntries,
+    createSampleBooleanQuestion,
+    createSampleScaleQuestion,
+    navigateToQuestionsCanvas,
+    openQuestionAuthoringDialog,
+    renderGraphToContainer,
+    setupTestDOM,
+    waitFor
+} from './test-utils.js';
+import {BOOLEAN_NO_SCORE, BOOLEAN_YES_SCORE} from '../public/js/questions.js';
 
 describe('Task 5.10.1: Yes/No Question Type — Schema Field Tests', () => {
     let windowInstance;
@@ -324,18 +333,8 @@ describe('Task 5.10.3: Yes/No Question Type — Wire Selector Into Save/Edit Tes
             addToSet: true
         });
 
-        windowInstance.navigateTo('questions-canvas', { instant: true });
-        await waitFor(() => {
-            const list = documentInstance.getElementById('questions-active-list');
-            return Boolean(list?.querySelector(`[data-question-id="${outcome.id}"]`));
-        });
-
-        const customCard = documentInstance.querySelector(`[data-question-id="${outcome.id}"]`);
-        const editButton = customCard.querySelector('.question-edit-button');
-        editButton.click();
-
-        const overlay = documentInstance.getElementById('question-authoring-dialog-overlay');
-        await waitFor(() => overlay.classList.contains('is-open'));
+        await navigateToQuestionsCanvas(windowInstance, documentInstance);
+        await openQuestionAuthoringDialog(documentInstance, outcome.id, 'edit');
 
         const responseTypeSelector = documentInstance.getElementById('q-response-type');
         const scaleFieldsContainer = documentInstance.getElementById('scale-only-fields');
@@ -367,18 +366,8 @@ describe('Task 5.10.3: Yes/No Question Type — Wire Selector Into Save/Edit Tes
             addToSet: true
         });
 
-        windowInstance.navigateTo('questions-canvas', { instant: true });
-        await waitFor(() => {
-            const list = documentInstance.getElementById('questions-active-list');
-            return Boolean(list?.querySelector(`[data-question-id="${outcome.id}"]`));
-        });
-
-        const customCard = documentInstance.querySelector(`[data-question-id="${outcome.id}"]`);
-        const editButton = customCard.querySelector('.question-edit-button');
-        editButton.click();
-
-        const overlay = documentInstance.getElementById('question-authoring-dialog-overlay');
-        await waitFor(() => overlay.classList.contains('is-open'));
+        await navigateToQuestionsCanvas(windowInstance, documentInstance);
+        await openQuestionAuthoringDialog(documentInstance, outcome.id, 'edit');
 
         const responseTypeSelector = documentInstance.getElementById('q-response-type');
         const scaleFieldsContainer = documentInstance.getElementById('scale-only-fields');
@@ -399,18 +388,8 @@ describe('Task 5.10.3: Yes/No Question Type — Wire Selector Into Save/Edit Tes
             addToSet: true
         });
 
-        windowInstance.navigateTo('questions-canvas', { instant: true });
-        await waitFor(() => {
-            const list = documentInstance.getElementById('questions-active-list');
-            return Boolean(list?.querySelector(`[data-question-id="${outcome.id}"]`));
-        });
-
-        const customCard = documentInstance.querySelector(`[data-question-id="${outcome.id}"]`);
-        const editButton = customCard.querySelector('.question-edit-button');
-        editButton.click();
-
-        const overlay = documentInstance.getElementById('question-authoring-dialog-overlay');
-        await waitFor(() => overlay.classList.contains('is-open'));
+        await navigateToQuestionsCanvas(windowInstance, documentInstance);
+        const overlay = await openQuestionAuthoringDialog(documentInstance, outcome.id, 'edit');
 
         const responseTypeSelector = documentInstance.getElementById('q-response-type');
         const scaleFieldsContainer = documentInstance.getElementById('scale-only-fields');
@@ -428,21 +407,8 @@ describe('Task 5.10.3: Yes/No Question Type — Wire Selector Into Save/Edit Tes
     });
 
     it('6. Copying a question populates responseType and immediately syncs field visibility', async () => {
-        windowInstance.navigateTo('questions-canvas', { instant: true });
-        await waitFor(() => {
-            const card = documentInstance.querySelector('#questions-catalog-list [data-question-id="q_eaten"]');
-            return Boolean(card);
-        });
-
-        const eatenCard = documentInstance.querySelector('#questions-catalog-list [data-question-id="q_eaten"]');
-        expect(eatenCard).not.toBeNull();
-
-        const copyButton = eatenCard.querySelector('.question-copy-button');
-        expect(copyButton).not.toBeNull();
-        copyButton.click();
-
-        const overlay = documentInstance.getElementById('question-authoring-dialog-overlay');
-        await waitFor(() => overlay.classList.contains('is-open'));
+        await navigateToQuestionsCanvas(windowInstance, documentInstance);
+        await openQuestionAuthoringDialog(documentInstance, 'q_eaten', 'copy');
 
         const responseTypeSelector = documentInstance.getElementById('q-response-type');
         const scaleFieldsContainer = documentInstance.getElementById('scale-only-fields');
@@ -475,18 +441,8 @@ describe('Task 5.11.1: Boolean Score Mapping Constants', () => {
     });
 
     it('2. Authoring preview renders Yes/No buttons mapped to the exported constants', async () => {
-        windowInstance.navigateTo('questions-canvas', { instant: true });
-        await waitFor(() => {
-            const card = documentInstance.querySelector('#questions-catalog-list [data-question-id="q_eaten"]');
-            return Boolean(card);
-        });
-
-        const eatenCard = documentInstance.querySelector('#questions-catalog-list [data-question-id="q_eaten"]');
-        const copyButton = eatenCard.querySelector('.question-copy-button');
-        copyButton.click();
-
-        const overlay = documentInstance.getElementById('question-authoring-dialog-overlay');
-        await waitFor(() => overlay.classList.contains('is-open'));
+        await navigateToQuestionsCanvas(windowInstance, documentInstance);
+        await openQuestionAuthoringDialog(documentInstance, 'q_eaten', 'copy');
 
         const yesButton = documentInstance.querySelector(
             '#question-preview-stack .score-button[data-boolean="yes"]'
@@ -548,8 +504,7 @@ describe('Task 5.11.2: Yes/No Tracker Input Deck', () => {
         expect(yesButton.classList.contains('boolean-score-button')).toBe(true);
         expect(noButton.classList.contains('boolean-score-button')).toBe(true);
 
-        const scaleHTML = windowInstance.buildScoreButtonsHTML(scaleQuestion);
-        tempContainer.innerHTML = scaleHTML;
+        tempContainer.innerHTML = windowInstance.buildScoreButtonsHTML(scaleQuestion);
         const scaleButtons = tempContainer.querySelectorAll('.score-button');
         expect(scaleButtons.length).toBe(5);
     });
@@ -659,37 +614,15 @@ describe('Task 5.11.3: Boolean Line Rendering — Step Interpolation', () => {
     });
 
     it('2. renderGraphSVG produces horizontal-then-vertical step for boolean series', () => {
-        const booleanQuestion = {
-            id: 'bool_q',
-            text: 'Eaten today?',
-            shortLabel: 'Eaten',
-            curve: 'more-is-better',
-            responseType: 'boolean'
-        };
-        const entries = [
-            {
-                timestamp: '2026-08-10T10:00:00.000Z',
-                answers: [{ questionId: 'bool_q', score: 5, status: 'answered' }]
-            },
-            {
-                timestamp: '2026-08-11T10:00:00.000Z',
-                answers: [{ questionId: 'bool_q', score: 1, status: 'answered' }]
-            }
-        ];
+        const booleanQuestion = createSampleBooleanQuestion({ text: 'Eaten today?' });
+        const entries = createSampleBooleanEntries([5, 1]);
 
-        const layout = windowInstance.computeGraphLayout({
+        const { layout, container } = renderGraphToContainer(windowInstance, documentInstance, {
             entries,
-            questions: [booleanQuestion],
-            containerWidth: 600,
-            timeRange: 'all',
-            zoomScale: 1
+            questions: [booleanQuestion]
         });
 
-        const svgMarkup = windowInstance.renderGraphSVG(layout);
-        const tempContainer = documentInstance.createElement('div');
-        tempContainer.innerHTML = svgMarkup;
-
-        const pathElement = tempContainer.querySelector('svg g.lines path');
+        const pathElement = container.querySelector('svg g.lines path');
         expect(pathElement).not.toBeNull();
 
         const pathData = pathElement.getAttribute('d');
@@ -704,37 +637,15 @@ describe('Task 5.11.3: Boolean Line Rendering — Step Interpolation', () => {
     });
 
     it('3. renderGraphSVG produces straight diagonal lines for scale series', () => {
-        const scaleQuestion = {
-            id: 'scale_q',
-            text: 'Mood level',
-            shortLabel: 'Mood',
-            curve: 'more-is-better',
-            responseType: 'scale'
-        };
-        const entries = [
-            {
-                timestamp: '2026-08-10T10:00:00.000Z',
-                answers: [{ questionId: 'scale_q', score: 5, status: 'answered' }]
-            },
-            {
-                timestamp: '2026-08-11T10:00:00.000Z',
-                answers: [{ questionId: 'scale_q', score: 1, status: 'answered' }]
-            }
-        ];
+        const scaleQuestion = createSampleScaleQuestion();
+        const entries = createSampleBooleanEntries([5, 1], 'scale_q');
 
-        const layout = windowInstance.computeGraphLayout({
+        const { layout, container } = renderGraphToContainer(windowInstance, documentInstance, {
             entries,
-            questions: [scaleQuestion],
-            containerWidth: 600,
-            timeRange: 'all',
-            zoomScale: 1
+            questions: [scaleQuestion]
         });
 
-        const svgMarkup = windowInstance.renderGraphSVG(layout);
-        const tempContainer = documentInstance.createElement('div');
-        tempContainer.innerHTML = svgMarkup;
-
-        const pathElement = tempContainer.querySelector('svg g.lines path');
+        const pathElement = container.querySelector('svg g.lines path');
         expect(pathElement).not.toBeNull();
 
         const pathData = pathElement.getAttribute('d');
@@ -748,44 +659,17 @@ describe('Task 5.11.3: Boolean Line Rendering — Step Interpolation', () => {
     });
 
     it('4. Multi-point boolean series steps across alternating Yes/No answers', () => {
-        const booleanQuestion = {
-            id: 'bool_q',
-            text: 'Eaten',
-            shortLabel: 'Eaten',
-            curve: 'more-is-better',
-            responseType: 'boolean'
-        };
-        const entries = [
-            {
-                timestamp: '2026-08-10T10:00:00.000Z',
-                answers: [{ questionId: 'bool_q', score: 5, status: 'answered' }]
-            },
-            {
-                timestamp: '2026-08-11T10:00:00.000Z',
-                answers: [{ questionId: 'bool_q', score: 1, status: 'answered' }]
-            },
-            {
-                timestamp: '2026-08-12T10:00:00.000Z',
-                answers: [{ questionId: 'bool_q', score: 5, status: 'answered' }]
-            }
-        ];
+        const booleanQuestion = createSampleBooleanQuestion({ text: 'Eaten' });
+        const entries = createSampleBooleanEntries([5, 1, 5]);
 
-        const layout = windowInstance.computeGraphLayout({
+        const { layout, container } = renderGraphToContainer(windowInstance, documentInstance, {
             entries,
-            questions: [booleanQuestion],
-            containerWidth: 600,
-            timeRange: 'all',
-            zoomScale: 1
+            questions: [booleanQuestion]
         });
 
-        const svgMarkup = windowInstance.renderGraphSVG(layout);
-        const tempContainer = documentInstance.createElement('div');
-        tempContainer.innerHTML = svgMarkup;
-
-        const pathElement = tempContainer.querySelector('svg g.lines path');
+        const pathElement = container.querySelector('svg g.lines path');
         const pathData = pathElement.getAttribute('d');
-        const points = layout.series[0].points;
-        const [p0, p1, p2] = points;
+        const [p0, p1, p2] = layout.series[0].points;
 
         const expectedPath =
             `M ${p0.x} ${p0.y} L ${p1.x} ${p0.y} L ${p1.x} ${p1.y} L ${p2.x} ${p1.y} L ${p2.x} ${p2.y}`;
@@ -872,33 +756,15 @@ describe('Task 5.11.4: Boolean Point Tooltips & Accessible Labels', () => {
     });
 
     it('2. Boolean points render "Yes" for BOOLEAN_YES_SCORE in aria-label and <title>', () => {
-        const booleanQuestion = {
-            id: 'bool_q',
-            text: 'Have you eaten today?',
-            shortLabel: 'Eaten',
-            curve: 'more-is-better',
-            responseType: 'boolean'
-        };
-        const entries = [
-            {
-                timestamp: '2026-08-10T10:00:00.000Z',
-                answers: [{ questionId: 'bool_q', score: BOOLEAN_YES_SCORE, status: 'answered' }]
-            }
-        ];
+        const booleanQuestion = createSampleBooleanQuestion();
+        const entries = createSampleBooleanEntries([BOOLEAN_YES_SCORE]);
 
-        const layout = windowInstance.computeGraphLayout({
+        const { container } = renderGraphToContainer(windowInstance, documentInstance, {
             entries,
-            questions: [booleanQuestion],
-            containerWidth: 600,
-            timeRange: 'all',
-            zoomScale: 1
+            questions: [booleanQuestion]
         });
 
-        const svgMarkup = windowInstance.renderGraphSVG(layout);
-        const tempContainer = documentInstance.createElement('div');
-        tempContainer.innerHTML = svgMarkup;
-
-        const circle = tempContainer.querySelector('svg g.points circle');
+        const circle = container.querySelector('svg g.points circle');
         expect(circle).not.toBeNull();
 
         const ariaLabel = circle.getAttribute('aria-label');
@@ -911,33 +777,15 @@ describe('Task 5.11.4: Boolean Point Tooltips & Accessible Labels', () => {
     });
 
     it('3. Boolean points render "No" for BOOLEAN_NO_SCORE in aria-label and <title>', () => {
-        const booleanQuestion = {
-            id: 'bool_q',
-            text: 'Have you eaten today?',
-            shortLabel: 'Eaten',
-            curve: 'more-is-better',
-            responseType: 'boolean'
-        };
-        const entries = [
-            {
-                timestamp: '2026-08-10T10:00:00.000Z',
-                answers: [{ questionId: 'bool_q', score: BOOLEAN_NO_SCORE, status: 'answered' }]
-            }
-        ];
+        const booleanQuestion = createSampleBooleanQuestion();
+        const entries = createSampleBooleanEntries([BOOLEAN_NO_SCORE]);
 
-        const layout = windowInstance.computeGraphLayout({
+        const { container } = renderGraphToContainer(windowInstance, documentInstance, {
             entries,
-            questions: [booleanQuestion],
-            containerWidth: 600,
-            timeRange: 'all',
-            zoomScale: 1
+            questions: [booleanQuestion]
         });
 
-        const svgMarkup = windowInstance.renderGraphSVG(layout);
-        const tempContainer = documentInstance.createElement('div');
-        tempContainer.innerHTML = svgMarkup;
-
-        const circle = tempContainer.querySelector('svg g.points circle');
+        const circle = container.querySelector('svg g.points circle');
         expect(circle).not.toBeNull();
 
         const ariaLabel = circle.getAttribute('aria-label');
@@ -950,33 +798,15 @@ describe('Task 5.11.4: Boolean Point Tooltips & Accessible Labels', () => {
     });
 
     it('4. Scale points retain "Score X/5" in <title> and "Score X" in aria-label unchanged', () => {
-        const scaleQuestion = {
-            id: 'scale_q',
-            text: 'Mood level',
-            shortLabel: 'Mood',
-            curve: 'more-is-better',
-            responseType: 'scale'
-        };
-        const entries = [
-            {
-                timestamp: '2026-08-10T10:00:00.000Z',
-                answers: [{ questionId: 'scale_q', score: 3, status: 'answered' }]
-            }
-        ];
+        const scaleQuestion = createSampleScaleQuestion();
+        const entries = createSampleBooleanEntries([3], 'scale_q');
 
-        const layout = windowInstance.computeGraphLayout({
+        const { container } = renderGraphToContainer(windowInstance, documentInstance, {
             entries,
-            questions: [scaleQuestion],
-            containerWidth: 600,
-            timeRange: 'all',
-            zoomScale: 1
+            questions: [scaleQuestion]
         });
 
-        const svgMarkup = windowInstance.renderGraphSVG(layout);
-        const tempContainer = documentInstance.createElement('div');
-        tempContainer.innerHTML = svgMarkup;
-
-        const circle = tempContainer.querySelector('svg g.points circle');
+        const circle = container.querySelector('svg g.points circle');
         expect(circle).not.toBeNull();
 
         const ariaLabel = circle.getAttribute('aria-label');

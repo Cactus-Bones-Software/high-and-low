@@ -1,6 +1,11 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
-import { setupTestDOM, waitFor } from './test-utils.js';
+import {
+    setupTestDOM,
+    waitFor,
+    navigateToQuestionsCanvas,
+    openQuestionAuthoringDialog
+} from './test-utils.js';
 
 describe('Task 5.7: Question Editing & Archiving Workflow', () => {
     let windowInstance;
@@ -133,24 +138,9 @@ describe('Task 5.7: Question Editing & Archiving Workflow', () => {
 
         const questionId = customOutcome.id;
 
-        // Navigate to questions view
-        windowInstance.navigateTo('questions-canvas', { instant: true });
-        await waitFor(() => {
-            const activeList = documentInstance.getElementById('questions-active-list');
-            return Boolean(activeList && activeList.querySelector(`[data-question-id="${questionId}"]`));
-        });
-
-        const customCard = documentInstance.querySelector(`#questions-active-list [data-question-id="${questionId}"]`);
-        expect(customCard).not.toBeNull();
-
-        // Click edit button
-        const editButton = customCard.querySelector('.question-edit-button');
-        expect(editButton).not.toBeNull();
-        editButton.click();
-
-        // Wait for modal to open
-        const overlay = documentInstance.getElementById('question-authoring-dialog-overlay');
-        await waitFor(() => overlay.classList.contains('is-open'));
+        // Navigate and open authoring dialog
+        await navigateToQuestionsCanvas(windowInstance, documentInstance);
+        const overlay = await openQuestionAuthoringDialog(documentInstance, questionId, 'edit');
         expect(overlay.classList.contains('is-open')).toBe(true);
 
         const modalTitle = documentInstance.getElementById('question-authoring-dialog-title');
@@ -195,20 +185,9 @@ describe('Task 5.7: Question Editing & Archiving Workflow', () => {
 
         const questionId = customOutcome.id;
 
-        // Navigate to questions canvas
-        windowInstance.navigateTo('questions-canvas', { instant: true });
-        await waitFor(() => {
-            const activeList = documentInstance.getElementById('questions-active-list');
-            return Boolean(activeList && activeList.querySelector(`[data-question-id="${questionId}"]`));
-        });
-
-        // Open edit modal
-        const customCard = documentInstance.querySelector(`#questions-active-list [data-question-id="${questionId}"]`);
-        const editButton = customCard.querySelector('.question-edit-button');
-        editButton.click();
-
-        const overlay = documentInstance.getElementById('question-authoring-dialog-overlay');
-        await waitFor(() => overlay.classList.contains('is-open'));
+        // Navigate and open authoring dialog
+        await navigateToQuestionsCanvas(windowInstance, documentInstance);
+        const overlay = await openQuestionAuthoringDialog(documentInstance, questionId, 'edit');
         expect(overlay.classList.contains('is-open')).toBe(true);
 
         // Execute archive action
@@ -245,3 +224,4 @@ describe('Task 5.7: Question Editing & Archiving Workflow', () => {
         expect(inDb.archived).toBe(false);
     });
 });
+

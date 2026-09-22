@@ -1,5 +1,5 @@
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { JSDOM } from 'jsdom';
 import { STATE } from '../public/js/state.js';
@@ -100,20 +100,16 @@ export async function setupTestDOM(customSessionStorage = {}) {
     }
 
     // Polyfill matchMedia on window in JSDOM
-    windowInstance.matchMedia = windowInstance.matchMedia || function(query) {
-        return {
-            matches: false,
-            media: query
-        };
-    };
+    windowInstance.matchMedia = windowInstance.matchMedia || ((query) => ({
+        matches: false,
+        media: query
+    }));
 
     // Polyfill requestAnimationFrame
-    windowInstance.requestAnimationFrame = windowInstance.requestAnimationFrame || function(callback) {
-        return setTimeout(callback, 0);
-    };
-    windowInstance.cancelAnimationFrame = windowInstance.cancelAnimationFrame || function(identifier) {
+    windowInstance.requestAnimationFrame = windowInstance.requestAnimationFrame || ((callback) => setTimeout(callback, 0));
+    windowInstance.cancelAnimationFrame = windowInstance.cancelAnimationFrame || ((identifier) => {
         clearTimeout(identifier);
-    };
+    });
 
     // Polyfill navigator.serviceWorker
     if (!windowInstance.navigator.serviceWorker) {
@@ -150,7 +146,7 @@ export async function setupTestDOM(customSessionStorage = {}) {
     setCurrentViewId('tracker-canvas');
 
     // Expose helpers directly on windowInstance
-    windowInstance['STATE'] = STATE;
+    windowInstance.STATE = STATE;
     windowInstance.startNewCheckIn = startNewCheckIn;
     windowInstance.renderLineGraph = renderLineGraph;
     windowInstance.computeGraphLayout = computeGraphLayout;
@@ -203,8 +199,7 @@ export async function setupTestDOM(customSessionStorage = {}) {
 
     // Wait deterministically for async initDatabase promise chain and initial render to complete
     await waitFor(() => Boolean(
-        windowInstance.STATE &&
-        windowInstance.STATE.activeQuestions &&
+        windowInstance.STATE?.activeQuestions &&
         windowInstance.STATE.activeQuestions.length > 0 &&
         documentInstance.getElementById('progress-text') &&
         documentInstance.getElementById('progress-text').textContent !== 'Loading tracker...'
@@ -286,3 +281,178 @@ export function dispatchContextMenuEvent(windowInstance, targetElement) {
     targetElement.dispatchEvent(contextMenuEvent);
     return contextMenuEvent;
 }
+
+/**
+ * Creates a single question array for zoom and timeline tests.
+ * @param {Record<string, unknown>} [overrides={}]
+ * @returns {Array<Record<string, unknown>>}
+ */
+export function createSingleSampleQuestion(overrides = {}) {
+    return [
+        { id: 'q1', text: 'Energy', shortLabel: 'Energy', curve: 'more-is-better', ...overrides }
+    ];
+}
+
+/**
+ * Creates a 2-entry array spanning 1 day for zoom tests.
+ * @param {number} [now=Date.now()]
+ * @returns {Array<Record<string, unknown>>}
+ */
+export function createSampleOneDayRecentEntries(now = Date.now()) {
+    return [
+        { timestamp: new Date(now - 86400000).toISOString(), answers: [{ questionId: 'q1', score: 3 }] },
+        { timestamp: new Date(now).toISOString(), answers: [{ questionId: 'q1', score: 4 }] }
+    ];
+}
+
+/**
+ * Creates a 2-entry array spanning 14 days for timeline scale tests.
+ * @param {number} [now=Date.now()]
+ * @returns {Array<Record<string, unknown>>}
+ */
+export function createSampleFourteenDayEntries(now = Date.now()) {
+    return [
+        { timestamp: new Date(now - 14 * 86400000).toISOString(), answers: [{ questionId: 'q1', score: 2 }] },
+        { timestamp: new Date(now).toISOString(), answers: [{ questionId: 'q1', score: 5 }] }
+    ];
+}
+
+/**
+ * Configures mock clientWidth and scrollWidth on a scroll container element.
+ * @param {HTMLElement} scrollContainer
+ * @param {number} [clientWidth=600]
+ * @param {number} [scrollWidth=3200]
+ * @returns {HTMLElement}
+ */
+export function mockScrollDimensions(scrollContainer, clientWidth = 600, scrollWidth = 3200) {
+    Object.defineProperty(scrollContainer, 'clientWidth', { value: clientWidth, configurable: true });
+    Object.defineProperty(scrollContainer, 'scrollWidth', { value: scrollWidth, configurable: true });
+    return scrollContainer;
+}
+
+/**
+ * Navigates to the questions view and waits for list rendering to complete.
+ * @param {Window} windowInstance
+ * @param {Document} documentInstance
+ * @returns {Promise<void>}
+ */
+export async function navigateToQuestionsCanvas(windowInstance, documentInstance) {
+    windowInstance.navigateTo('questions-canvas', { instant: true });
+    await waitFor(() => {
+        const activeList = documentInstance.getElementById('questions-active-list');
+        const catalogList = documentInstance.getElementById('questions-catalog-list');
+        return Boolean(
+            (activeList && activeList.children.length > 0) ||
+            (catalogList && catalogList.children.length > 0)
+        );
+    });
+}
+
+/**
+ * Opens the question authoring dialog for a given card by action ('edit' or 'copy')
+ * and waits for the overlay to become open.
+ * @param {Document} documentInstance
+ * @param {string} questionId
+ * @param {'edit' | 'copy'} [action='edit']
+ * @returns {Promise<HTMLElement>}
+ */
+export async function openQuestionAuthoringDialog(documentInstance, questionId, action = 'edit') {
+    const card = documentInstance.querySelector(`[data-question-id="${questionId}"]`);
+    if (!card) {
+        throw new Error(`Question card with id "${questionId}" not found in DOM.`);
+    }
+    const buttonSelector = action === 'copy' ? '.question-copy-button' : '.question-edit-button';
+    const actionButton = card.querySelector(buttonSelector);
+    if (!actionButton) {
+        throw new Error(`Button "${buttonSelector}" not found on card "${questionId}".`);
+    }
+    actionButton.click();
+    const overlay = documentInstance.getElementById('question-authoring-dialog-overlay');
+    await waitFor(() => Boolean(overlay?.classList.contains('is-open')));
+    return overlay;
+}
+
+/**
+ * Creates a sample boolean question object for testing.
+ * @param {Record<string, unknown>} [overrides={}]
+ * @returns {Record<string, unknown>}
+ */
+export function createSampleBooleanQuestion(overrides = {}) {
+    return {
+        id: 'bool_q',
+        text: 'Have you eaten today?',
+        shortLabel: 'Eaten',
+        curve: 'more-is-better',
+        responseType: 'boolean',
+        ...overrides
+    };
+}
+
+/**
+ * Creates a sample scale question object for testing.
+ * @param {Record<string, unknown>} [overrides={}]
+ * @returns {Record<string, unknown>}
+ */
+export function createSampleScaleQuestion(overrides = {}) {
+    return {
+        id: 'scale_q',
+        text: 'Mood level',
+        shortLabel: 'Mood',
+        curve: 'more-is-better',
+        responseType: 'scale',
+        ...overrides
+    };
+}
+
+/**
+ * Creates an array of entries with boolean scores for graph rendering tests.
+ * @param {number[]} [scores=[5, 1]]
+ * @param {string} [questionId='bool_q']
+ * @returns {Array<Record<string, unknown>>}
+ */
+export function createSampleBooleanEntries(scores = [5, 1], questionId = 'bool_q') {
+    return scores.map((score, index) => ({
+        timestamp: `2026-08-1${index}T10:00:00.000Z`,
+        answers: [{ questionId, score, status: 'answered' }]
+    }));
+}
+
+/**
+ * Computes graph layout and renders SVG markup into a container div.
+ * @param {Window} windowInstance
+ * @param {Document} documentInstance
+ * @param {Record<string, unknown>} options
+ * @returns {{ layout: Record<string, unknown>, svgMarkup: string, container: HTMLElement }}
+ */
+export function renderGraphToContainer(windowInstance, documentInstance, options) {
+    const layout = windowInstance.computeGraphLayout({
+        containerWidth: 600,
+        timeRange: 'all',
+        zoomScale: 1,
+        ...options
+    });
+    const svgMarkup = windowInstance.renderGraphSVG(layout);
+    const container = documentInstance.createElement('div');
+    container.innerHTML = svgMarkup;
+    return { layout, svgMarkup, container };
+}
+
+/**
+ * Helper to create and immediately archive a custom question for removed question tests.
+ * @param {Window} windowInstance
+ * @param {Record<string, unknown>} [options={}]
+ * @returns {Promise<{ id: string, outcome: Record<string, unknown> }>}
+ */
+export async function createAndArchiveCustomQuestion(windowInstance, options = {}) {
+    const outcome = await windowInstance.createCustomQuestion({
+        text: 'Sample custom question for removal',
+        shortLabel: 'Sample',
+        tags: ['General'],
+        curve: 'more-is-better',
+        addToSet: false,
+        ...options
+    });
+    await windowInstance.archiveQuestion(outcome.id);
+    return { id: outcome.id, outcome };
+}
+
