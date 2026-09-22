@@ -238,6 +238,17 @@ describe('Task 5.5: Active Tracker Cards, Reordering Handles & In-Tracker Toggle
         expect(cssContent).toContain('.question-reorder-controls');
     });
 
+    async function assertActiveQuestionPairOrder(firstExpectedId, secondExpectedId) {
+        await waitFor(() => {
+            const updatedActiveList = documentInstance.getElementById('questions-active-list');
+            return updatedActiveList.children[0].getAttribute('data-question-id') === firstExpectedId;
+        });
+
+        const updatedActiveList = documentInstance.getElementById('questions-active-list');
+        expect(updatedActiveList.children[0].getAttribute('data-question-id')).toBe(firstExpectedId);
+        expect(updatedActiveList.children[1].getAttribute('data-question-id')).toBe(secondExpectedId);
+    }
+
     it('8. Drag and Drop Reordering: Dragging card drops into new position and persists order', async () => {
         const activeList = documentInstance.getElementById('questions-active-list');
         const firstCard = activeList.children[0];
@@ -282,14 +293,7 @@ describe('Task 5.5: Active Tracker Cards, Reordering Handles & In-Tracker Toggle
 
         secondCard.dispatchEvent(dropEvent);
 
-        await waitFor(() => {
-            const updatedActiveList = documentInstance.getElementById('questions-active-list');
-            return updatedActiveList.children[0].getAttribute('data-question-id') === secondId;
-        });
-
-        const updatedActiveList = documentInstance.getElementById('questions-active-list');
-        expect(updatedActiveList.children[0].getAttribute('data-question-id')).toBe(secondId);
-        expect(updatedActiveList.children[1].getAttribute('data-question-id')).toBe(firstId);
+        await assertActiveQuestionPairOrder(secondId, firstId);
 
         const storedConfig = await windowInstance.getConfig('activeQuestionSet');
         expect(storedConfig[0]).toBe(secondId);
@@ -309,13 +313,6 @@ describe('Task 5.5: Active Tracker Cards, Reordering Handles & In-Tracker Toggle
             bubbles: true
         }));
 
-        await waitFor(() => {
-            const updatedActiveList = documentInstance.getElementById('questions-active-list');
-            return updatedActiveList.children[0].getAttribute('data-question-id') === secondId;
-        });
-
-        const updatedActiveList = documentInstance.getElementById('questions-active-list');
-        expect(updatedActiveList.children[0].getAttribute('data-question-id')).toBe(secondId);
-        expect(updatedActiveList.children[1].getAttribute('data-question-id')).toBe(firstId);
+        await assertActiveQuestionPairOrder(secondId, firstId);
     });
 });

@@ -197,32 +197,27 @@ describe('Task 5.10.2: Yes/No Question Type — Authoring Dialog Field Tests', (
         const minLabelField = document.getElementById('field-min-label');
         const scaleHint = document.getElementById('field-scale-hint');
 
+        const expectScaleFieldsVisible = (isVisible) => {
+            const expectedHidden = !isVisible;
+            expect(scaleFieldsContainer.hidden).toBe(expectedHidden);
+            expect(curveField.hidden).toBe(expectedHidden);
+            expect(maxLabelField.hidden).toBe(expectedHidden);
+            expect(minLabelField.hidden).toBe(expectedHidden);
+            expect(scaleHint.hidden).toBe(expectedHidden);
+        };
+
         expect(responseTypeSelector.value).toBe('scale');
-        expect(scaleFieldsContainer.hidden).toBe(false);
-        expect(curveField.hidden).toBe(false);
-        expect(maxLabelField.hidden).toBe(false);
-        expect(minLabelField.hidden).toBe(false);
-        expect(scaleHint.hidden).toBe(false);
+        expectScaleFieldsVisible(true);
 
         // Switch to boolean (Yes/No)
         responseTypeSelector.value = 'boolean';
         responseTypeSelector.dispatchEvent(new windowInstance.Event('change'));
-
-        expect(scaleFieldsContainer.hidden).toBe(true);
-        expect(curveField.hidden).toBe(true);
-        expect(maxLabelField.hidden).toBe(true);
-        expect(minLabelField.hidden).toBe(true);
-        expect(scaleHint.hidden).toBe(true);
+        expectScaleFieldsVisible(false);
 
         // Switch back to 5-Point Scale
         responseTypeSelector.value = 'scale';
         responseTypeSelector.dispatchEvent(new windowInstance.Event('change'));
-
-        expect(scaleFieldsContainer.hidden).toBe(false);
-        expect(curveField.hidden).toBe(false);
-        expect(maxLabelField.hidden).toBe(false);
-        expect(minLabelField.hidden).toBe(false);
-        expect(scaleHint.hidden).toBe(false);
+        expectScaleFieldsVisible(true);
     });
 
     it('3. Live preview reflects selected response type', async () => {

@@ -228,6 +228,49 @@ export function buildActiveQuestionCardHTML(question, questionIndex, totalQuesti
     });
 }
 
+export async function handleCommonQuestionCardAction(event) {
+    const copyButton = event.target.closest('.question-copy-button, [data-action="copy-question"]');
+    if (copyButton && !copyButton.disabled) {
+        event.preventDefault();
+        const questionId = copyButton.getAttribute('data-question-id');
+        const customEvent = new CustomEvent('question-copy-requested', {
+            bubbles: true,
+            detail: { questionId }
+        });
+        copyButton.dispatchEvent(customEvent);
+        return true;
+    }
+
+    const editButton = event.target.closest('.question-edit-button');
+    if (editButton && !editButton.disabled) {
+        event.preventDefault();
+        const questionId = editButton.getAttribute('data-question-id');
+        const customEvent = new CustomEvent('question-edit-requested', {
+            bubbles: true,
+            detail: { questionId }
+        });
+        editButton.dispatchEvent(customEvent);
+        return true;
+    }
+
+    const archiveButton = event.target.closest('.question-archive-button, .question-remove-button');
+    if (archiveButton) {
+        event.preventDefault();
+        const questionId = archiveButton.getAttribute('data-question-id');
+        if (questionId) {
+            await archiveQuestion(questionId);
+            isRemovedQuestionsExpanded = true;
+            await loadActiveQuestions();
+            await loadQuestionsView();
+            renderCurrentQuestion();
+            showNoticeDialog('Question Removed', 'This question has been removed.', archiveButton);
+        }
+        return true;
+    }
+
+    return false;
+}
+
 export function setupActiveQuestionsListeners(activeList) {
     if (!activeList || activeList.dataset.hasActiveListeners === 'true') return;
     activeList.dataset.hasActiveListeners = 'true';
@@ -246,42 +289,7 @@ export function setupActiveQuestionsListeners(activeList) {
     };
 
     activeList.addEventListener('click', async (event) => {
-        const copyButton = event.target.closest('.question-copy-button, [data-action="copy-question"]');
-        if (copyButton && !copyButton.disabled) {
-            event.preventDefault();
-            const questionId = copyButton.getAttribute('data-question-id');
-            const customEvent = new CustomEvent('question-copy-requested', {
-                bubbles: true,
-                detail: { questionId }
-            });
-            copyButton.dispatchEvent(customEvent);
-            return;
-        }
-
-        const editButton = event.target.closest('.question-edit-button');
-        if (editButton && !editButton.disabled) {
-            event.preventDefault();
-            const questionId = editButton.getAttribute('data-question-id');
-            const customEvent = new CustomEvent('question-edit-requested', {
-                bubbles: true,
-                detail: { questionId }
-            });
-            editButton.dispatchEvent(customEvent);
-            return;
-        }
-
-        const archiveButton = event.target.closest('.question-archive-button, .question-remove-button');
-        if (archiveButton) {
-            event.preventDefault();
-            const questionId = archiveButton.getAttribute('data-question-id');
-            if (questionId) {
-                await archiveQuestion(questionId);
-                isRemovedQuestionsExpanded = true;
-                await loadActiveQuestions();
-                await loadQuestionsView();
-                renderCurrentQuestion();
-                showNoticeDialog('Question Removed', 'This question has been removed.', archiveButton);
-            }
+        if (await handleCommonQuestionCardAction(event)) {
             return;
         }
 
@@ -553,42 +561,7 @@ export function setupCatalogQuestionsListeners(catalogList) {
     catalogList.dataset.hasCatalogListeners = 'true';
 
     catalogList.addEventListener('click', async (event) => {
-        const copyButton = event.target.closest('.question-copy-button, [data-action="copy-question"]');
-        if (copyButton && !copyButton.disabled) {
-            event.preventDefault();
-            const questionId = copyButton.getAttribute('data-question-id');
-            const customEvent = new CustomEvent('question-copy-requested', {
-                bubbles: true,
-                detail: { questionId }
-            });
-            copyButton.dispatchEvent(customEvent);
-            return;
-        }
-
-        const editButton = event.target.closest('.question-edit-button');
-        if (editButton && !editButton.disabled) {
-            event.preventDefault();
-            const questionId = editButton.getAttribute('data-question-id');
-            const customEvent = new CustomEvent('question-edit-requested', {
-                bubbles: true,
-                detail: { questionId }
-            });
-            editButton.dispatchEvent(customEvent);
-            return;
-        }
-
-        const archiveButton = event.target.closest('.question-archive-button, .question-remove-button');
-        if (archiveButton) {
-            event.preventDefault();
-            const questionId = archiveButton.getAttribute('data-question-id');
-            if (questionId) {
-                await archiveQuestion(questionId);
-                isRemovedQuestionsExpanded = true;
-                await loadActiveQuestions();
-                await loadQuestionsView();
-                renderCurrentQuestion();
-                showNoticeDialog('Question Removed', 'This question has been removed.', archiveButton);
-            }
+        if (await handleCommonQuestionCardAction(event)) {
             return;
         }
 
@@ -891,6 +864,13 @@ export function setupQuestionAuthoring() {
         refreshPreview();
     }
 
+    function showAuthoringOverlay() {
+        overlay.removeAttribute('inert');
+        overlay.setAttribute('aria-hidden', 'false');
+        overlay.classList.add('is-open');
+        setTimeout(() => textInput.focus({ preventScroll: true }), 60);
+    }
+
     function openAuthoringModal() {
         currentEditingQuestionId = null;
         sourceCopiedQuestion = null;
@@ -903,10 +883,28 @@ export function setupQuestionAuthoring() {
         if (archiveRow) archiveRow.hidden = true;
         if (addToSetLabel) addToSetLabel.textContent = 'Add to my daily set now';
 
-        overlay.removeAttribute('inert');
-        overlay.setAttribute('aria-hidden', 'false');
-        overlay.classList.add('is-open');
-        setTimeout(() => textInput.focus({ preventScroll: true }), 60);
+        showAuthoringOverlay();
+    }
+
+    function populateAuthoringFieldsFromQuestion(question) {
+        textInput.value = question.text;
+        if (shortLabelInput) shortLabelInput.value = question.shortLabel || '';
+        if (tagsInput) tagsInput.value = Array.isArray(question.tags) ? question.tags.join(', ') : '';
+        if (responseTypeInput) {
+            responseTypeInput.value = question.responseType || 'scale';
+        }
+        curveInput.value = question.curve || 'more-is-better';
+        maxInput.value = question.maxLabel || '';
+        midInput.value = question.midLabel || '';
+        minInput.value = question.minLabel || '';
+    }
+
+    function syncAndShowAuthoringOverlay() {
+        syncResponseTypeVisibility();
+        syncMidVisibility();
+        syncSaveEnabled();
+        refreshPreview();
+        showAuthoringOverlay();
     }
 
     async function openCopyModal(question) {
@@ -921,27 +919,10 @@ export function setupQuestionAuthoring() {
         if (archiveRow) archiveRow.hidden = true;
         if (addToSetLabel) addToSetLabel.textContent = 'Add to my daily set now';
 
-        textInput.value = question.text;
-        if (shortLabelInput) shortLabelInput.value = question.shortLabel || '';
-        if (tagsInput) tagsInput.value = Array.isArray(question.tags) ? question.tags.join(', ') : '';
-        if (responseTypeInput) {
-            responseTypeInput.value = question.responseType || 'scale';
-        }
-        curveInput.value = question.curve || 'more-is-better';
-        maxInput.value = question.maxLabel || '';
-        midInput.value = question.midLabel || '';
-        minInput.value = question.minLabel || '';
+        populateAuthoringFieldsFromQuestion(question);
         if (addToSetInput) addToSetInput.checked = false;
 
-        syncResponseTypeVisibility();
-        syncMidVisibility();
-        syncSaveEnabled();
-        refreshPreview();
-
-        overlay.removeAttribute('inert');
-        overlay.setAttribute('aria-hidden', 'false');
-        overlay.classList.add('is-open');
-        setTimeout(() => textInput.focus({ preventScroll: true }), 60);
+        syncAndShowAuthoringOverlay();
     }
 
     openCopyAuthoringHandler = openCopyModal;
@@ -960,31 +941,14 @@ export function setupQuestionAuthoring() {
         if (removeButtonLabel) removeButtonLabel.textContent = 'Remove Question';
         if (addToSetLabel) addToSetLabel.textContent = 'Active in daily tracker';
 
-        textInput.value = question.text;
-        if (shortLabelInput) shortLabelInput.value = question.shortLabel || '';
-        if (tagsInput) tagsInput.value = Array.isArray(question.tags) ? question.tags.join(', ') : '';
-        if (responseTypeInput) {
-            responseTypeInput.value = question.responseType || 'scale';
-        }
-        curveInput.value = question.curve || 'more-is-better';
-        maxInput.value = question.maxLabel || '';
-        midInput.value = question.midLabel || '';
-        minInput.value = question.minLabel || '';
+        populateAuthoringFieldsFromQuestion(question);
 
         const activeSet = await getConfig('activeQuestionSet');
         if (addToSetInput) {
             addToSetInput.checked = Array.isArray(activeSet) && activeSet.includes(question.id);
         }
 
-        syncResponseTypeVisibility();
-        syncMidVisibility();
-        syncSaveEnabled();
-        refreshPreview();
-
-        overlay.removeAttribute('inert');
-        overlay.setAttribute('aria-hidden', 'false');
-        overlay.classList.add('is-open');
-        setTimeout(() => textInput.focus({ preventScroll: true }), 60);
+        syncAndShowAuthoringOverlay();
     }
 
     function closeAuthoringModal() {
