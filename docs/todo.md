@@ -369,7 +369,7 @@ and zoom operate on consistently, and add continuous gesture-driven zoom on top 
 - [x] **Task 9.1: Uniform Time-to-Pixel Scale Constant**
   - In `public/js/ui/history-graph.js`, replace the entry-count-driven width formula in `computeGraphLayout()`
     (`(entryCount - 1) * pointSpacing`) with a single exported base-scale constant expressed as pixels per unit
-    of real elapsed time (e.g. pixels per hour).
+    of real elapsed time (e.g., pixels per hour).
   - Every point's x-position must derive purely from `(entryTime - originTime) * scale`, at the current zoom
     level — not from entry index or entry count. This is the single source of truth the rest of Phase 9 builds
     on; keep it a plain exported constant so it stays easy to tune later without touching call sites.

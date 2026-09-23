@@ -977,6 +977,7 @@ select, .utility-button, .form-input {
     cursor: not-allowed;
 }
 
+/* biome-ignore lint/style/noDescendingSpecificity: CSS is sectioned. 'Violation' is in other, unrelated sections. */
 .utility-button {
     flex: 1;
     cursor: pointer;
@@ -1709,9 +1710,9 @@ body[data-theme="dark"] .question-restore-button {
 /* Card Reordering Controls Visibility (Unified Question Cards)
    Reorder buttons and drag handle are visible only when the card has .is-reorderable.
    The edit button remains always visible in .card-actions-non-dominant. */
+/*Selector .is-reorderable is used in JS DOM manipulation. */
 /*noinspection CssUnusedSymbol*/
 .question-card:not(.is-reorderable) .question-reorder-controls,
-/*noinspection CssUnusedSymbol*/
 .question-card:not(.is-reorderable) .question-drag-handle {
     display: none;
 }

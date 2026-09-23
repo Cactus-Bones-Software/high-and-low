@@ -6,7 +6,7 @@
 - **Single Task Focus**: Execute **ONE single unchecked task (`[ ]`) at a time** from `docs/todo.md`. Do NOT move to
   the next task or combine multiple tasks into a single edit session.
 - **Local-First & Zero Friction**: Maintain extreme care for the user experience. The app is targeted at people in
-  severe mental fatigue or low states—keep animations snappy (<250ms), UI controls large and accessible, and external
+  severe mental fatigue or low states—keep animations snappy (<250 ms), UI controls large and accessible, and external
   runtime dependencies at zero.
 - **Completion Workflow**:
   1. Implement the requested code or architectural change for the selected task.

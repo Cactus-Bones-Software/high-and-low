@@ -117,7 +117,7 @@ describe('Check-in and View State Persistence (Theme Switch & Reload Resilience)
 
         const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-        // Mock Storage.prototype.setItem to throw (e.g. quota exceeded or security restriction)
+        // Mock Storage.prototype.setItem to throw (e.g., quota exceeded or security restriction)
         const setItemSpy = vi.spyOn(windowInstance.Storage.prototype, 'setItem').mockImplementation(() => {
             throw new Error('QuotaExceededError');
         });
