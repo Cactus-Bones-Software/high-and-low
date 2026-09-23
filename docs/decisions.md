@@ -204,4 +204,16 @@ Locked design decisions and open questions for High & Low (menu, question store,
   - Prevents the SVG width from scaling empty dead space when zooming in, ensuring all horizontal padding and margins
     are driven strictly by CSS (`padding-left: 10%` and `padding-right: 10%`).
 
+## As of 2026-09-23
+
+- **Version Bump 0.3.5: Live Gesture Zoom — Pinch & Ctrl+Scroll Input Handling (Task 9.7):**
+  - Bumped version to `0.3.5` (PATCH) per `docs/versioning.md` for interactive gesture zoom input handling on the timeline.
+  - Implemented `setupGraphGestureZoom`, `calculatePinchDistance`, `calculatePinchMidpoint`, and
+    `calculateWheelZoomDeltaMultiplier` in `public/js/ui/history-graph.js`.
+  - Wired two-pointer touch pinch gestures (`pointerdown`, `pointermove`, `pointerup`, `pointercancel`) on
+    `.graph-scroll-container` with dynamic `touchAction: none` to prevent scroll conflicts during pinching.
+  - Wired desktop `wheel` with `ctrlKey`/`metaKey` held for trackpad pinch and Ctrl+wheel zooming, including
+    debounced lifecycle end detection and container-relative cursor pivot tracking.
+  - Preserved existing non-gesture vertical mouse wheel translation to horizontal scrolling without conflict.
+
 ## Open Questions

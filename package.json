@@ -1,6 +1,6 @@
 {
   "name": "high-and-low",
-  "version": "0.3.0",
+  "version": "0.3.5",
   "description": "A local-first, easy-to-use mood tracker built to be private and low-stress.",
   "main": "public/js/main.js",
   "scripts": {

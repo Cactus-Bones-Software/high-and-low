@@ -110,6 +110,367 @@ export function calculateNowScrollLeft({
     return Math.max(0, totalWidth - safeViewportWidth);
 }
 
+/**
+ * Computes the Euclidean distance between two pointers for touch pinch gesture tracking.
+ *
+ * @param {Object} firstPointer - First pointer object with clientX and clientY
+ * @param {Object} secondPointer - Second pointer object with clientX and clientY
+ * @returns {number} Distance in pixels
+ */
+export function calculatePinchDistance(firstPointer, secondPointer) {
+    if (!firstPointer || !secondPointer) {
+        return 0;
+    }
+    const horizontalDistance = Number(secondPointer.clientX) - Number(firstPointer.clientX);
+    const verticalDistance = Number(secondPointer.clientY) - Number(firstPointer.clientY);
+    if (!Number.isFinite(horizontalDistance) || !Number.isFinite(verticalDistance)) {
+        return 0;
+    }
+    return Math.hypot(horizontalDistance, verticalDistance);
+}
+
+/**
+ * Computes the midpoint coordinate between two pointers for touch pinch gesture tracking.
+ *
+ * @param {Object} firstPointer - First pointer object with clientX and clientY
+ * @param {Object} secondPointer - Second pointer object with clientX and clientY
+ * @returns {{ clientX: number, clientY: number }} Midpoint coordinates
+ */
+export function calculatePinchMidpoint(firstPointer, secondPointer) {
+    if (!firstPointer || !secondPointer) {
+        return { clientX: 0, clientY: 0 };
+    }
+    const firstClientX = Number(firstPointer.clientX) || 0;
+    const firstClientY = Number(firstPointer.clientY) || 0;
+    const secondClientX = Number(secondPointer.clientX) || 0;
+    const secondClientY = Number(secondPointer.clientY) || 0;
+    return {
+        clientX: (firstClientX + secondClientX) / 2,
+        clientY: (firstClientY + secondClientY) / 2
+    };
+}
+
+/**
+ * Computes the exponential zoom scale multiplier for a wheel event (Ctrl+wheel or trackpad pinch).
+ *
+ * @param {number} deltaY - Wheel vertical delta
+ * @param {number} [deltaMode=0] - Wheel event delta mode (0 = pixels, 1 = lines, 2 = pages)
+ * @returns {number} Multiplier to apply to current scale factor
+ */
+export function calculateWheelZoomDeltaMultiplier(deltaY, deltaMode = 0) {
+    if (!Number.isFinite(deltaY) || deltaY === 0) {
+        return 1;
+    }
+    const pixelMultiplier = deltaMode === 1 ? 20 : (deltaMode === 2 ? 400 : 1);
+    const normalizedDelta = deltaY * pixelMultiplier;
+    const zoomSensitivity = 0.005;
+    return Math.exp(-normalizedDelta * zoomSensitivity);
+}
+
+/**
+ * Configures live touch pinch and desktop Ctrl/Meta+wheel gesture zoom tracking on a scroll container.
+ *
+ * @param {HTMLElement} scrollContainerElement - The timeline scroll container element
+ * @param {Object} [options={}] - Gesture configuration and callbacks
+ * @param {Function} [options.getCurrentZoomScale] - Accessor for current base zoom scale
+ * @param {Function} [options.onGestureStart] - Called when gesture zoom begins
+ * @param {Function} [options.onGestureChange] - Called on each move/wheel tick during active gesture
+ * @param {Function} [options.onGestureEnd] - Called when gesture zoom ends
+ * @param {number} [options.wheelDebounceMs=160] - Idle duration before concluding wheel gesture
+ * @returns {Object} Controller object with getState() and destroy() methods
+ */
+export function setupGraphGestureZoom(scrollContainerElement, options = {}) {
+    if (!scrollContainerElement) {
+        return {
+            getState: () => ({ isActive: false, source: null, currentScaleFactor: 1 }),
+            destroy: () => {}
+        };
+    }
+
+    const {
+        getCurrentZoomScale = () => 1,
+        onGestureStart = null,
+        onGestureChange = null,
+        onGestureEnd = null,
+        wheelDebounceMs = 160
+    } = options;
+
+    const activePointersMap = new Map();
+    let trackingPointerIds = [];
+    let isGestureActive = false;
+    let activeGestureSource = null;
+    let initialPinchDistance = 1;
+    let gestureInitialZoomScale = 1;
+    let currentScaleFactor = 1.0;
+    let lastPivotX = 0;
+    let lastClientPivotX = 0;
+    let wheelDebounceTimeoutId = null;
+    let originalTouchAction = scrollContainerElement.style.touchAction || '';
+
+    function getContainerRelativePivotX(clientX) {
+        try {
+            const containerRect = scrollContainerElement.getBoundingClientRect();
+            if (containerRect && Number.isFinite(containerRect.left)) {
+                return clientX - containerRect.left;
+            }
+        } catch {
+            // Fallback to clientX if getBoundingClientRect is unavailable
+        }
+        return clientX;
+    }
+
+    function handlePointerDown(pointerEvent) {
+        activePointersMap.set(pointerEvent.pointerId, {
+            clientX: pointerEvent.clientX,
+            clientY: pointerEvent.clientY
+        });
+
+        if (typeof scrollContainerElement.setPointerCapture === 'function') {
+            try {
+                scrollContainerElement.setPointerCapture(pointerEvent.pointerId);
+            } catch {
+                // Ignore pointer capture errors in unattached or non-standard environments
+            }
+        }
+
+        if (activePointersMap.size === 2 && !isGestureActive) {
+            trackingPointerIds = Array.from(activePointersMap.keys()).slice(0, 2);
+            const firstPointer = activePointersMap.get(trackingPointerIds[0]);
+            const secondPointer = activePointersMap.get(trackingPointerIds[1]);
+            const calculatedDistance = calculatePinchDistance(firstPointer, secondPointer);
+            initialPinchDistance = Math.max(1, calculatedDistance);
+
+            const midpoint = calculatePinchMidpoint(firstPointer, secondPointer);
+            lastClientPivotX = midpoint.clientX;
+            lastPivotX = getContainerRelativePivotX(midpoint.clientX);
+
+            isGestureActive = true;
+            activeGestureSource = 'touch';
+            gestureInitialZoomScale = Number(getCurrentZoomScale()) || 1;
+            currentScaleFactor = 1.0;
+
+            originalTouchAction = scrollContainerElement.style.touchAction || '';
+            scrollContainerElement.style.touchAction = 'none';
+
+            if (typeof onGestureStart === 'function') {
+                onGestureStart({
+                    source: 'touch',
+                    initialZoomScale: gestureInitialZoomScale,
+                    scaleFactor: 1.0,
+                    currentZoomScale: gestureInitialZoomScale,
+                    pivotX: lastPivotX,
+                    clientPivotX: lastClientPivotX
+                });
+            }
+        }
+    }
+
+    function handlePointerMove(pointerEvent) {
+        if (!activePointersMap.has(pointerEvent.pointerId)) {
+            return;
+        }
+
+        activePointersMap.set(pointerEvent.pointerId, {
+            clientX: pointerEvent.clientX,
+            clientY: pointerEvent.clientY
+        });
+
+        if (isGestureActive && activeGestureSource === 'touch' && trackingPointerIds.length === 2) {
+            const firstPointer = activePointersMap.get(trackingPointerIds[0]);
+            const secondPointer = activePointersMap.get(trackingPointerIds[1]);
+            if (!firstPointer || !secondPointer) {
+                return;
+            }
+
+            const currentDistance = calculatePinchDistance(firstPointer, secondPointer);
+            const scaleFactor = Math.max(0.01, currentDistance / initialPinchDistance);
+            currentScaleFactor = scaleFactor;
+
+            const midpoint = calculatePinchMidpoint(firstPointer, secondPointer);
+            lastClientPivotX = midpoint.clientX;
+            lastPivotX = getContainerRelativePivotX(midpoint.clientX);
+
+            if (typeof onGestureChange === 'function') {
+                onGestureChange({
+                    source: 'touch',
+                    scaleFactor: currentScaleFactor,
+                    initialZoomScale: gestureInitialZoomScale,
+                    currentZoomScale: gestureInitialZoomScale * currentScaleFactor,
+                    pivotX: lastPivotX,
+                    clientPivotX: lastClientPivotX
+                });
+            }
+        }
+    }
+
+    function handlePointerUpOrCancel(pointerEvent) {
+        activePointersMap.delete(pointerEvent.pointerId);
+
+        if (typeof scrollContainerElement.releasePointerCapture === 'function') {
+            try {
+                scrollContainerElement.releasePointerCapture(pointerEvent.pointerId);
+            } catch {
+                // Ignore pointer capture errors
+            }
+        }
+
+        const wasTrackingPointer = trackingPointerIds.includes(pointerEvent.pointerId);
+        if (isGestureActive && activeGestureSource === 'touch' && wasTrackingPointer) {
+            isGestureActive = false;
+            activeGestureSource = null;
+            trackingPointerIds = [];
+            scrollContainerElement.style.touchAction = originalTouchAction;
+
+            if (typeof onGestureEnd === 'function') {
+                onGestureEnd({
+                    source: 'touch',
+                    scaleFactor: currentScaleFactor,
+                    initialZoomScale: gestureInitialZoomScale,
+                    finalZoomScale: gestureInitialZoomScale * currentScaleFactor,
+                    pivotX: lastPivotX,
+                    clientPivotX: lastClientPivotX
+                });
+            }
+        }
+    }
+
+    function handleWheel(wheelEvent) {
+        const isZoomIntent = Boolean(wheelEvent.ctrlKey || wheelEvent.metaKey);
+
+        if (isZoomIntent) {
+            wheelEvent.preventDefault();
+
+            const clientX = Number.isFinite(wheelEvent.clientX)
+                ? wheelEvent.clientX
+                : 0;
+            lastClientPivotX = clientX;
+            lastPivotX = getContainerRelativePivotX(clientX);
+
+            if (!isGestureActive || activeGestureSource !== 'wheel') {
+                if (isGestureActive && typeof onGestureEnd === 'function') {
+                    onGestureEnd({
+                        source: activeGestureSource,
+                        scaleFactor: currentScaleFactor,
+                        initialZoomScale: gestureInitialZoomScale,
+                        finalZoomScale: gestureInitialZoomScale * currentScaleFactor,
+                        pivotX: lastPivotX,
+                        clientPivotX: lastClientPivotX
+                    });
+                }
+                isGestureActive = true;
+                activeGestureSource = 'wheel';
+                gestureInitialZoomScale = Number(getCurrentZoomScale()) || 1;
+                currentScaleFactor = 1.0;
+
+                if (typeof onGestureStart === 'function') {
+                    onGestureStart({
+                        source: 'wheel',
+                        initialZoomScale: gestureInitialZoomScale,
+                        scaleFactor: 1.0,
+                        currentZoomScale: gestureInitialZoomScale,
+                        pivotX: lastPivotX,
+                        clientPivotX: lastClientPivotX
+                    });
+                }
+            }
+
+            const multiplier = calculateWheelZoomDeltaMultiplier(
+                wheelEvent.deltaY,
+                wheelEvent.deltaMode
+            );
+            currentScaleFactor = Math.max(0.01, currentScaleFactor * multiplier);
+
+            if (typeof onGestureChange === 'function') {
+                onGestureChange({
+                    source: 'wheel',
+                    scaleFactor: currentScaleFactor,
+                    initialZoomScale: gestureInitialZoomScale,
+                    currentZoomScale: gestureInitialZoomScale * currentScaleFactor,
+                    pivotX: lastPivotX,
+                    clientPivotX: lastClientPivotX
+                });
+            }
+
+            if (wheelDebounceTimeoutId !== null) {
+                clearTimeout(wheelDebounceTimeoutId);
+            }
+            wheelDebounceTimeoutId = setTimeout(() => {
+                wheelDebounceTimeoutId = null;
+                if (isGestureActive && activeGestureSource === 'wheel') {
+                    isGestureActive = false;
+                    activeGestureSource = null;
+                    if (typeof onGestureEnd === 'function') {
+                        onGestureEnd({
+                            source: 'wheel',
+                            scaleFactor: currentScaleFactor,
+                            initialZoomScale: gestureInitialZoomScale,
+                            finalZoomScale: gestureInitialZoomScale * currentScaleFactor,
+                            pivotX: lastPivotX,
+                            clientPivotX: lastClientPivotX
+                        });
+                    }
+                }
+            }, wheelDebounceMs);
+
+            return;
+        }
+
+        // Default mouse wheel behavior: map vertical wheel to horizontal scroll over timeline
+        if (scrollContainerElement.scrollWidth <= scrollContainerElement.clientWidth) {
+            return;
+        }
+        if (Math.abs(wheelEvent.deltaY) > Math.abs(wheelEvent.deltaX)) {
+            wheelEvent.preventDefault();
+            const maximumScroll = scrollContainerElement.scrollWidth - scrollContainerElement.clientWidth;
+            scrollContainerElement.scrollLeft = Math.max(0, Math.min(
+                scrollContainerElement.scrollLeft + wheelEvent.deltaY,
+                maximumScroll
+            ));
+            STATE.historyScrollLeft = scrollContainerElement.scrollLeft;
+        }
+    }
+
+    scrollContainerElement.addEventListener('pointerdown', handlePointerDown);
+    scrollContainerElement.addEventListener('pointermove', handlePointerMove);
+    scrollContainerElement.addEventListener('pointerup', handlePointerUpOrCancel);
+    scrollContainerElement.addEventListener('pointercancel', handlePointerUpOrCancel);
+    scrollContainerElement.addEventListener('wheel', handleWheel, { passive: false });
+
+    return {
+        getState() {
+            return {
+                isActive: isGestureActive,
+                source: activeGestureSource,
+                initialZoomScale: gestureInitialZoomScale,
+                currentScaleFactor,
+                currentZoomScale: gestureInitialZoomScale * currentScaleFactor,
+                pivotX: lastPivotX,
+                clientPivotX: lastClientPivotX,
+                activePointerCount: activePointersMap.size
+            };
+        },
+        destroy() {
+            if (wheelDebounceTimeoutId !== null) {
+                clearTimeout(wheelDebounceTimeoutId);
+                wheelDebounceTimeoutId = null;
+            }
+            activePointersMap.clear();
+            trackingPointerIds = [];
+            if (isGestureActive && activeGestureSource === 'touch') {
+                scrollContainerElement.style.touchAction = originalTouchAction;
+            }
+            isGestureActive = false;
+            activeGestureSource = null;
+
+            scrollContainerElement.removeEventListener('pointerdown', handlePointerDown);
+            scrollContainerElement.removeEventListener('pointermove', handlePointerMove);
+            scrollContainerElement.removeEventListener('pointerup', handlePointerUpOrCancel);
+            scrollContainerElement.removeEventListener('pointercancel', handlePointerUpOrCancel);
+            scrollContainerElement.removeEventListener('wheel', handleWheel);
+        }
+    };
+}
+
 export async function loadHistoryView() {
     const container = document.getElementById('history-graph-container') || document.getElementById('panel-history');
     if (!container) return;
@@ -699,10 +1060,21 @@ export function renderGraphSVG(layout) {
     `;
 }
 
-export function renderLineGraph(container, { entries, allEntries, questions, visibleQuestionIds, timeRange, zoomScale } = {}) {
+export function renderLineGraph(container, {
+    entries,
+    allEntries,
+    questions,
+    visibleQuestionIds,
+    timeRange,
+    zoomScale,
+    gestureOptions = {}
+} = {}) {
     if (!container) return;
 
     const previousScrollContainer = container.querySelector('.graph-scroll-container');
+    if (previousScrollContainer && previousScrollContainer._gestureController) {
+        previousScrollContainer._gestureController.destroy();
+    }
     const hadPreviousTimeline = Boolean(previousScrollContainer);
 
     const currentTimeRange = timeRange || STATE.historyTimeRange || 'all';
@@ -1060,22 +1432,29 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
             STATE.historyScrollLeft = scrollContainerElement.scrollLeft;
         }, { passive: true });
 
-        // Map mouse wheel delta to horizontal scrolling when cursor is over the timeline
-        scrollContainerElement.addEventListener('wheel', (event) => {
-            if (scrollContainerElement.scrollWidth <= scrollContainerElement.clientWidth) {
-                return;
-            }
-            // If the user is scrolling vertically with the mouse wheel, translate to horizontal scroll
-            if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
-                event.preventDefault();
-                const maximumScroll = scrollContainerElement.scrollWidth - scrollContainerElement.clientWidth;
-                scrollContainerElement.scrollLeft = Math.max(0, Math.min(
-                    scrollContainerElement.scrollLeft + event.deltaY,
-                    maximumScroll
-                ));
-                STATE.historyScrollLeft = scrollContainerElement.scrollLeft;
-            }
-        }, { passive: false });
+        // Set up live touch pinch and Ctrl/Meta+wheel gesture zoom handling (Task 9.7)
+        const gestureController = setupGraphGestureZoom(scrollContainerElement, {
+            getCurrentZoomScale: () => (
+                Number.isFinite(Number(STATE.historyZoomScale)) ? Number(STATE.historyZoomScale) : 1
+            ),
+            onGestureStart: (gestureEventData) => {
+                if (typeof gestureOptions.onGestureStart === 'function') {
+                    gestureOptions.onGestureStart(gestureEventData);
+                }
+            },
+            onGestureChange: (gestureEventData) => {
+                if (typeof gestureOptions.onGestureChange === 'function') {
+                    gestureOptions.onGestureChange(gestureEventData);
+                }
+            },
+            onGestureEnd: (gestureEventData) => {
+                if (typeof gestureOptions.onGestureEnd === 'function') {
+                    gestureOptions.onGestureEnd(gestureEventData);
+                }
+            },
+            ...gestureOptions
+        });
+        scrollContainerElement._gestureController = gestureController;
     }
 
     wireTimeframeAndLegendListeners();

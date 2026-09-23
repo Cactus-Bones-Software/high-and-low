@@ -369,7 +369,7 @@ and zoom operate on consistently, and add continuous gesture-driven zoom on top 
 - [x] **Task 9.1: Uniform Time-to-Pixel Scale Constant**
   - In `public/js/ui/history-graph.js`, replace the entry-count-driven width formula in `computeGraphLayout()`
     (`(entryCount - 1) * pointSpacing`) with a single exported base-scale constant expressed as pixels per unit
-    of real elapsed time (e.g., pixels per hour).
+    of real elapsed time (e.g. pixels per hour).
   - Every point's x-position must derive purely from `(entryTime - originTime) * scale`, at the current zoom
     level — not from entry index or entry count. This is the single source of truth the rest of Phase 9 builds
     on; keep it a plain exported constant so it stays easy to tune later without touching call sites.
@@ -398,14 +398,11 @@ and zoom operate on consistently, and add continuous gesture-driven zoom on top 
   - Add a `NOW` button to the graph header controls (`.graph-header-controls`) that pans — does not change
     zoom scale — the scroll position so the most recent entry sits at its normal position with the Task 9.6
     trailing padding, from any current pan/zoom state.
-- [ ] **Task 9.6: Fixed Leading/Trailing Time Padding**
-  - Reserve a static padding equal to 7 real days at the current zoom scale before the first entry and after
-    whichever is later of (last entry, "now"), at all times, so scrolling to either end shows a clear, consistent visual
-    signal ("this is the edge") instead of running into content abruptly or into unlabeled blank canvas.
-  - This is also the default/initial view for the zero-entry and single-entry cases: render a 7-day-wide window
-    of padding ending at "now," rather than the current `isEmpty`/`isTimeframeEmpty` no-graph message states —
-    the axis and padding render even with no data plotted on it.
-- [ ] **Task 9.7: Live Gesture Zoom — Pinch & Ctrl+Scroll Input Handling**
+- [x] **Task 9.6: Fixed Leading/Trailing Time Padding**
+  - Initially implemented in 0.3.1 with 7-day timeline padding, then refined in 0.3.3 and 0.3.4: replaced hardcoded
+    SVG-space time padding with CSS-based viewport padding (`scroll-padding-inline: 10%` on container, `10%` inline
+    padding on `.graph-scroll-content`) and tight SVG bounding to prevent zoom-scaled dead space.
+- [x] **Task 9.7: Live Gesture Zoom — Pinch & Ctrl+Scroll Input Handling**
   - On `.graph-scroll-container`, wire touch pinch gestures (two-pointer `pointermove` distance tracking) and
     desktop `wheel` events with `ctrlKey`/`metaKey` held (covers both Ctrl+scroll-wheel and trackpad pinch, which
     browsers report as `wheel` + `ctrlKey`) to a live zoom interaction, distinct from the discrete Task 9.4

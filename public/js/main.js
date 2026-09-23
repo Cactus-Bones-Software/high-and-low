@@ -33,7 +33,14 @@ import { setupNoticeDialog, openImportDialog, setupImportDialog, setupNotesDialo
 // Load settings and settings UI
 import { setupSettingsAndMenu, setupCanvasBackButtons, applyStoredDisplay } from './ui/settings-menu.js';
 // Load history UI
-import { renderLineGraph, loadHistoryView } from './ui/history-graph.js';
+import {
+    renderLineGraph,
+    loadHistoryView,
+    setupGraphGestureZoom,
+    calculatePinchDistance,
+    calculatePinchMidpoint,
+    calculateWheelZoomDeltaMultiplier
+} from './ui/history-graph.js';
 // Load Questions UI
 import { setupQuestionAuthoring, loadQuestionsView } from './ui/question-view.js';
 // Set up keyboard navigation for accessibility
@@ -193,6 +200,10 @@ export function initApp() {
             if (typeof window !== 'undefined') {
                 window.startNewCheckIn = startNewCheckIn;
                 window.renderLineGraph = renderLineGraph;
+                window.setupGraphGestureZoom = setupGraphGestureZoom;
+                window.calculatePinchDistance = calculatePinchDistance;
+                window.calculatePinchMidpoint = calculatePinchMidpoint;
+                window.calculateWheelZoomDeltaMultiplier = calculateWheelZoomDeltaMultiplier;
                 window.loadHistoryView = loadHistoryView;
                 window.loadQuestionsView = loadQuestionsView;
                 window.navigateTo = navigateTo;
@@ -242,6 +253,10 @@ export function initApp() {
 if (typeof window !== 'undefined') {
     window.startNewCheckIn = startNewCheckIn;
     window.renderLineGraph = renderLineGraph;
+    window.setupGraphGestureZoom = setupGraphGestureZoom;
+    window.calculatePinchDistance = calculatePinchDistance;
+    window.calculatePinchMidpoint = calculatePinchMidpoint;
+    window.calculateWheelZoomDeltaMultiplier = calculateWheelZoomDeltaMultiplier;
     window.navigateTo = navigateTo;
     window.finalizeCheckin = finalizeCheckin;
     window.registerServiceWorker = registerServiceWorker;
