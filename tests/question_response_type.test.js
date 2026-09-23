@@ -1,3 +1,5 @@
+// noinspection JSObjectNullOrUndefined
+
 import {beforeEach, describe, expect, it} from 'vitest';
 import {
     createSampleBooleanEntries,

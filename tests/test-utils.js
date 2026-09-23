@@ -374,6 +374,8 @@ export async function openQuestionAuthoringDialog(documentInstance, questionId, 
     }
     actionButton.click();
     const overlay = documentInstance.getElementById('question-authoring-dialog-overlay');
+    // This is valid syntax, because `undefined` is Falsy.
+    // noinspection JSUnresolvedReference
     await waitFor(() => Boolean(overlay?.classList?.contains('is-open')));
     return overlay;
 }

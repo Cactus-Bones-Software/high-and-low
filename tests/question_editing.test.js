@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+// noinspection JSObjectNullOrUndefined
+
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
     setupTestDOM,
