@@ -23,7 +23,7 @@ describe('Task 5.8: Removed Questions Section & Search Visibility', () => {
     });
 
     /**
-     * Navigates to questions canvas and waits for the toggle removed questions button to appear.
+     * Navigates to questions canvas and waits for the button toggling removed questions to appear.
      * @returns {Promise<HTMLElement>}
      */
     async function waitForRemovedToggleButton() {

@@ -154,7 +154,7 @@ export function buildQuestionCardHTML(question, options = {}) {
 
     const toggleHTML = isArchived
         ? ''
-        : `<button type="button" role="switch" aria-checked="${toggleChecked}" class="question-tracker-toggle question-catalog-toggle card-action-toggle${toggleActiveClass}" data-action="${toggleAction}" data-question-id="${question.id}" aria-label="${toggleAriaLabel}">
+        : `<button type="button" role="switch" aria-checked="${toggleChecked}" class="question-tracker-toggle question-catalog-toggle card-action-toggle ${toggleActiveClass.trim()}" data-action="${toggleAction}" data-question-id="${question.id}" aria-label="${toggleAriaLabel}">
             <span class="toggle-track" aria-hidden="true">
                 <span class="toggle-thumb"></span>
             </span>

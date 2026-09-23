@@ -259,6 +259,7 @@ describe('Task 5.5: Active Tracker Cards, Reordering Handles & In-Tracker Toggle
         // Simulate HTML5 drag and drop from first card to drop on second card
         let setDragImageCalledWith = null;
         const dragEvent = new windowInstance.Event('dragstart', { bubbles: true });
+        /*noinspection JSUnusedGlobalSymbols*/
         const mockDataTransfer = {
             data: {},
             setData(key, value) { this.data[key] = value; },

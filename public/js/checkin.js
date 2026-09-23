@@ -141,12 +141,20 @@ export function handleScoreSubmission(questionId, score) {
                 if (headerBox) {
                     headerBox.classList.remove('question-transition-enter');
                     headerBox.classList.add('question-transition-in');
-                    setTimeout(() => headerBox?.classList?.remove('question-transition-in'), 180);
+                    setTimeout(() => {
+                        if (headerBox) {
+                            headerBox.classList.remove('question-transition-in');
+                        }
+                    }, 180);
                 }
                 if (inputBox) {
                     inputBox.classList.remove('question-transition-enter');
                     inputBox.classList.add('question-transition-in');
-                    setTimeout(() => inputBox?.classList?.remove('question-transition-in'), 180);
+                    setTimeout(() => {
+                        if (inputBox) {
+                            inputBox.classList.remove('question-transition-in');
+                        }
+                    }, 180);
                 }
             });
         });

@@ -115,7 +115,7 @@ export const DEFAULT_QUESTIONS = [
 // Daily set established on first run (ids into the 'questions' store).
 export const DEFAULT_ACTIVE_SET = ['q_energy', 'q_sadness', 'q_irritability', 'q_overall'];
 
-// Collapse leading/trailing and internal whitespace so trivially-different
+// Collapse leading/trailing and internal whitespace so trivially different
 // wordings resolve to the same content-addressed id.
 export function normalizeQuestionText(text) {
     return text.trim().replace(/\s+/g, ' ');
@@ -195,7 +195,7 @@ export async function seedDefaults() {
                 }
             });
 
-            // Backfill responseType: "scale" onto any existing stored question records (e.g. custom questions)
+            // Backfill responseType: "scale" onto any existing stored question records (e.g., custom questions)
             // that predate this field, keeping all stored records consistent.
             existingQuestions.forEach(existingQuestion => {
                 if (!updatedQuestionIds.has(existingQuestion.id) && !existingQuestion.responseType) {

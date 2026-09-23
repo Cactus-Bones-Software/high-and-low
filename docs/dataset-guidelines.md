@@ -17,10 +17,12 @@ These guidelines are designed for an LLM to generate a realistic test dataset JS
 ## 2. Check In & Note Frequency
 * **Total Duration**: Approximately 120 consecutive calendar days (e.g., from `2026-05-01T...` to `2026-08-30T...`).
 * **Check-In Cadence**:
-    * 1 to 2 entries per day (typically morning ~08:30 and evening ~21:00, with occasional single-check-in days when depressed/exhausted or missed check-ins). Total entries: **~140–180 entries**.
+    * One to two entries per day (typically morning ~08:30 and evening ~21:00, with occasional single-check-in days
+      when depressed/exhausted or missed check-ins). Total entries: **~140–180 entries**.
 * **Free-Text Notes**:
-    * **Average 1 note per week** (~15–20 notes total across the 4-month span).
-    * Notes should feel authentic, concise, and reflective of the patient's state (e.g. sleep changes, medication side effects, hypomanic project ideas, depressive exhaustion, social triggers).
+    * **Average of one note per week** (~15–20 notes total across the 4-month span).
+    * Notes should feel authentic, concise, and reflective of the patient's state (e.g., sleep changes, medication
+      side effects, hypomanic project ideas, depressive exhaustion, social triggers).
 
 ---
 

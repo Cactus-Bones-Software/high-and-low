@@ -58,7 +58,7 @@ describe('Task 5.9: Built-In Question Copying Workflow', () => {
         const initialQuestions = await getAll('questions');
         const initialCount = initialQuestions.length;
 
-        // Attempt save without changes
+        // Attempt to save without changes
         await windowInstance.saveQuestionFromAuthoring();
 
         // Check validation failure state

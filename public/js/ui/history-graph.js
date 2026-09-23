@@ -754,7 +754,7 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
     const timeframeButtonsHTML = timeframeRanges.map(rangeItem => {
         const isActive = rangeItem.key === currentTimeRange;
         return `
-            <button type="button" class="graph-timeframe-button${isActive ? ' is-active' : ''}" data-range="${rangeItem.key}" role="radio" aria-checked="${isActive ? 'true' : 'false'}" aria-label="${rangeItem.ariaLabel}">${rangeItem.label}</button>
+            <button type="button" class="graph-timeframe-button ${isActive ? 'is-active' : ''}" data-range="${rangeItem.key}" role="radio" aria-checked="${isActive ? 'true' : 'false'}" aria-label="${rangeItem.ariaLabel}">${rangeItem.label}</button>
         `;
     }).join('');
 
@@ -814,7 +814,7 @@ export function renderLineGraph(container, { entries, allEntries, questions, vis
                     </svg>
                     <span class="legend-label">${questionTitle}</span>
                 </button>
-                <button type="button" class="legend-isolate-button${isIsolated ? ' is-isolated' : ''}" data-question-id="${escapeHTML(question.id)}" aria-label="${isIsolated ? `Restore all questions (currently isolating ${questionTitle})` : `Isolate ${questionTitle}`}" title="${isIsolated ? 'Restore all questions' : `Isolate ${questionTitle}`}">
+                <button type="button" class="legend-isolate-button ${isIsolated ? 'is-isolated' : ''}" data-question-id="${escapeHTML(question.id)}" aria-label="${isIsolated ? `Restore all questions (currently isolating ${questionTitle})` : `Isolate ${questionTitle}`}" title="${isIsolated ? 'Restore all questions' : `Isolate ${questionTitle}`}">
                     <svg class="isolate-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <circle cx="8" cy="8" r="6" />
                         <circle cx="8" cy="8" r="2" fill="currentColor" />

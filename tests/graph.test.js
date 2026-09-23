@@ -1241,7 +1241,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
 
             // The gap between the last rendered element and the SVG's right edge is a fixed
             // design constant (paddingRight); it must not scale up as zoomScale increases. A
-            // regression that multiplies dead space by zoom would blow this tolerance well past
+            // regression that multiplies dead space by the zoom factor would blow this tolerance well past
             // ~1px of floating point/rounding slack.
             const [baseline, ...rest] = deadSpaceByZoom;
             rest.forEach(deadSpace => {

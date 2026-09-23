@@ -19,10 +19,6 @@ let holdTimer = null;
 let isExecutingAction = false;
 let isHoldDelayEnabled = true; // Enabled on by default
 
-export function getIsHoldDelayEnabled() {
-    return isHoldDelayEnabled;
-}
-
 export function setIsHoldDelayEnabled(enabled) {
     isHoldDelayEnabled = Boolean(enabled);
 }

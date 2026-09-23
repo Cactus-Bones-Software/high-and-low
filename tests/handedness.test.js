@@ -92,7 +92,7 @@ describe('Task 5.2: Handedness Setting & Non-Dominant Action Placement Tests', (
         expect(cssContent).toContain('body[data-handedness="left"] .side-drawer');
         expect(cssContent).toContain('body[data-handedness="right"] .side-drawer');
 
-        // Non-dominant hand dictates card action placement (e.g. edit buttons) to prevent accidental taps
+        // Non-dominant hand dictates card action placement (e.g., edit buttons) to prevent accidental taps
         expect(cssContent).toContain('.card-action-row');
         expect(cssContent).toContain('body[data-handedness="right"] .card-actions-non-dominant');
         expect(cssContent).toContain('body[data-handedness="left"] .card-actions-non-dominant');

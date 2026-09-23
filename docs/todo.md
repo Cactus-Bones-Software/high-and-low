@@ -247,15 +247,15 @@ just native `<script type="module">`, staying within the vanilla-only constraint
 - [x] **Task 5.8: Removed Questions**
   - Place all removed questions into a normally hidden section of the question catalog.
   - Create a "Show|Hide Removed Questions" button at the bottom of the main catalog that shows and hides the removed questions below it.
-    - Do not add a section header for the removed question. 
+    - Do not add a section header for the removed question.
   - Change "Archive Question" button to say "Remove Question".
   - Ensure search only shows removed questions if the removed question section is being shown.
 
 - [ ] **Task 5.9: Built In Question Copying
-  - Change the edit button for a built-in question to be a 'Copy' button that opens a pre-filled dialog with all the same information as the built-in question. 
+  - Change the edit button for a built-in question to be a 'Copy' button that opens a pre-filled dialog with all the same information as the built-in question.
   - If the user attempts to save the question without making important changes, like to the text of the question, ensure that the save fails, and the reason is clear to the user.
     - Save button should wiggle
-    - A short, informative message should display explaining what needs to be changed. 
+    - A short, informative message should display explaining what needs to be changed.
     - Fields that should be changed should have a red outline.
     - The form should scroll to the first field that needs changed.
 
@@ -330,7 +330,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
 - [x] **Task 6.2: Web App Manifest Verification**
   - Verify and complete `manifest.json` with correct relative paths, high-resolution app icons, theme colors (`#121212`), and `display: "standalone"` parameters.
 
-- [ ] **Task 6.3: Service Worker Lifecycle & PWA Update Handling** 
+- [ ] **Task 6.3: Service Worker Lifecycle & PWA Update Handling**
   - Listen for service worker state changes and `controllerchange` events in `public/js/main.js` to automatically prompt users or reload active tabs when app updates deploy.
   - Implement app lifecycle re-checks (`visibilitychange` / `registration.update()`) to force fresh update checks when the installed PWA resumes from background states.
 
@@ -339,7 +339,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
 ### Phase 7: Bugs and Issues
 
 - [ ] Buttons in dialogs sometimes have the hold-to-actuate effect, even if they do not need to be held.
-- [ ] Viewing history often has lots of dead space at different zoom levels and cutoff points. 
+- [ ] Viewing history often has lots of dead space at different zoom levels and cutoff points.
 
 ### Phase 8: Documentation & Final Cleanup
 - [ ] **Task 7.1: Code Base JSDoc & Architectural Comments**
@@ -382,8 +382,8 @@ and zoom operate on consistently, and add continuous gesture-driven zoom on top 
     behavior) to match the new always-render-everything model.
 - [x] **Task 9.3: Repurpose Timeframe Buttons as Zoom-Neighborhood Presets**
   - Change the behavior wired to the existing 7D/14D/30D/90D/All buttons: instead of filtering entries out of
-    the render (retired in Task 9.2), clicking one sets the current zoom scale such that that many days fill the
-    current viewport width, pivoting the zoom around the horizontal center of the currently visible range (not
+    the render (retired in Task 9.2), clicking one sets the current zoom scale such that the specified number of days
+    fill the current viewport width, pivoting the zoom around the horizontal center of the currently visible range (not
     jumping to a fixed window or changing what's rendered).
   - Update the buttons' visible labels and `aria-label`s, since "Last 7 days" framing no longer applies — they
     are now scale shortcuts ("Zoom to ~7 days"), not data filters.
@@ -400,7 +400,7 @@ and zoom operate on consistently, and add continuous gesture-driven zoom on top 
     trailing padding, from any current pan/zoom state.
 - [ ] **Task 9.6: Fixed Leading/Trailing Time Padding**
   - Reserve a static padding equal to 7 real days at the current zoom scale before the first entry and after
-    the later of (last entry, "now"), at all times, so scrolling to either end shows a clear, consistent visual
+    whichever is later of (last entry, "now"), at all times, so scrolling to either end shows a clear, consistent visual
     signal ("this is the edge") instead of running into content abruptly or into unlabeled blank canvas.
   - This is also the default/initial view for the zero-entry and single-entry cases: render a 7-day-wide window
     of padding ending at "now," rather than the current `isEmpty`/`isTimeframeEmpty` no-graph message states —

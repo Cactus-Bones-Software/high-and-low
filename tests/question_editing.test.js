@@ -65,8 +65,14 @@ describe('Task 5.7: Question Editing Workflow', () => {
     });
 
     it('2. Built-in questions cannot be edited', async () => {
-        await expect(windowInstance.updateCustomQuestion('q_energy', { text: 'New energy text' }))
-            .rejects.toThrow(/Built-in questions cannot be edited/);
+        let rejectionError = null;
+        try {
+            await windowInstance.updateCustomQuestion('q_energy', { text: 'New energy text' });
+        } catch (error) {
+            rejectionError = error;
+        }
+        expect(rejectionError).not.toBeNull();
+        expect(rejectionError.message).toMatch(/Built-in questions cannot be edited/);
     });
 
     it('3. removeQuestion soft-deletes custom question and removes it from activeQuestionSet', async () => {
@@ -219,8 +225,21 @@ describe('Task 5.7: Question Editing Workflow', () => {
     });
 
     it('7. updateCustomQuestion validates input parameters', async () => {
-        await expect(windowInstance.updateCustomQuestion('', { text: 'Valid' }))
-            .rejects.toThrow(/Valid question ID is required/);
+        const expectRejection = async (promise, pattern) => {
+            let rejectionError = null;
+            try {
+                await promise;
+            } catch (error) {
+                rejectionError = error;
+            }
+            expect(rejectionError).not.toBeNull();
+            expect(rejectionError.message).toMatch(pattern);
+        };
+
+        await expectRejection(
+            windowInstance.updateCustomQuestion('', { text: 'Valid' }),
+            /Valid question ID is required/
+        );
 
         const custom = await windowInstance.createCustomQuestion({
             text: 'Valid text for validation test',
@@ -229,14 +248,20 @@ describe('Task 5.7: Question Editing Workflow', () => {
             curve: 'more-is-better'
         });
 
-        await expect(windowInstance.updateCustomQuestion(custom.id, { text: '   ' }))
-            .rejects.toThrow(/Question text cannot be empty/);
+        await expectRejection(
+            windowInstance.updateCustomQuestion(custom.id, { text: '   ' }),
+            /Question text cannot be empty/
+        );
 
-        await expect(windowInstance.updateCustomQuestion(custom.id, { shortLabel: '   ' }))
-            .rejects.toThrow(/Short label cannot be empty/);
+        await expectRejection(
+            windowInstance.updateCustomQuestion(custom.id, { shortLabel: '   ' }),
+            /Short label cannot be empty/
+        );
 
-        await expect(windowInstance.updateCustomQuestion(custom.id, { responseType: 'invalid-type' }))
-            .rejects.toThrow(/Invalid responseType/);
+        await expectRejection(
+            windowInstance.updateCustomQuestion(custom.id, { responseType: 'invalid-type' }),
+            /Invalid responseType/
+        );
     });
 });
 

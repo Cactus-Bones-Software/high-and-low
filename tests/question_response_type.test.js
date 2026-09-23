@@ -82,17 +82,31 @@ describe('Task 5.10.1: Yes/No Question Type — Schema Field Tests', () => {
     });
 
     it('5. createCustomQuestion throws when responseType is invalid', async () => {
-        await expect(windowInstance.createCustomQuestion({
-            text: 'Invalid response type question',
-            shortLabel: 'Invalid',
-            responseType: 'slider'
-        })).rejects.toThrow(/Invalid responseType/);
+        let firstRejectionError = null;
+        try {
+            await windowInstance.createCustomQuestion({
+                text: 'Invalid response type question',
+                shortLabel: 'Invalid',
+                responseType: 'slider'
+            });
+        } catch (error) {
+            firstRejectionError = error;
+        }
+        expect(firstRejectionError).not.toBeNull();
+        expect(firstRejectionError.message).toMatch(/Invalid responseType/);
 
-        await expect(windowInstance.createCustomQuestion({
-            text: 'Invalid response type question 2',
-            shortLabel: 'Invalid 2',
-            responseType: 'number'
-        })).rejects.toThrow(/Invalid responseType/);
+        let secondRejectionError = null;
+        try {
+            await windowInstance.createCustomQuestion({
+                text: 'Invalid response type question 2',
+                shortLabel: 'Invalid 2',
+                responseType: 'number'
+            });
+        } catch (error) {
+            secondRejectionError = error;
+        }
+        expect(secondRejectionError).not.toBeNull();
+        expect(secondRejectionError.message).toMatch(/Invalid responseType/);
     });
 
     it('6. createCustomQuestion persists responseType on restore-from-archive path', async () => {

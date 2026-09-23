@@ -173,7 +173,7 @@ Locked design decisions and open questions for High & Low (menu, question store,
 - **Version Bump 0.3.1: Fixed Leading/Trailing Time Padding (Task 9.6):**
   - Bumped version to `0.3.1` (PATCH) per `docs/versioning.md` for graph layout timeline padding refactor.
   - Reserved a static timeline padding equal to 7 real days at the active zoom scale before the first entry and after
-    the later of (last entry, "now") at all times, providing a clear visual edge buffer without abrupt boundary stops.
+    whichever is later of (last entry, "now") at all times, providing a clear visual edge buffer without abrupt boundary stops.
   - Defined the zero-entry and single-entry states to render a 7-day-wide padding window ending at "now" with full
     SVG axis gridlines and timeline controls rather than rendering an empty/no-graph message state.
 
@@ -197,11 +197,11 @@ Locked design decisions and open questions for High & Low (menu, question store,
   - Single entries end on that record with a 24-hour baseline window; zero-entry case renders a 24-hour baseline window
     ending at now.
 
-- **Version Bump 0.3.4: Elimination of Baked-in SVG Deadspace:**
-  - Bumped version to `0.3.4` (PATCH) per `docs/versioning.md` for removing residual timeline deadspace from the SVG.
+- **Version Bump 0.3.4: Elimination of Baked-in SVG Dead Space:**
+  - Bumped version to `0.3.4` (PATCH) per `docs/versioning.md` for removing residual timeline dead space from the SVG.
   - Eliminated the 24-hour artificial baseline window previously added to single-entry and zero-entry cases,
     anchoring domain duration directly to `0` with `leadingPaddingMs: 0` and `trailingPaddingMs: 0`.
-  - Prevents the SVG width from scaling empty deadspace when zooming in, ensuring all horizontal padding and margins
+  - Prevents the SVG width from scaling empty dead space when zooming in, ensuring all horizontal padding and margins
     are driven strictly by CSS (`padding-left: 10%` and `padding-right: 10%`).
 
 ## Open Questions

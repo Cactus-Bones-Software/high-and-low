@@ -446,6 +446,29 @@
     </div>
 </div>
 
+<template id="dynamic-component-templates">
+    <li class="question-card question-card-active is-reorderable is-dragging drag-over-top drag-over-bottom">
+        <button type="button" class="question-drag-handle is-grabbing" aria-label="Drag handle"></button>
+        <span class="question-card-badge question-card-badge-builtin question-card-badge-custom question-card-badge-archived">Status</span>
+        <div class="card-action-row question-card-actions">
+            <div class="card-actions-non-dominant">
+                <button type="button" class="question-edit-button card-action-edit">Edit</button>
+            </div>
+        </div>
+    </li>
+    <div class="app-canvas no-transition"></div>
+    <header class="canvas-box header-box question-transition-out question-transition-enter question-transition-in"></header>
+    <input class="form-input is-invalid" aria-label="Input template placeholder" />
+    <button type="button" class="modal-button modal-button-primary button-wiggle">Save</button>
+    <div class="graph-timeframe-buttons">
+        <button type="button" class="graph-timeframe-button is-active">1M</button>
+    </div>
+    <button type="button" class="legend-isolate-button is-isolated">
+        <svg class="isolate-icon" aria-hidden="true"></svg>
+    </button>
+    <p class="modal-subtitle notice-note-content"></p>
+</template>
+
 <script src="js/main.js" type="module" defer></script>
 </body>
 </html>

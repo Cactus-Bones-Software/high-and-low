@@ -374,7 +374,7 @@ export async function openQuestionAuthoringDialog(documentInstance, questionId, 
     }
     actionButton.click();
     const overlay = documentInstance.getElementById('question-authoring-dialog-overlay');
-    await waitFor(() => Boolean(overlay?.classList.contains('is-open')));
+    await waitFor(() => Boolean(overlay?.classList?.contains('is-open')));
     return overlay;
 }
 
@@ -447,7 +447,7 @@ export function renderGraphToContainer(windowInstance, documentInstance, options
  * Helper to create and immediately remove a custom question for removed question tests.
  * @param {Window} windowInstance
  * @param {Record<string, unknown>} [options={}]
- * @returns {Promise<{ id: string, outcome: Record<string, unknown> }>}
+ * @returns {Promise<{ id: string, outcome: any }>}
  */
 export async function createAndRemoveCustomQuestion(windowInstance, options = {}) {
     const outcome = await windowInstance.createCustomQuestion({
