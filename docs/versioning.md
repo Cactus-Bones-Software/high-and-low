@@ -34,6 +34,7 @@ When submitting changes that alter versions, perform the following in a single t
 1. **Calculate Bump:** Apply matrix rules above.
 2. **`package.json`:** Update `"version": "X.Y.Z"`.
 3. **`docs/state.md`:** Update active schema/config documentation if altered.
+4. **`docs/decisions.md`:** Record any major changes or changes that can break backwards compatibility, along with rationale. 
 5. **Git Operations:** Execute `git tag vX.Y.Z` and `git push --tags`.
 
 ---

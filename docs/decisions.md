@@ -215,5 +215,6 @@ Locked design decisions and open questions for High & Low (menu, question store,
   - Wired desktop `wheel` with `ctrlKey`/`metaKey` held for trackpad pinch and Ctrl+wheel zooming, including
     debounced lifecycle end detection and container-relative cursor pivot tracking.
   - Preserved existing non-gesture vertical mouse wheel translation to horizontal scrolling without conflict.
-
+- If every version bump is explained here, this document will quickly become a dev-log. Instead, we shall record 
+    only breaking changes.
 ## Open Questions
