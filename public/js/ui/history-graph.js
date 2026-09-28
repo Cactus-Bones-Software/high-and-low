@@ -190,6 +190,54 @@ export function calculateGestureTransform(scaleFactor, pivotX = 0, panDeltaX = 0
 }
 
 /**
+ * Per-gesture cache of counter-scaled elements (Task 9.9), keyed by the target element being
+ * transformed. The set of point circles / grid text / x-axis text and their transform-origins are
+ * fixed for the lifetime of a single gesture -- the underlying DOM isn't rebuilt until the gesture
+ * commits (Task 9.10) -- so they only need to be queried and have their origin read once per
+ * gesture rather than on every pointermove/wheel tick. Re-querying and re-reading `cx`/`cy`/`x`/`y`
+ * for every point and label on every frame was the main cost of live pinch/wheel zoom on lower-end
+ * phones, since a single history graph can easily hold hundreds of counter-scaled elements.
+ * @type {WeakMap<Element, Element[]>}
+ */
+const gestureCounterScaleElementCache = new WeakMap();
+
+function getGestureCounterScaleElements(targetElement) {
+    const cachedElements = gestureCounterScaleElementCache.get(targetElement);
+    if (cachedElements) {
+        return cachedElements;
+    }
+
+    const elements = [];
+
+    // Counter-scale data point circles around their own center (cx, cy)
+    targetElement.querySelectorAll('.points circle').forEach(pointCircle => {
+        const coordinateX = pointCircle.getAttribute('cx') || '0';
+        const coordinateY = pointCircle.getAttribute('cy') || '0';
+        pointCircle.style.transformOrigin = `${coordinateX}px ${coordinateY}px`;
+        elements.push(pointCircle);
+    });
+
+    // Counter-scale gridline and skip/note baseline text labels
+    targetElement.querySelectorAll('.grid text').forEach(gridText => {
+        const coordinateX = gridText.getAttribute('x') || '0';
+        const coordinateY = gridText.getAttribute('y') || '0';
+        gridText.style.transformOrigin = `${coordinateX}px ${coordinateY}px`;
+        elements.push(gridText);
+    });
+
+    // Counter-scale x-axis date tick labels
+    targetElement.querySelectorAll('.x-axis text').forEach(tickText => {
+        const coordinateX = tickText.getAttribute('x') || '0';
+        const coordinateY = tickText.getAttribute('y') || '0';
+        tickText.style.transformOrigin = `${coordinateX}px ${coordinateY}px`;
+        elements.push(tickText);
+    });
+
+    gestureCounterScaleElementCache.set(targetElement, elements);
+    return elements;
+}
+
+/**
  * Applies a live horizontal CSS transform to the SVG graph element or target container without
  * recomputing layout or rebuilding the DOM.
  *
@@ -210,37 +258,16 @@ export function applyGraphGestureTransform(targetElement, scaleFactor, pivotX = 
     targetElement.style.transformOrigin = '0 0';
     targetElement.style.transform = transformValues.transformString;
 
-    // Task 9.9: Counter-scale point circles and text elements
+    // Task 9.9: Counter-scale point circles and text elements. Transform-origins were already read
+    // and set the first time this ran for this targetElement (see getGestureCounterScaleElements),
+    // so every subsequent frame in the same gesture only writes the one style property that actually
+    // changes: the inverse scale itself.
     const validScale = Number.isFinite(scaleFactor) && scaleFactor > 0 ? scaleFactor : 1;
-    const inverseScaleX = 1 / validScale;
-    const inverseTransform = `scaleX(${inverseScaleX})`;
-
-    // Counter-scale data point circles around their own center (cx, cy)
-    const pointCircles = targetElement.querySelectorAll('.points circle');
-    pointCircles.forEach(pointCircle => {
-        const coordinateX = pointCircle.getAttribute('cx') || '0';
-        const coordinateY = pointCircle.getAttribute('cy') || '0';
-        pointCircle.style.transformOrigin = `${coordinateX}px ${coordinateY}px`;
-        pointCircle.style.transform = inverseTransform;
-    });
-
-    // Counter-scale gridline and skip/note baseline text labels
-    const gridTexts = targetElement.querySelectorAll('.grid text');
-    gridTexts.forEach(gridText => {
-        const coordinateX = gridText.getAttribute('x') || '0';
-        const coordinateY = gridText.getAttribute('y') || '0';
-        gridText.style.transformOrigin = `${coordinateX}px ${coordinateY}px`;
-        gridText.style.transform = inverseTransform;
-    });
-
-    // Counter-scale x-axis date tick labels
-    const tickTexts = targetElement.querySelectorAll('.x-axis text');
-    tickTexts.forEach(tickText => {
-        const coordinateX = tickText.getAttribute('x') || '0';
-        const coordinateY = tickText.getAttribute('y') || '0';
-        tickText.style.transformOrigin = `${coordinateX}px ${coordinateY}px`;
-        tickText.style.transform = inverseTransform;
-    });
+    const inverseTransform = `scaleX(${1 / validScale})`;
+    const counterScaledElements = getGestureCounterScaleElements(targetElement);
+    for (let elementIndex = 0; elementIndex < counterScaledElements.length; elementIndex++) {
+        counterScaledElements[elementIndex].style.transform = inverseTransform;
+    }
 
     return transformValues;
 }
@@ -258,13 +285,21 @@ export function resetGraphGestureTransform(targetElement) {
     targetElement.style.transform = '';
     targetElement.style.transformOrigin = '';
 
-    const counterScaledElements = targetElement.querySelectorAll(
+    // Reuse the cached element list from the gesture that just ended when available, instead of
+    // re-querying the DOM; fall back to a fresh query if reset is called without a prior transform.
+    const cachedElements = gestureCounterScaleElementCache.get(targetElement);
+    const counterScaledElements = cachedElements || targetElement.querySelectorAll(
         '.points circle, .grid text, .x-axis text'
     );
     counterScaledElements.forEach(element => {
         element.style.transform = '';
         element.style.transformOrigin = '';
     });
+
+    // The cache is only valid for the DOM that existed during the gesture just ending -- a settled
+    // zoom commit (commitGraphGestureZoom) replaces the points/grid/x-axis group contents via
+    // innerHTML right after this reset runs, so the next gesture must re-query fresh elements.
+    gestureCounterScaleElementCache.delete(targetElement);
 }
 
 /**
