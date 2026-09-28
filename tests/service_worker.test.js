@@ -13,8 +13,8 @@ describe('Phase 6: Offline Capabilities & Service Worker (Task 6.1, 6.2, 6.3)', 
         documentInstance = setup.document;
     });
 
-    it('1. Service worker file (public/js/service-worker.js) exists and contains precache assets', () => {
-        const serviceWorkerPath = path.join(process.cwd(), 'public', 'js', 'service-worker.js');
+    it('1. Service worker file (public/sw.js) exists and contains precache assets', () => {
+        const serviceWorkerPath = path.join(process.cwd(), 'public', 'sw.js');
         expect(fs.existsSync(serviceWorkerPath)).toBe(true);
 
         const serviceWorkerContent = fs.readFileSync(serviceWorkerPath, 'utf-8');
@@ -26,7 +26,7 @@ describe('Phase 6: Offline Capabilities & Service Worker (Task 6.1, 6.2, 6.3)', 
         expect(serviceWorkerContent).toContain('/pwa-192x192.png');
         expect(serviceWorkerContent).toContain('/pwa-512x512.png');
         expect(serviceWorkerContent).toContain('/js/main.js');
-        expect(serviceWorkerContent).toContain('/js/service-worker.js');
+        expect(serviceWorkerContent).toContain('/sw.js');
     });
 
     it('2. Service worker registers on window load event or via registerServiceWorker', async () => {
@@ -47,7 +47,7 @@ describe('Phase 6: Offline Capabilities & Service Worker (Task 6.1, 6.2, 6.3)', 
 
         await windowInstance.registerServiceWorker();
 
-        expect(registeredPath).toBe('js/service-worker.js');
+        expect(registeredPath).toBe('sw.js');
         expect(registeredOptions).toEqual({ scope: './' });
     });
 

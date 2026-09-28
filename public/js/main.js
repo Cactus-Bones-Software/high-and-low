@@ -144,7 +144,7 @@ export function setupServiceWorkerLifecycle(registration) {
  */
 export function registerServiceWorker() {
     if (typeof window !== 'undefined' && window.navigator && 'serviceWorker' in window.navigator) {
-        return window.navigator.serviceWorker.register('js/service-worker.js', { scope: './' })
+        return window.navigator.serviceWorker.register('sw.js', { scope: './' })
             .then(registration => {
                 if (registration) {
                     setupServiceWorkerLifecycle(registration);
