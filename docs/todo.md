@@ -342,20 +342,48 @@ just native `<script type="module">`, staying within the vanilla-only constraint
 - [ ] Viewing history often has lots of dead space at different zoom levels and cutoff points.
 
 ### Phase 8: Documentation & Final Cleanup
-- [ ] **Task 7.1: Code Base JSDoc & Architectural Comments**
+- [ ] **Task 8.1: Code Base JSDoc & Architectural Comments**
   - Perform a complete documentation pass across all modular ES files in `public/js/` (`storage/db.js`, `checkin.js`, `data-io.js`, `questions.js`, `ui/*.js`), adding JSDoc comments to all core functions (`initDatabase`, `renderCurrentQuestion`, `exportAllDataAndConfig`, `handleFileImport`).
 
-- [ ] **Task 7.2: Workspace File Cleanup**
+- [ ] **Task 8.2: Workspace File Cleanup**
   - Remove any unneeded project boilerplate files (such as `index.js` if created by IDE defaults) and verify the repository remains strictly clean vanilla files.
   - In `package.json`, remove the `dev`/`build` scripts that invoke `vite` — `vite` isn't a declared dependency, and those scripts contradict the "no compilers" stack rule in `AGENTS.md`.
 
-- [ ] **Task 7.3: Internationalization & Localization Pass**
+- [ ] **Task 8.3: Internationalization & Localization Pass**
   - Extract all hardcoded user-facing UI strings across `index.html` and `public/js/` modules into a centralized translation dictionary.
   - Implement language switching and localization readiness for questions, controls, navigation, and settings interface elements.
 
-- [x] **Task 7.4: Shared Test Harness & Helper Utilities**
+- [x] **Task 8.4: Shared Test Harness & Helper Utilities**
   - Extract repetitive JSDOM bootstrapping, IndexedDB mocking, matchMedia/serviceWorker polyfills, and helper functions into a centralized `tests/test-utils.js` harness.
   - Refactor all test suites (`drawer.test.js`, `graph.test.js`, `session_persistence.test.js`, `transitions.test.js`) to consume the shared harness, eliminating code duplication and WebStorm inspection warnings.
+
+- [ ] **Task 8.5: Rename `STATE.historyTimeRange` to Reflect Zoom-Preset Semantics**
+  - Timeframe filtering was retired (Tasks 9.2–9.3), but `STATE.historyTimeRange` (`public/js/state.js`) still uses
+    the filter-era name and the `'7d' | '14d' | '30d' | '90d' | 'all'` comment. It now records only which zoom-preset
+    button is active.
+  - Rename it to something accurate (e.g. `historyActiveZoomPreset`) in `state.js`, `ui/history-graph.js`,
+    `tests/graph.test.js`, and `tests/test-utils.js`. Keep behavior identical.
+  - Update the `STATE` block in `docs/state.md` in the same edit so the field name and comment match the code.
+
+- [ ] **Task 8.6: Retire Legacy `menuSide` Config Fallback**
+  - `handedness` replaced `menuSide` (the 2026-08-13 handedness decision), but `ui/settings-menu.js` still reads
+    `getConfig('menuSide')` and `localStorage 'menuSide'` as fallbacks, and `tests/handedness.test.js` (test 5)
+    covers them.
+  - Decide whether to migrate on load (copy any existing `menuSide` value into `handedness`, then delete the legacy
+    key from IndexedDB and `localStorage`) or drop the fallback outright. Removing it without migrating would
+    silently reset handedness for existing users, so a one-time migration is the safer default.
+  - Remove the fallback reads, update or replace the backward-compatibility test, and confirm `docs/state.md` lists
+    only `handedness` (it already does).
+  - Note: deleting a stored config key is a schema/config change, so check `docs/versioning.md` for whether a bump
+    is needed.
+
+- [ ] **Task 8.7: Verify `decisions.md` Against the Code and Tests**
+  - `docs/decisions.md` was rewritten as standing constraints rather than a dated log. Confirm that each rule matches
+    current behavior, and that each `(Enforced in: ...)` reference points at a real test.
+  - Add tests for any rule that has no enforcement (candidates: the `score: 0` / `-1` sentinel ban, the
+    `SEED_VERSION` bump requirement, the no-hard-delete rule for questions, and export including archived questions).
+  - Remove or correct any rule the code does not follow, or record the discrepancy as a bug in Phase 7.
+
 
 ### Phase 9: History View — Uniform Time-Scale Rendering & Gesture Zoom
 

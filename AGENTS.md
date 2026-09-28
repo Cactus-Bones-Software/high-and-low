@@ -14,8 +14,9 @@
      (`npm test`).
   3. If this task changes the schema, config, or file layout, update `docs/state.md` in the same edit — not as a
      follow-up task.
-  4. If this task warrants a version bump per `docs/versioning.md`, update `package.json` and log the bump in
-     `docs/decisions.md` in the same edit — not as a follow-up task.
+  4. If this task warrants a version bump per `docs/versioning.md`, update `package.json` in the same edit — not as
+     a follow-up task. Do NOT log the bump in `docs/decisions.md`. Add to `docs/decisions.md` only if the task
+     establishes a new standing constraint that passes that file's admission test (see its header).
   5. Mark the completed task as `[x]` in `docs/todo.md`.
   6. Prompt the developer/user to inspect the change before proceeding to the next item.
 
@@ -23,7 +24,7 @@
 | Question                                 | File                         | Purpose                                           |
 |------------------------------------------|------------------------------|---------------------------------------------------|
 | Current schema, config, stack, or files? | `docs/state.md`              | Single source of truth for live schema and state. |
-| Why was a feature designed this way?     | `docs/decisions.md`          | Chronological rationale & design decisions.       |
+| What must I not break or re-litigate?    | `docs/decisions.md`          | Standing constraints + why. Read before changes.  |
 | What is the next task or what is done?   | `docs/todo.md`               | Task backlog and official roadmap.                |
 | Synthetic dataset specification?         | `docs/dataset-guidelines.md` | Clinical profile & JSON guidelines.               |
 | User pitch, donations, or philosophy?    | `README.md`                  | Non-technical project overview.                   |
