@@ -128,7 +128,6 @@ export const STATE = {
 │   ├── index.html             # Single-page HTML canvas structure and modal dialogs
 │   ├── style.css              # Consolidated stylesheet (tokens, themes, components, layouts)
 │   ├── manifest.json          # PWA web application manifest
-│   ├── sw.js                  # Lightweight offline service worker (precache & cache-first strategy)
 │   ├── icons/                 # PWA and browser icon assets
 │   │   ├── favicon.ico        # Desktop favicon
 │   │   ├── favicon.png        # PNG favicon
@@ -137,7 +136,8 @@ export const STATE = {
 │   │   ├── pwa-512x512.png    # High-res PWA application icon (512x512)
 │   │   └── pwa-maskable-512x512.png # Maskable adaptive icon (512x512)
 │   └── js/
-│       ├── main.js            # Entry point: app initialization, event delegation, service worker
+│       ├── main.js            # Entry point: app bootstrap, event delegation, SW lifecycle
+│       ├── service-worker.js  # Offline service worker (precache & network-first strategy)
 │       ├── state.js           # STATE singleton object definition
 │       ├── utils.js           # Pure utility helpers (escapeHTML, html tagged template, safeRAF)
 │       ├── questions.js       # Default question definitions, FNV-1a hashing, curve color helpers

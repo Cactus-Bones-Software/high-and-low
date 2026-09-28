@@ -29,7 +29,7 @@ import { navigateTo } from './ui/navigation.js';
 // Set up the hold-to-actuate buttons
 import { setupHoldActions } from './ui/hold-actions.js';
 // Load modal dialogs
-import { setupNoticeDialog, openImportDialog, setupImportDialog, setupNotesDialog, updateNotesButtonLabel } from './ui/dialogs.js';
+import { setupNoticeDialog, showNoticeDialog, openImportDialog, setupImportDialog, setupNotesDialog, updateNotesButtonLabel } from './ui/dialogs.js';
 // Load settings and settings UI
 import { setupSettingsAndMenu, setupCanvasBackButtons, applyStoredDisplay } from './ui/settings-menu.js';
 // Load history UI
@@ -51,17 +51,110 @@ import { setupKeyboardNavigation } from './ui/keyboard-navigation.js';
 // Import safe animation frame requests.
 import { safeRAF } from './utils.js';
 
+export let isRefreshingTab = false;
+export let activeServiceWorkerRegistration = null;
+
+export function reloadActiveTab() {
+    if (typeof window !== 'undefined' && typeof window.location?.reload === 'function') {
+        try {
+            window.location.reload();
+        } catch {
+            // Ignore environments where location.reload is restricted
+        }
+    }
+}
+
 /**
- * Registers the service worker for offline capability.
- * The service worker is responsible for updating the application when new versions of source files are available.
+ * Attaches lifecycle listeners to track service worker state changes, updates, controller changes,
+ * and application visibility / focus resume checks (Task 6.3).
+ *
+ * @param {ServiceWorkerRegistration} registration - Active service worker registration
+ */
+export function setupServiceWorkerLifecycle(registration) {
+    if (!registration) return;
+    activeServiceWorkerRegistration = registration;
+
+    function handleInstallingWorker(installingWorker) {
+        if (!installingWorker) return;
+        installingWorker.addEventListener('statechange', () => {
+            if (installingWorker.state === 'installed') {
+                if (window.navigator?.serviceWorker?.controller) {
+                    // A new version is installed and ready to take control
+                    if (typeof showNoticeDialog === 'function') {
+                        showNoticeDialog(
+                            'Update Ready',
+                            'A new version of High & Low has been downloaded. Updating your session...',
+                            null
+                        );
+                    }
+                }
+            }
+        });
+    }
+
+    if (registration.installing) {
+        handleInstallingWorker(registration.installing);
+    }
+
+    registration.addEventListener('updatefound', () => {
+        handleInstallingWorker(registration.installing);
+    });
+
+    // Listen for controllerchange events to reload active tabs when new service worker takes over
+    if (typeof window.navigator?.serviceWorker?.addEventListener === 'function' && !window.navigator.serviceWorker._hasControllerChangeListener) {
+        window.navigator.serviceWorker._hasControllerChangeListener = true;
+        window.navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (isRefreshingTab) return;
+            isRefreshingTab = true;
+            if (typeof window.reloadActiveTab === 'function') {
+                window.reloadActiveTab();
+            } else {
+                reloadActiveTab();
+            }
+        });
+    }
+
+    // App lifecycle re-checks: trigger registration.update() when resuming from background
+    if (typeof document !== 'undefined' && !document._hasServiceWorkerVisibilityListener) {
+        document._hasServiceWorkerVisibilityListener = true;
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && activeServiceWorkerRegistration) {
+                activeServiceWorkerRegistration.update().catch(error => {
+                    console.warn('Failed to check for service worker update on visibility change:', error);
+                });
+            }
+        });
+    }
+
+    if (typeof window !== 'undefined' && !window._hasServiceWorkerFocusListener) {
+        window._hasServiceWorkerFocusListener = true;
+        window.addEventListener('focus', () => {
+            if (activeServiceWorkerRegistration) {
+                activeServiceWorkerRegistration.update().catch(error => {
+                    console.warn('Failed to check for service worker update on window focus:', error);
+                });
+            }
+        });
+    }
+}
+
+/**
+ * Registers the service worker for offline capability and sets up lifecycle event listeners.
  * @returns {Promise<ServiceWorkerRegistration | undefined>}
  */
 export function registerServiceWorker() {
-
     if (typeof window !== 'undefined' && window.navigator && 'serviceWorker' in window.navigator) {
-        return window.navigator.serviceWorker.register('sw.js').catch(error => {
-            console.warn('Service worker registration failed:', error);
-        });
+        return window.navigator.serviceWorker.register('js/service-worker.js', { scope: './' })
+            .then(registration => {
+                if (registration) {
+                    setupServiceWorkerLifecycle(registration);
+                }
+                return registration;
+            })
+            .catch(error => {
+                console.warn('Service worker registration failed:', error);
+                return undefined;
+            });
     }
     return Promise.resolve(undefined);
 }
@@ -211,6 +304,9 @@ export function initApp() {
                 window.loadQuestionsView = loadQuestionsView;
                 window.navigateTo = navigateTo;
                 window.finalizeCheckin = finalizeCheckin;
+                window.registerServiceWorker = registerServiceWorker;
+                window.setupServiceWorkerLifecycle = setupServiceWorkerLifecycle;
+                window.reloadActiveTab = reloadActiveTab;
                 window.renderCurrentQuestion = renderCurrentQuestion;
                 window.createCustomQuestion = createCustomQuestion;
                 window.updateCustomQuestion = updateCustomQuestion;
@@ -266,6 +362,8 @@ if (typeof window !== 'undefined') {
     window.navigateTo = navigateTo;
     window.finalizeCheckin = finalizeCheckin;
     window.registerServiceWorker = registerServiceWorker;
+    window.setupServiceWorkerLifecycle = setupServiceWorkerLifecycle;
+    window.reloadActiveTab = reloadActiveTab;
     window.STATE = STATE;
 }
 

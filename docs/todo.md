@@ -330,7 +330,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
 - [x] **Task 6.2: Web App Manifest Verification**
   - Verify and complete `manifest.json` with correct relative paths, high-resolution app icons, theme colors (`#121212`), and `display: "standalone"` parameters.
 
-- [ ] **Task 6.3: Service Worker Lifecycle & PWA Update Handling**
+- [x] **Task 6.3: Service Worker Lifecycle & PWA Update Handling**
   - Listen for service worker state changes and `controllerchange` events in `public/js/main.js` to automatically prompt users or reload active tabs when app updates deploy.
   - Implement app lifecycle re-checks (`visibilitychange` / `registration.update()`) to force fresh update checks when the installed PWA resumes from background states.
 
@@ -338,8 +338,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
 
 ### Phase 7: Bugs and Issues
 
-- [ ] Buttons in dialogs sometimes have the hold-to-actuate effect, even if they do not need to be held.
-- [ ] Viewing history often has lots of dead space at different zoom levels and cutoff points.
+- [ ] **7.1**: Buttons in dialogs sometimes have the hold-to-actuate effect, even if they do not need to be held.
 
 ### Phase 8: Documentation & Final Cleanup
 - [ ] **Task 8.1: Code Base JSDoc & Architectural Comments**

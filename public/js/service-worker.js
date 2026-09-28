@@ -1,6 +1,6 @@
 // High & Low - Offline Service Worker
 // Cache Name with versioning.md
-const CACHE_NAME = 'high-and-low-v6';
+const CACHE_NAME = 'high-and-low-v7';
 
 // Static relative assets required for complete offline operation
 const PRECACHE_ASSETS = [
@@ -15,6 +15,7 @@ const PRECACHE_ASSETS = [
     './pwa-512x512.png',
     './pwa-maskable-512x512.png',
     './js/main.js',
+    './js/service-worker.js',
     './js/state.js',
     './js/utils.js',
     './js/questions.js',
