@@ -150,7 +150,7 @@ export const STATE = {
 │           ├── navigation.js  # View switching with 220ms orthogonal slide transitions
 │           ├── settings-menu.js # Side drawer, theme, contrast, and handedness controllers
 │           ├── dialogs.js     # Accessible modal notice, import, and note-taking dialogs
-│           ├── history-graph.js # SVG mood timeline, gesture zoom (pinch/wheel), continuous scaling, legend
+│           ├── history-graph.js # SVG mood timeline, gesture zoom, live CSS transform & counter-scaling, legend
 │           ├── hold-actions.js # 1.5s touch hold-to-confirm barrier engine
 │           ├── keyboard-navigation.js # 1-5 keys, arrows, Enter/Space keyboard bindings
 │           └── question-view.js  # Questions catalog view, search, cards, and custom question modal

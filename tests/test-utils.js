@@ -37,7 +37,17 @@ import {
     BASE_PIXELS_PER_HOUR,
     calculateTimeframePresetZoomScale,
     calculateZoomPivotScrollLeft,
-    calculateNowScrollLeft
+    calculateNowScrollLeft,
+    setupGraphGestureZoom,
+    calculatePinchDistance,
+    calculatePinchMidpoint,
+    calculateWheelZoomDeltaMultiplier,
+    calculateGestureTransform,
+    applyGraphGestureTransform,
+    resetGraphGestureTransform,
+    calculateSettledGestureScrollLeft,
+    updateGraphSVGInPlace,
+    commitGraphGestureZoom
 } from '../public/js/ui/history-graph.js';
 import { navigateTo, setCurrentViewId } from '../public/js/ui/navigation.js';
 import { get, getAll, put, getConfig, setConfig, deleteConfig } from '../public/js/storage/db.js';
@@ -158,6 +168,16 @@ export async function setupTestDOM(customSessionStorage = {}) {
     windowInstance.calculateTimeframePresetZoomScale = calculateTimeframePresetZoomScale;
     windowInstance.calculateZoomPivotScrollLeft = calculateZoomPivotScrollLeft;
     windowInstance.calculateNowScrollLeft = calculateNowScrollLeft;
+    windowInstance.setupGraphGestureZoom = setupGraphGestureZoom;
+    windowInstance.calculatePinchDistance = calculatePinchDistance;
+    windowInstance.calculatePinchMidpoint = calculatePinchMidpoint;
+    windowInstance.calculateWheelZoomDeltaMultiplier = calculateWheelZoomDeltaMultiplier;
+    windowInstance.calculateGestureTransform = calculateGestureTransform;
+    windowInstance.applyGraphGestureTransform = applyGraphGestureTransform;
+    windowInstance.resetGraphGestureTransform = resetGraphGestureTransform;
+    windowInstance.calculateSettledGestureScrollLeft = calculateSettledGestureScrollLeft;
+    windowInstance.updateGraphSVGInPlace = updateGraphSVGInPlace;
+    windowInstance.commitGraphGestureZoom = commitGraphGestureZoom;
     windowInstance.loadHistoryView = loadHistoryView;
     windowInstance.navigateTo = navigateTo;
     windowInstance.finalizeCheckin = finalizeCheckin;
@@ -374,8 +394,6 @@ export async function openQuestionAuthoringDialog(documentInstance, questionId, 
     }
     actionButton.click();
     const overlay = documentInstance.getElementById('question-authoring-dialog-overlay');
-    // This is valid syntax, because `undefined` is Falsy.
-    // noinspection JSUnresolvedReference
     await waitFor(() => Boolean(overlay?.classList?.contains('is-open')));
     return overlay;
 }

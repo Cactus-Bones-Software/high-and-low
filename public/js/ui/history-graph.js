@@ -168,6 +168,435 @@ export function calculateWheelZoomDeltaMultiplier(deltaY, deltaMode = 0) {
 }
 
 /**
+ * Computes the horizontal scale and compensating translation values for live gesture zoom pivoting.
+ * Keeps the pivot coordinate visually fixed within the view during zoom scaling:
+ *   newX = panDeltaX + pivotX + scaleFactor * (x - pivotX) = panDeltaX + scaleFactor * x + pivotX * (1 - scaleFactor)
+ *
+ * @param {number} scaleFactor - Live scale factor relative to gesture start (e.g. 1.25)
+ * @param {number} pivotX - Horizontal pivot coordinate in target element coordinates
+ * @param {number} [panDeltaX=0] - Horizontal translation offset if midpoint/cursor drifted during gesture
+ * @returns {{ scaleX: number, translateX: number, transformString: string }} Transform parameters
+ */
+export function calculateGestureTransform(scaleFactor, pivotX = 0, panDeltaX = 0) {
+    const safeScale = Number.isFinite(scaleFactor) && scaleFactor > 0 ? scaleFactor : 1;
+    const safePivot = Number.isFinite(pivotX) ? pivotX : 0;
+    const safePan = Number.isFinite(panDeltaX) ? panDeltaX : 0;
+    const translateX = safePan + safePivot * (1 - safeScale);
+    return {
+        scaleX: safeScale,
+        translateX,
+        transformString: `translateX(${translateX}px) scaleX(${safeScale})`
+    };
+}
+
+/**
+ * Applies a live horizontal CSS transform to the SVG graph element or target container without
+ * recomputing layout or rebuilding the DOM.
+ *
+ * Additionally applies an inverse horizontal counter-scale to point circles and text labels
+ * (gridline labels and x-axis date tick labels) to prevent distortion during active gestures (Task 9.9).
+ *
+ * @param {Element} targetElement - The SVG or group element to transform
+ * @param {number} scaleFactor - Scale factor relative to gesture start
+ * @param {number} pivotX - Horizontal pivot coordinate in element container coordinates
+ * @param {number} [panDeltaX=0] - Horizontal pan delta offset if midpoint moved during gesture
+ * @returns {{ scaleX: number, translateX: number, transformString: string } | null} Applied transform
+ */
+export function applyGraphGestureTransform(targetElement, scaleFactor, pivotX = 0, panDeltaX = 0) {
+    if (!targetElement || !targetElement.style) {
+        return null;
+    }
+    const transformValues = calculateGestureTransform(scaleFactor, pivotX, panDeltaX);
+    targetElement.style.transformOrigin = '0 0';
+    targetElement.style.transform = transformValues.transformString;
+
+    // Task 9.9: Counter-scale point circles and text elements
+    const validScale = Number.isFinite(scaleFactor) && scaleFactor > 0 ? scaleFactor : 1;
+    const inverseScaleX = 1 / validScale;
+    const inverseTransform = `scaleX(${inverseScaleX})`;
+
+    // Counter-scale data point circles around their own center (cx, cy)
+    const pointCircles = targetElement.querySelectorAll('.points circle');
+    pointCircles.forEach(pointCircle => {
+        const coordinateX = pointCircle.getAttribute('cx') || '0';
+        const coordinateY = pointCircle.getAttribute('cy') || '0';
+        pointCircle.style.transformOrigin = `${coordinateX}px ${coordinateY}px`;
+        pointCircle.style.transform = inverseTransform;
+    });
+
+    // Counter-scale gridline and skip/note baseline text labels
+    const gridTexts = targetElement.querySelectorAll('.grid text');
+    gridTexts.forEach(gridText => {
+        const coordinateX = gridText.getAttribute('x') || '0';
+        const coordinateY = gridText.getAttribute('y') || '0';
+        gridText.style.transformOrigin = `${coordinateX}px ${coordinateY}px`;
+        gridText.style.transform = inverseTransform;
+    });
+
+    // Counter-scale x-axis date tick labels
+    const tickTexts = targetElement.querySelectorAll('.x-axis text');
+    tickTexts.forEach(tickText => {
+        const coordinateX = tickText.getAttribute('x') || '0';
+        const coordinateY = tickText.getAttribute('y') || '0';
+        tickText.style.transformOrigin = `${coordinateX}px ${coordinateY}px`;
+        tickText.style.transform = inverseTransform;
+    });
+
+    return transformValues;
+}
+
+/**
+ * Resets any active live horizontal CSS gesture transform on the target element back to identity.
+ * Also resets counter-scales on point circles and text labels.
+ *
+ * @param {Element} targetElement - The transformed element to reset
+ */
+export function resetGraphGestureTransform(targetElement) {
+    if (!targetElement || !targetElement.style) {
+        return;
+    }
+    targetElement.style.transform = '';
+    targetElement.style.transformOrigin = '';
+
+    const counterScaledElements = targetElement.querySelectorAll(
+        '.points circle, .grid text, .x-axis text'
+    );
+    counterScaledElements.forEach(element => {
+        element.style.transform = '';
+        element.style.transformOrigin = '';
+    });
+}
+
+/**
+ * Calculates the horizontal scroll position after committing a gesture zoom and pan,
+ * keeping the pivot point visually anchored at its final gesture position.
+ *
+ * @param {Object} [options={}]
+ * @param {number} [options.previousScrollLeft=0] - Scroll position before the gesture began
+ * @param {number} [options.initialTargetPivotX=0] - Pivot coordinate relative to target SVG
+ * @param {number} [options.scaleFactor=1] - Gesture scale factor relative to start
+ * @param {number} [options.panDeltaX=0] - Horizontal pan delta offset during gesture
+ * @param {number} [options.paddingLeft=0] - Left padding of the layout
+ * @param {number} [options.scrollWidth=0] - Total scroll width of the container
+ * @param {number} [options.viewportWidth=0] - Client width of the container
+ * @returns {number} Settled scrollLeft in pixels
+ */
+export function calculateSettledGestureScrollLeft({
+                                                      previousScrollLeft = 0,
+                                                      initialTargetPivotX = 0,
+                                                      scaleFactor = 1,
+                                                      panDeltaX = 0,
+                                                      paddingLeft = 0,
+                                                      scrollWidth = 0,
+                                                      viewportWidth = 0
+                                                  } = {}) {
+    const safePreviousScroll = Number.isFinite(previousScrollLeft) ? previousScrollLeft : 0;
+    const safePivot = Number.isFinite(initialTargetPivotX) ? initialTargetPivotX : 0;
+    const safeScale = Number.isFinite(scaleFactor) && scaleFactor > 0 ? scaleFactor : 1;
+    const safePan = Number.isFinite(panDeltaX) ? panDeltaX : 0;
+    const safePadding = Number.isFinite(paddingLeft) ? paddingLeft : 0;
+
+    const newTargetPivotX = safePadding + (safePivot - safePadding) * safeScale;
+    const rawScrollLeft = safePreviousScroll + (newTargetPivotX - safePivot) - safePan;
+
+    const safeScrollWidth = Number.isFinite(scrollWidth) && scrollWidth > 0 ? scrollWidth : 0;
+    const safeViewportWidth = Number.isFinite(viewportWidth) && viewportWidth > 0 ? viewportWidth : 0;
+    if (safeScrollWidth > 0 && safeViewportWidth > 0) {
+        const maximumScroll = Math.max(0, safeScrollWidth - safeViewportWidth);
+        return Math.max(0, Math.min(rawScrollLeft, maximumScroll));
+    }
+    return Math.max(0, rawScrollLeft);
+}
+
+/**
+ * Updates an existing rendered SVG graph element in place from a newly computed layout,
+ * adjusting dimensions, viewBox, gridlines, axis ticks, curves, skips, data points,
+ * and existing note markers without replacing the outer elements or dropping listeners.
+ *
+ * @param {Element} svgElement - The SVG element to update
+ * @param {Object} layout - The layout returned by computeGraphLayout()
+ */
+export function updateGraphSVGInPlace(svgElement, layout) {
+    if (!svgElement || !layout || layout.isEmpty || layout.isTimeframeEmpty) {
+        return;
+    }
+
+    const { dimensions, gridLines, xTicks, series, notes } = layout;
+    const {
+        width,
+        height,
+        paddingLeft,
+        paddingRight,
+        paddingTop,
+        paddingBottom,
+        skipBaselineY,
+        noteBaselineY
+    } = dimensions;
+
+    svgElement.setAttribute('width', String(width));
+    svgElement.setAttribute('height', String(height));
+    svgElement.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+    // Update Grid Lines
+    let gridLinesHTML = '';
+    gridLines.forEach(gridLine => {
+        gridLinesHTML += `
+            <line x1="${paddingLeft}" y1="${gridLine.y}" x2="${width - paddingRight}" y2="${gridLine.y}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2,2" />
+            <text x="${paddingLeft - 8}" y="${gridLine.y + 4}" fill="var(--text-muted)" font-size="11" text-anchor="end" font-weight="600">${gridLine.score}</text>
+        `;
+    });
+    gridLinesHTML += `
+        <line x1="${paddingLeft}" y1="${skipBaselineY}" x2="${width - paddingRight}" y2="${skipBaselineY}" stroke="var(--border-color)" stroke-width="0.8" stroke-dasharray="1,3" opacity="0.6" />
+        <text x="${paddingLeft - 8}" y="${skipBaselineY + 3.5}" fill="var(--text-muted)" font-size="9.5" text-anchor="end" font-style="italic">Skip</text>
+    `;
+    gridLinesHTML += `
+        <line x1="${paddingLeft}" y1="${noteBaselineY}" x2="${width - paddingRight}" y2="${noteBaselineY}" stroke="var(--border-color)" stroke-width="0.8" stroke-dasharray="1,3" opacity="0.6" />
+        <text x="${paddingLeft - 8}" y="${noteBaselineY + 3.5}" fill="var(--text-muted)" font-size="9.5" text-anchor="end" font-style="italic">Note</text>
+    `;
+    const gridGroup = svgElement.querySelector('.grid');
+    if (gridGroup) {
+        gridGroup.innerHTML = gridLinesHTML;
+    }
+
+    // Update X-Axis Lines & Date Ticks
+    let xAxisHTML = '';
+    xTicks.forEach(tick => {
+        xAxisHTML += `
+            <line x1="${tick.x}" y1="${paddingTop}" x2="${tick.x}" y2="${height - paddingBottom}" stroke="var(--border-color)" stroke-width="1" stroke-dasharray="2,2" opacity="0.35" />
+            <text x="${tick.x}" y="${height - 8}" fill="var(--text-muted)" font-size="10" text-anchor="middle">${escapeHTML(tick.label)}</text>
+        `;
+    });
+    const xAxisGroup = svgElement.querySelector('.x-axis');
+    if (xAxisGroup) {
+        xAxisGroup.innerHTML = xAxisHTML;
+    }
+
+    // Update Curves & Series Paths, Points, Skips
+    let linesHTML = '';
+    let skipsHTML = '';
+    let pointsHTML = '';
+
+    series.forEach(seriesItem => {
+        if (!seriesItem.isVisible) return;
+        const { color, dashArray, questionTitle, segments, points, skips, question, responseType } = seriesItem;
+        const isBoolean = responseType === 'boolean' || question?.responseType === 'boolean';
+        const dashAttribute = dashArray !== 'none' ? ` stroke-dasharray="${dashArray}"` : '';
+        const escapedQuestionTitle = escapeHTML(questionTitle);
+
+        segments.forEach(segment => {
+            if (segment.length >= 2) {
+                let pathData = `M ${segment[0].x} ${segment[0].y}`;
+                for (let segmentIndex = 1; segmentIndex < segment.length; segmentIndex++) {
+                    if (isBoolean) {
+                        const previousY = segment[segmentIndex - 1].y;
+                        const currentX = segment[segmentIndex].x;
+                        const currentY = segment[segmentIndex].y;
+                        pathData += ` L ${currentX} ${previousY} L ${currentX} ${currentY}`;
+                    } else {
+                        pathData += ` L ${segment[segmentIndex].x} ${segment[segmentIndex].y}`;
+                    }
+                }
+                linesHTML += `<path d="${pathData}" fill="none" stroke="${color}" stroke-width="2.5"${dashAttribute} stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" />`;
+            }
+        });
+
+        points.forEach(point => {
+            const escapedDate = escapeHTML(point.formattedDate);
+            const isPointBoolean = isBoolean || point.responseType === 'boolean';
+            let valueLabel = `Score ${point.score}`;
+            let titleValueLabel = `Score ${point.score}/5`;
+            if (isPointBoolean) {
+                const booleanText = point.score === BOOLEAN_YES_SCORE
+                    ? 'Yes'
+                    : (point.score === BOOLEAN_NO_SCORE ? 'No' : `Score ${point.score}`);
+                valueLabel = booleanText;
+                titleValueLabel = booleanText;
+            }
+            pointsHTML += `
+                <circle cx="${point.x}" cy="${point.y}" r="4" fill="${color}" stroke="var(--box-bg)"
+                    stroke-width="1.5" vector-effect="non-scaling-stroke" aria-label="${escapedQuestionTitle}: ${valueLabel} (${escapedDate})">
+                    <title>${escapedQuestionTitle}: ${titleValueLabel} (${escapedDate})</title>
+                </circle>
+            `;
+        });
+
+        skips.forEach(skip => {
+            const escapedDate = escapeHTML(skip.formattedDate);
+            skipsHTML += `
+                <g class="skip-marker" aria-label="${escapedQuestionTitle}: Skipped (${escapedDate})">
+                    <title>${escapedQuestionTitle}: Skipped (${escapedDate})</title>
+                    <circle cx="${skip.x}" cy="${skip.y}" r="4.5" fill="var(--box-bg)" stroke="${color}" stroke-width="1.5" stroke-dasharray="2,2" />
+                    <line x1="${skip.x - 2.5}" y1="${skip.y - 2.5}" x2="${skip.x + 2.5}" y2="${skip.y + 2.5}" stroke="${color}" stroke-width="1.5" stroke-linecap="round" />
+                    <line x1="${skip.x + 2.5}" y1="${skip.y - 2.5}" x2="${skip.x - 2.5}" y2="${skip.y + 2.5}" stroke="${color}" stroke-width="1.5" stroke-linecap="round" />
+                </g>
+            `;
+        });
+    });
+
+    const linesGroup = svgElement.querySelector('.lines');
+    if (linesGroup) {
+        linesGroup.innerHTML = linesHTML;
+    }
+    const skipsGroup = svgElement.querySelector('.skips');
+    if (skipsGroup) {
+        skipsGroup.innerHTML = skipsHTML;
+    }
+    const pointsGroup = svgElement.querySelector('.points');
+    if (pointsGroup) {
+        pointsGroup.innerHTML = pointsHTML;
+    }
+
+    // Update Notes without discarding existing DOM elements so direct listeners remain intact
+    const notesGroup = svgElement.querySelector('.notes');
+    if (notesGroup) {
+        const existingNoteMarkers = notesGroup.querySelectorAll('.note-marker');
+        if (existingNoteMarkers.length === notes.length && notes.length > 0) {
+            notes.forEach((noteItem, index) => {
+                const markerElement = existingNoteMarkers[index];
+                const escapedNote = escapeHTML(noteItem.note);
+                const escapedDate = escapeHTML(noteItem.formattedDate);
+                markerElement.setAttribute('data-entry-index', String(noteItem.entryIndex));
+                markerElement.setAttribute('data-note', escapedNote);
+                markerElement.setAttribute('data-date', escapedDate);
+                markerElement.setAttribute('aria-label', `Note (${escapedDate}): ${escapedNote}`);
+                const titleNode = markerElement.querySelector('title');
+                if (titleNode) {
+                    titleNode.textContent = `Note (${escapedDate}): ${escapedNote}`;
+                }
+                const hitboxNode = markerElement.querySelector('.note-marker-hitbox');
+                if (hitboxNode) {
+                    hitboxNode.setAttribute('x', String(noteItem.x - 14));
+                    hitboxNode.setAttribute('y', String(noteItem.y - 14));
+                }
+                const boxNode = markerElement.querySelector('.note-marker-box');
+                if (boxNode) {
+                    boxNode.setAttribute('x', String(noteItem.x - 7));
+                    boxNode.setAttribute('y', String(noteItem.y - 7));
+                }
+                const iconNode = markerElement.querySelector('.note-marker-icon');
+                if (iconNode) {
+                    iconNode.setAttribute(
+                        'd',
+                        `M ${noteItem.x - 3.5} ${noteItem.y - 3.5} h 7 M ${noteItem.x - 3.5} ${noteItem.y} h 7 M ${noteItem.x - 3.5} ${noteItem.y + 3.5} h 4.5`
+                    );
+                }
+            });
+        } else {
+            let notesHTML = '';
+            notes.forEach(noteItem => {
+                const escapedNoteText = escapeHTML(noteItem.note);
+                const escapedDate = escapeHTML(noteItem.formattedDate);
+                notesHTML += `
+                    <g class="note-marker" role="button" tabindex="0" data-entry-index="${noteItem.entryIndex}" data-note="${escapedNoteText}" data-date="${escapedDate}" aria-label="Note (${escapedDate}): ${escapedNoteText}">
+                        <title>Note (${escapedDate}): ${escapedNoteText}</title>
+                        <rect class="note-marker-hitbox" x="${noteItem.x - 14}" y="${noteItem.y - 14}" width="28" height="28" fill="transparent" />
+                        <rect class="note-marker-box" x="${noteItem.x - 7}" y="${noteItem.y - 7}" width="14" height="14" rx="3" fill="var(--button-default)" stroke="var(--border-color)" stroke-width="1.2" />
+                        <path class="note-marker-icon" d="M ${noteItem.x - 3.5} ${noteItem.y - 3.5} h 7 M ${noteItem.x - 3.5} ${noteItem.y} h 7 M ${noteItem.x - 3.5} ${noteItem.y + 3.5} h 4.5" stroke="var(--text-bright)" stroke-width="1.2" stroke-linecap="round" />
+                    </g>
+                `;
+            });
+            notesGroup.innerHTML = notesHTML;
+        }
+    }
+}
+
+/**
+ * Commits a completed gesture zoom by recomputing graph layout at the settled scale,
+ * updating the SVG element in place, resetting live CSS transforms and counter-scales,
+ * adjusting horizontal scroll position, and updating zoom indicator UI without
+ * rebuilding or rebinding the legend, toolbars, guide key, or note-marker listeners.
+ *
+ * @param {HTMLElement} container - The root history view container
+ * @param {Object} [options={}]
+ * @param {Object} [options.gestureEventData={}] - Gesture end payload
+ * @param {number} [options.gestureStartScrollLeft=0] - Scroll position prior to gesture start
+ * @param {number} [options.gestureStartZoomScale=1] - Zoom scale prior to gesture start
+ * @param {Array<Object>} [options.layoutEntries=[]] - All graph entries
+ * @param {Array<Object>} [options.questionList=[]] - Question list
+ * @param {Set<string>} [options.currentVisibleSet=new Set()] - Set of visible question IDs
+ * @param {string} [options.currentTimeRange='all'] - Timeframe range key
+ * @returns {{ layout: Object, settledZoomScale: number, settledScrollLeft: number } | null} Commit result
+ */
+export function commitGraphGestureZoom(container, {
+    gestureEventData = {},
+    gestureStartScrollLeft = 0,
+    gestureStartZoomScale = 1,
+    layoutEntries = [],
+    questionList = [],
+    currentVisibleSet = new Set(),
+    currentTimeRange = 'all'
+} = {}) {
+    if (!container) return null;
+
+    const scrollContainerElement = container.querySelector('.graph-scroll-container');
+    if (!scrollContainerElement) return null;
+
+    const svgElement = scrollContainerElement.querySelector('.graph-svg');
+    if (!svgElement) return null;
+
+    // Reset live horizontal CSS transform and per-frame counter-scales to identity
+    resetGraphGestureTransform(svgElement);
+
+    const safeStartScale = Number.isFinite(Number(gestureStartZoomScale)) && Number(gestureStartZoomScale) > 0
+        ? Number(gestureStartZoomScale)
+        : 1;
+    const finalCalculatedScale = gestureEventData?.finalZoomScale !== undefined
+        ? Number(gestureEventData.finalZoomScale)
+        : safeStartScale * (Number(gestureEventData?.scaleFactor) || 1);
+    const settledZoomScale = Math.max(0.01, Math.round(finalCalculatedScale * 100) / 100);
+
+    const newLayout = computeGraphLayout({
+        entries: layoutEntries,
+        allEntries: layoutEntries,
+        questions: questionList,
+        visibleQuestionIds: currentVisibleSet,
+        timeRange: currentTimeRange,
+        zoomScale: settledZoomScale
+    });
+
+    // Update the SVG in place (points, lines, gridlines, axis text, note marker coordinates)
+    updateGraphSVGInPlace(svgElement, newLayout);
+
+    // Compute settled horizontal scroll position keeping pivot visually fixed
+    const viewportWidth = (scrollContainerElement.clientWidth > 0)
+        ? scrollContainerElement.clientWidth
+        : (container.clientWidth > 0 ? container.clientWidth : 600);
+    const scrollWidth = (scrollContainerElement.scrollWidth > 0)
+        ? scrollContainerElement.scrollWidth
+        : (newLayout.dimensions ? newLayout.dimensions.width : 0);
+
+    const settledScrollLeft = calculateSettledGestureScrollLeft({
+        previousScrollLeft: gestureStartScrollLeft,
+        initialTargetPivotX: gestureEventData?.pivotX || 0,
+        scaleFactor: gestureEventData?.scaleFactor || 1,
+        panDeltaX: gestureEventData?.panDeltaX || 0,
+        paddingLeft: newLayout.dimensions?.paddingLeft || 0,
+        scrollWidth,
+        viewportWidth
+    });
+
+    scrollContainerElement.scrollLeft = settledScrollLeft;
+    STATE.historyZoomScale = settledZoomScale;
+    STATE.historyScrollLeft = settledScrollLeft;
+
+    // Update zoom value and reset button without rebuilding or rebinding toolbars
+    const zoomValueElement = container.querySelector('.graph-zoom-value');
+    if (zoomValueElement) {
+        zoomValueElement.textContent = `${formatZoomValue(settledZoomScale)}×`;
+    }
+    const resetButton = container.querySelector('#button-graph-zoom-reset');
+    if (resetButton) {
+        resetButton.disabled = Math.abs(settledZoomScale - 1) < 0.01;
+    }
+
+    return {
+        layout: newLayout,
+        settledZoomScale,
+        settledScrollLeft
+    };
+}
+
+/**
  * Configures live touch pinch and desktop Ctrl/Meta+wheel gesture zoom tracking on a scroll container.
  *
  * @param {HTMLElement} scrollContainerElement - The timeline scroll container element
@@ -189,11 +618,24 @@ export function setupGraphGestureZoom(scrollContainerElement, options = {}) {
 
     const {
         getCurrentZoomScale = () => 1,
+        getTargetElement = null,
+        targetElement: optionTargetElement = null,
         onGestureStart = null,
         onGestureChange = null,
         onGestureEnd = null,
         wheelDebounceMs = 160
     } = options;
+
+    function resolveTargetElement() {
+        if (typeof getTargetElement === 'function') {
+            const resolved = getTargetElement();
+            if (resolved) return resolved;
+        }
+        if (optionTargetElement) {
+            return optionTargetElement;
+        }
+        return scrollContainerElement.querySelector('.graph-svg') || scrollContainerElement;
+    }
 
     const activePointersMap = new Map();
     let trackingPointerIds = [];
@@ -202,19 +644,32 @@ export function setupGraphGestureZoom(scrollContainerElement, options = {}) {
     let initialPinchDistance = 1;
     let gestureInitialZoomScale = 1;
     let currentScaleFactor = 1.0;
+    let initialTargetPivotX = 0;
+    let initialClientPivotX = 0;
     let lastPivotX = 0;
     let lastClientPivotX = 0;
     let wheelDebounceTimeoutId = null;
     let originalTouchAction = scrollContainerElement.style.touchAction || '';
 
-    function getContainerRelativePivotX(clientX) {
+    function computeTargetPivotX(clientX) {
+        const targetElement = resolveTargetElement();
+        if (targetElement && typeof targetElement.getBoundingClientRect === 'function') {
+            try {
+                const targetRect = targetElement.getBoundingClientRect();
+                if (targetRect && Number.isFinite(targetRect.left)) {
+                    return clientX - targetRect.left;
+                }
+            } catch {
+                // Fallback below
+            }
+        }
         try {
             const containerRect = scrollContainerElement.getBoundingClientRect();
             if (containerRect && Number.isFinite(containerRect.left)) {
                 return clientX - containerRect.left;
             }
         } catch {
-            // Fallback to clientX if getBoundingClientRect is unavailable
+            // Fallback to clientX
         }
         return clientX;
     }
@@ -241,8 +696,10 @@ export function setupGraphGestureZoom(scrollContainerElement, options = {}) {
             initialPinchDistance = Math.max(1, calculatedDistance);
 
             const midpoint = calculatePinchMidpoint(firstPointer, secondPointer);
+            initialClientPivotX = midpoint.clientX;
+            initialTargetPivotX = computeTargetPivotX(midpoint.clientX);
             lastClientPivotX = midpoint.clientX;
-            lastPivotX = getContainerRelativePivotX(midpoint.clientX);
+            lastPivotX = initialTargetPivotX;
 
             isGestureActive = true;
             activeGestureSource = 'touch';
@@ -258,8 +715,10 @@ export function setupGraphGestureZoom(scrollContainerElement, options = {}) {
                     initialZoomScale: gestureInitialZoomScale,
                     scaleFactor: 1.0,
                     currentZoomScale: gestureInitialZoomScale,
-                    pivotX: lastPivotX,
-                    clientPivotX: lastClientPivotX
+                    pivotX: initialTargetPivotX,
+                    panDeltaX: 0,
+                    clientPivotX: initialClientPivotX,
+                    initialClientPivotX: initialClientPivotX
                 });
             }
         }
@@ -288,7 +747,8 @@ export function setupGraphGestureZoom(scrollContainerElement, options = {}) {
 
             const midpoint = calculatePinchMidpoint(firstPointer, secondPointer);
             lastClientPivotX = midpoint.clientX;
-            lastPivotX = getContainerRelativePivotX(midpoint.clientX);
+            const panDeltaX = midpoint.clientX - initialClientPivotX;
+            lastPivotX = initialTargetPivotX;
 
             if (typeof onGestureChange === 'function') {
                 onGestureChange({
@@ -296,8 +756,10 @@ export function setupGraphGestureZoom(scrollContainerElement, options = {}) {
                     scaleFactor: currentScaleFactor,
                     initialZoomScale: gestureInitialZoomScale,
                     currentZoomScale: gestureInitialZoomScale * currentScaleFactor,
-                    pivotX: lastPivotX,
-                    clientPivotX: lastClientPivotX
+                    pivotX: initialTargetPivotX,
+                    panDeltaX: panDeltaX,
+                    clientPivotX: lastClientPivotX,
+                    initialClientPivotX: initialClientPivotX
                 });
             }
         }
@@ -327,8 +789,10 @@ export function setupGraphGestureZoom(scrollContainerElement, options = {}) {
                     scaleFactor: currentScaleFactor,
                     initialZoomScale: gestureInitialZoomScale,
                     finalZoomScale: gestureInitialZoomScale * currentScaleFactor,
-                    pivotX: lastPivotX,
-                    clientPivotX: lastClientPivotX
+                    pivotX: initialTargetPivotX,
+                    panDeltaX: lastClientPivotX - initialClientPivotX,
+                    clientPivotX: lastClientPivotX,
+                    initialClientPivotX: initialClientPivotX
                 });
             }
         }
@@ -343,8 +807,6 @@ export function setupGraphGestureZoom(scrollContainerElement, options = {}) {
             const clientX = Number.isFinite(wheelEvent.clientX)
                 ? wheelEvent.clientX
                 : 0;
-            lastClientPivotX = clientX;
-            lastPivotX = getContainerRelativePivotX(clientX);
 
             if (!isGestureActive || activeGestureSource !== 'wheel') {
                 if (isGestureActive && typeof onGestureEnd === 'function') {
@@ -353,23 +815,31 @@ export function setupGraphGestureZoom(scrollContainerElement, options = {}) {
                         scaleFactor: currentScaleFactor,
                         initialZoomScale: gestureInitialZoomScale,
                         finalZoomScale: gestureInitialZoomScale * currentScaleFactor,
-                        pivotX: lastPivotX,
-                        clientPivotX: lastClientPivotX
+                        pivotX: initialTargetPivotX,
+                        panDeltaX: lastClientPivotX - initialClientPivotX,
+                        clientPivotX: lastClientPivotX,
+                        initialClientPivotX: initialClientPivotX
                     });
                 }
                 isGestureActive = true;
                 activeGestureSource = 'wheel';
                 gestureInitialZoomScale = Number(getCurrentZoomScale()) || 1;
                 currentScaleFactor = 1.0;
+                initialClientPivotX = clientX;
+                initialTargetPivotX = computeTargetPivotX(clientX);
+                lastClientPivotX = clientX;
+                lastPivotX = initialTargetPivotX;
 
                 if (typeof onGestureStart === 'function') {
                     onGestureStart({
                         source: 'wheel',
-                        initialZoomScale: gestureInitialZoomScale,
                         scaleFactor: 1.0,
+                        initialZoomScale: gestureInitialZoomScale,
                         currentZoomScale: gestureInitialZoomScale,
-                        pivotX: lastPivotX,
-                        clientPivotX: lastClientPivotX
+                        pivotX: initialTargetPivotX,
+                        panDeltaX: 0,
+                        clientPivotX: initialClientPivotX,
+                        initialClientPivotX: initialClientPivotX
                     });
                 }
             }
@@ -379,6 +849,9 @@ export function setupGraphGestureZoom(scrollContainerElement, options = {}) {
                 wheelEvent.deltaMode
             );
             currentScaleFactor = Math.max(0.01, currentScaleFactor * multiplier);
+            lastClientPivotX = clientX;
+            const panDeltaX = clientX - initialClientPivotX;
+            lastPivotX = initialTargetPivotX;
 
             if (typeof onGestureChange === 'function') {
                 onGestureChange({
@@ -386,8 +859,10 @@ export function setupGraphGestureZoom(scrollContainerElement, options = {}) {
                     scaleFactor: currentScaleFactor,
                     initialZoomScale: gestureInitialZoomScale,
                     currentZoomScale: gestureInitialZoomScale * currentScaleFactor,
-                    pivotX: lastPivotX,
-                    clientPivotX: lastClientPivotX
+                    pivotX: initialTargetPivotX,
+                    panDeltaX: panDeltaX,
+                    clientPivotX: lastClientPivotX,
+                    initialClientPivotX: initialClientPivotX
                 });
             }
 
@@ -405,8 +880,10 @@ export function setupGraphGestureZoom(scrollContainerElement, options = {}) {
                             scaleFactor: currentScaleFactor,
                             initialZoomScale: gestureInitialZoomScale,
                             finalZoomScale: gestureInitialZoomScale * currentScaleFactor,
-                            pivotX: lastPivotX,
-                            clientPivotX: lastClientPivotX
+                            pivotX: initialTargetPivotX,
+                            panDeltaX: lastClientPivotX - initialClientPivotX,
+                            clientPivotX: lastClientPivotX,
+                            initialClientPivotX: initialClientPivotX
                         });
                     }
                 }
@@ -444,8 +921,10 @@ export function setupGraphGestureZoom(scrollContainerElement, options = {}) {
                 initialZoomScale: gestureInitialZoomScale,
                 currentScaleFactor,
                 currentZoomScale: gestureInitialZoomScale * currentScaleFactor,
-                pivotX: lastPivotX,
+                pivotX: initialTargetPivotX,
+                panDeltaX: lastClientPivotX - initialClientPivotX,
                 clientPivotX: lastClientPivotX,
+                initialClientPivotX,
                 activePointerCount: activePointersMap.size
             };
         },
@@ -461,6 +940,10 @@ export function setupGraphGestureZoom(scrollContainerElement, options = {}) {
             }
             isGestureActive = false;
             activeGestureSource = null;
+            initialTargetPivotX = 0;
+            initialClientPivotX = 0;
+            lastClientPivotX = 0;
+            lastPivotX = 0;
 
             scrollContainerElement.removeEventListener('pointerdown', handlePointerDown);
             scrollContainerElement.removeEventListener('pointermove', handlePointerMove);
@@ -995,7 +1478,7 @@ export function renderGraphSVG(layout) {
                         pathData += ` L ${segment[segmentIndex].x} ${segment[segmentIndex].y}`;
                     }
                 }
-                linesHTML += `<path d="${pathData}" fill="none" stroke="${color}" stroke-width="2.5"${dashAttribute} stroke-linejoin="round" stroke-linecap="round" />`;
+                linesHTML += `<path d="${pathData}" fill="none" stroke="${color}" stroke-width="2.5"${dashAttribute} stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke" />`;
             }
         });
 
@@ -1014,7 +1497,7 @@ export function renderGraphSVG(layout) {
             }
             pointsHTML += `
                 <circle cx="${point.x}" cy="${point.y}" r="4" fill="${color}" stroke="var(--box-bg)"
-                    stroke-width="1.5" aria-label="${escapedQuestionTitle}: ${valueLabel} (${escapedDate})">
+                    stroke-width="1.5" vector-effect="non-scaling-stroke" aria-label="${escapedQuestionTitle}: ${valueLabel} (${escapedDate})">
                     <title>${escapedQuestionTitle}: ${titleValueLabel} (${escapedDate})</title>
                 </circle>
             `;
@@ -1432,24 +1915,68 @@ export function renderLineGraph(container, {
             STATE.historyScrollLeft = scrollContainerElement.scrollLeft;
         }, { passive: true });
 
-        // Set up live touch pinch and Ctrl/Meta+wheel gesture zoom handling (Task 9.7)
+        let gestureStartScrollLeft = scrollContainerElement.scrollLeft;
+        let gestureStartZoomScale = currentZoomScale;
+
+        // Set up live touch pinch and Ctrl/Meta+wheel gesture zoom handling (Task 9.7, 9.8, 9.9, 9.10)
+        const svgElement = scrollContainerElement.querySelector('.graph-svg');
         const gestureController = setupGraphGestureZoom(scrollContainerElement, {
+            targetElement: svgElement,
             getCurrentZoomScale: () => (
                 Number.isFinite(Number(STATE.historyZoomScale)) ? Number(STATE.historyZoomScale) : 1
             ),
             onGestureStart: (gestureEventData) => {
+                gestureStartScrollLeft = scrollContainerElement.scrollLeft;
+                gestureStartZoomScale = Number.isFinite(Number(STATE.historyZoomScale))
+                    ? Number(STATE.historyZoomScale)
+                    : currentZoomScale;
+
+                const targetSvgElement = scrollContainerElement.querySelector('.graph-svg');
+                if (targetSvgElement) {
+                    applyGraphGestureTransform(
+                        targetSvgElement,
+                        gestureEventData.scaleFactor,
+                        gestureEventData.pivotX,
+                        gestureEventData.panDeltaX || 0
+                    );
+                }
                 if (typeof gestureOptions.onGestureStart === 'function') {
                     gestureOptions.onGestureStart(gestureEventData);
                 }
             },
             onGestureChange: (gestureEventData) => {
+                const targetSvgElement = scrollContainerElement.querySelector('.graph-svg');
+                if (targetSvgElement) {
+                    applyGraphGestureTransform(
+                        targetSvgElement,
+                        gestureEventData.scaleFactor,
+                        gestureEventData.pivotX,
+                        gestureEventData.panDeltaX || 0
+                    );
+                }
                 if (typeof gestureOptions.onGestureChange === 'function') {
                     gestureOptions.onGestureChange(gestureEventData);
                 }
             },
             onGestureEnd: (gestureEventData) => {
+                const commitResult = commitGraphGestureZoom(container, {
+                    gestureEventData,
+                    gestureStartScrollLeft,
+                    gestureStartZoomScale,
+                    layoutEntries,
+                    questionList,
+                    currentVisibleSet,
+                    currentTimeRange
+                });
+                if (commitResult?.layout) {
+                    activeLayout = commitResult.layout;
+                }
                 if (typeof gestureOptions.onGestureEnd === 'function') {
-                    gestureOptions.onGestureEnd(gestureEventData);
+                    gestureOptions.onGestureEnd({
+                        ...gestureEventData,
+                        settledZoomScale: commitResult?.settledZoomScale ?? gestureEventData.finalZoomScale,
+                        settledScrollLeft: commitResult?.settledScrollLeft
+                    });
                 }
             },
             ...gestureOptions
@@ -1457,46 +1984,70 @@ export function renderLineGraph(container, {
         scrollContainerElement._gestureController = gestureController;
     }
 
+    let activeLayout = layout;
+
     wireTimeframeAndLegendListeners();
+
+    function displayNoteDialog(noteMarkerElement) {
+        if (!noteMarkerElement) return;
+        const entryIndexAttribute = noteMarkerElement.getAttribute('data-entry-index');
+        const entryIndex = entryIndexAttribute !== null ? parseInt(entryIndexAttribute, 10) : -1;
+        const targetEntry = Number.isInteger(entryIndex) && activeLayout.entries?.[entryIndex]
+            ? activeLayout.entries[entryIndex]
+            : null;
+        const rawNoteContent = targetEntry?.note
+            ? targetEntry.note.trim()
+            : (noteMarkerElement.dataset.note || noteMarkerElement.getAttribute('data-note') || '');
+        const noteDateTime = targetEntry
+            ? formatEntryDateTime(targetEntry.timestamp)
+            : (noteMarkerElement.dataset.date || noteMarkerElement.getAttribute('data-date') || '');
+        if (rawNoteContent) {
+            if (typeof showNoticeDialog === 'function') {
+                showNoticeDialog(`Check-In Note — ${noteDateTime}`, rawNoteContent, noteMarkerElement, true);
+            } else if (typeof window !== 'undefined' && typeof window.showNoticeDialog === 'function') {
+                window.showNoticeDialog(`Check-In Note — ${noteDateTime}`, rawNoteContent, noteMarkerElement, true);
+            }
+        }
+    }
 
     // Attach click and keyboard interaction handlers to note markers
     const noteMarkerElements = container.querySelectorAll('.note-marker');
     noteMarkerElements.forEach(noteMarkerElement => {
-        function displayNoteDialog() {
-            const entryIndexAttribute = noteMarkerElement.getAttribute('data-entry-index');
-            const entryIndex = entryIndexAttribute !== null ? parseInt(entryIndexAttribute, 10) : -1;
-            const targetEntry = Number.isInteger(entryIndex) && layout.entries?.[entryIndex]
-                ? layout.entries[entryIndex]
-                : null;
-            const rawNoteContent = targetEntry?.note
-                ? targetEntry.note.trim()
-                : (noteMarkerElement.dataset.note || noteMarkerElement.getAttribute('data-note') || '');
-            const noteDateTime = targetEntry
-                ? formatEntryDateTime(targetEntry.timestamp)
-                : (noteMarkerElement.dataset.date || noteMarkerElement.getAttribute('data-date') || '');
-            if (rawNoteContent) {
-                if (typeof showNoticeDialog === 'function') {
-                    showNoticeDialog(`Check-In Note — ${noteDateTime}`, rawNoteContent, noteMarkerElement, true);
-                } else if (typeof window !== 'undefined' && typeof window.showNoticeDialog === 'function') {
-                    window.showNoticeDialog(`Check-In Note — ${noteDateTime}`, rawNoteContent, noteMarkerElement, true);
-                }
-            }
-        }
-
         noteMarkerElement.addEventListener('click', (event) => {
             event.preventDefault();
             event.stopPropagation();
-            displayNoteDialog();
+            displayNoteDialog(noteMarkerElement);
         });
 
         noteMarkerElement.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
                 event.stopPropagation();
-                displayNoteDialog();
+                displayNoteDialog(noteMarkerElement);
             }
         });
     });
+
+    if (scrollContainerElement) {
+        scrollContainerElement.addEventListener('click', (event) => {
+            const marker = event.target.closest('.note-marker');
+            if (marker) {
+                event.preventDefault();
+                event.stopPropagation();
+                displayNoteDialog(marker);
+            }
+        });
+        scrollContainerElement.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                const marker = event.target.closest('.note-marker');
+                if (marker) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    displayNoteDialog(marker);
+                }
+            }
+        });
+    }
 
     const legendElement = container.querySelector('.graph-legend');
     if (legendElement) {

@@ -39,7 +39,10 @@ import {
     setupGraphGestureZoom,
     calculatePinchDistance,
     calculatePinchMidpoint,
-    calculateWheelZoomDeltaMultiplier
+    calculateWheelZoomDeltaMultiplier,
+    calculateGestureTransform,
+    applyGraphGestureTransform,
+    resetGraphGestureTransform
 } from './ui/history-graph.js';
 // Load Questions UI
 import { setupQuestionAuthoring, loadQuestionsView } from './ui/question-view.js';
@@ -257,6 +260,9 @@ if (typeof window !== 'undefined') {
     window.calculatePinchDistance = calculatePinchDistance;
     window.calculatePinchMidpoint = calculatePinchMidpoint;
     window.calculateWheelZoomDeltaMultiplier = calculateWheelZoomDeltaMultiplier;
+    window.calculateGestureTransform = calculateGestureTransform;
+    window.applyGraphGestureTransform = applyGraphGestureTransform;
+    window.resetGraphGestureTransform = resetGraphGestureTransform;
     window.navigateTo = navigateTo;
     window.finalizeCheckin = finalizeCheckin;
     window.registerServiceWorker = registerServiceWorker;

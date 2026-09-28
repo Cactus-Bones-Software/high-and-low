@@ -437,18 +437,18 @@ and zoom operate on consistently, and add continuous gesture-driven zoom on top 
     buttons.
   - Track gesture start/move/end state and compute a live scale factor relative to gesture start, pivoted at the
     gesture's current midpoint (touch) or cursor position (wheel/trackpad).
-- [ ] **Task 9.8: Live Gesture Zoom — CSS Transform Rendering Pass**
+- [x] **Task 9.8: Live Gesture Zoom — CSS Transform Rendering Pass**
   - During an active gesture (Task 9.7), apply `transform: scaleX(...)` plus a compensating `translateX(...)` to
     keep the pivot point visually fixed, directly to the rendered SVG/graph group via CSS only — no
     `computeGraphLayout()` recomputation, no `container.innerHTML` rebuild, no listener rebinding — for smooth,
     low-latency visual response every frame.
-- [ ] **Task 9.9: Live Gesture Zoom — Per-Frame Counter-Scale for Points & Text**
+- [x] **Task 9.9: Live Gesture Zoom — Per-Frame Counter-Scale for Points & Text**
   - On each animation frame during an active gesture, apply an inverse counter-scale to point circles and text
     elements (score gridline labels, date tick labels) relative to the Task 9.8 group transform, so they stay
     visually round/upright and don't stretch or smear with the surrounding horizontal scale.
   - Apply `vector-effect="non-scaling-stroke"` to plotted lines and point circles so stroke width and dash
     patterns also stay visually consistent under the live transform, independent of the counter-scale pass.
-- [ ] **Task 9.10: Live Gesture Zoom — Commit on Gesture End**
+- [x] **Task 9.10: Live Gesture Zoom — Commit on Gesture End**
   - When a gesture ends (last touch pointer lifts, or wheel/trackpad gesture stops), run a single real
     `computeGraphLayout()` + redraw pass at the settled scale, then reset the live CSS transform (Task 9.8) and
     counter-scale (Task 9.9) to identity.
