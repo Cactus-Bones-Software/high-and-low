@@ -247,17 +247,17 @@ function getGestureCounterScaleElements(targetElement) {
  * Applies a live horizontal CSS transform to the SVG graph element or target container without
  * recomputing layout or rebuilding the DOM.
  *
- * Additionally applies an inverse horizontal counter-scale to point circles and text labels
+ * Additionally, applies an inverse horizontal counter-scale to point circles and text labels
  * (gridline labels and x-axis date tick labels) to prevent distortion during active gestures (Task 9.9).
  *
- * @param {Element} targetElement - The SVG or group element to transform
+ * @param {HTMLElement | SVGElement} targetElement - The SVG or group element to transform
  * @param {number} scaleFactor - Scale factor relative to gesture start
  * @param {number} pivotX - Horizontal pivot coordinate in element container coordinates
  * @param {number} [panDeltaX=0] - Horizontal pan delta offset if midpoint moved during gesture
  * @returns {{ scaleX: number, translateX: number, transformString: string } | null} Applied transform
  */
 export function applyGraphGestureTransform(targetElement, scaleFactor, pivotX = 0, panDeltaX = 0) {
-    if (!targetElement || !targetElement.style) {
+    if (!targetElement?.style) {
         return null;
     }
     const transformValues = calculateGestureTransform(scaleFactor, pivotX, panDeltaX);
@@ -282,10 +282,10 @@ export function applyGraphGestureTransform(targetElement, scaleFactor, pivotX = 
  * Resets any active live horizontal CSS gesture transform on the target element back to identity.
  * Also resets counter-scales on point circles and text labels.
  *
- * @param {Element} targetElement - The transformed element to reset
+ * @param {HTMLElement | SVGElement} targetElement - The transformed element to reset
  */
 export function resetGraphGestureTransform(targetElement) {
-    if (!targetElement || !targetElement.style) {
+    if (!targetElement?.style) {
         return;
     }
     targetElement.style.transform = '';
@@ -314,7 +314,7 @@ export function resetGraphGestureTransform(targetElement) {
  *
  * @param {Object} [options={}]
  * @param {number} [options.previousScrollLeft=0] - Scroll position before the gesture began
- * @param {number} [options.initialTargetPivotX=0] - Pivot coordinate relative to target SVG
+ * @param {number | null} [options.initialTargetPivotX=0] - Pivot coordinate relative to target SVG
  * @param {number} [options.scaleFactor=1] - Gesture scale factor relative to start
  * @param {number} [options.panDeltaX=0] - Horizontal pan delta offset during gesture
  * @param {number} [options.paddingLeft=0] - Left padding of the layout
@@ -783,8 +783,7 @@ export function setupGraphGestureZoom(scrollContainerElement, options = {}) {
             }
 
             const currentDistance = calculatePinchDistance(firstPointer, secondPointer);
-            const scaleFactor = Math.max(0.01, currentDistance / initialPinchDistance);
-            currentScaleFactor = scaleFactor;
+            currentScaleFactor = Math.max(0.01, currentDistance / initialPinchDistance);
 
             const midpoint = calculatePinchMidpoint(firstPointer, secondPointer);
             lastClientPivotX = midpoint.clientX;
@@ -1612,7 +1611,7 @@ export function renderGraphSVG(layout) {
  * @param {HTMLElement} container - DOM container element where the graph UI is mounted.
  * @param {Object} [data={}] - Graph datasets and configuration options.
  * @param {Array<Object>} [data.entries] - Chronologically sorted check-in entries.
- * @param {Array<Object>} [data.allEntries] - Complete unwindowed entries dataset.
+ * @param {Array<Object>} [data.allEntries] - Complete un-windowed entries dataset.
  * @param {Array<Object>} [data.questions] - Question definitions to visualize.
  * @param {Set<string>|Array<string>} [data.visibleQuestionIds] - Filtered set of visible question IDs.
  * @param {string} [data.timeRange] - Timeframe preset key ('7d', '14d', '30d', '90d', 'all').
@@ -1632,7 +1631,7 @@ export function renderLineGraph(container, {
     if (!container) return;
 
     const previousScrollContainer = container.querySelector('.graph-scroll-container');
-    if (previousScrollContainer && previousScrollContainer._gestureController) {
+    if (previousScrollContainer?._gestureController) {
         previousScrollContainer._gestureController.destroy();
     }
     const hadPreviousTimeline = Boolean(previousScrollContainer);
@@ -1997,7 +1996,7 @@ export function renderLineGraph(container, {
 
         // Set up live touch pinch and Ctrl/Meta+wheel gesture zoom handling (Task 9.7, 9.8, 9.9, 9.10)
         const svgElement = scrollContainerElement.querySelector('.graph-svg');
-        const gestureController = setupGraphGestureZoom(scrollContainerElement, {
+        scrollContainerElement._gestureController = setupGraphGestureZoom(scrollContainerElement, {
             targetElement: svgElement,
             getCurrentZoomScale: () => (
                 Number.isFinite(Number(STATE.historyZoomScale)) ? Number(STATE.historyZoomScale) : 1
@@ -2058,7 +2057,6 @@ export function renderLineGraph(container, {
             },
             ...gestureOptions
         });
-        scrollContainerElement._gestureController = gestureController;
     }
 
     let activeLayout = layout;

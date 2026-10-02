@@ -124,7 +124,7 @@ describe('Phase 6: Offline Capabilities & Service Worker (Task 6.1, 6.2, 6.3)', 
 
     it('6. controllerchange event triggers active tab reload (Task 6.3)', () => {
         const serviceWorkerListeners = new Map();
-        windowInstance.navigator.serviceWorker.addEventListener = vi.fn((eventName, callback) => {
+        vi.spyOn(windowInstance.navigator.serviceWorker, 'addEventListener').mockImplementation((eventName, callback) => {
             serviceWorkerListeners.set(eventName, callback);
         });
 

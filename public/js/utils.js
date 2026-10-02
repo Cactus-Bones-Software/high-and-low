@@ -3,6 +3,7 @@
  * Small, dependency-free helper functions used across modules.
  */
 
+// noinspection GrazieInspection
 /**
  * Escapes unsafe HTML characters (&, <, >, ", ') in a string to prevent XSS vulnerabilities.
  * @param {any} stringToEscape - Input value or string to sanitize.

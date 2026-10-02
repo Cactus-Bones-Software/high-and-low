@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>High & Low - Mood Tracker</title>
+    <title>High &amp; Low - Mood Tracker</title>
     <link rel="icon" type="image/x-icon" href="icons/favicon.ico">
     <link rel="icon" type="image/png" sizes="192x192" href="icons/pwa-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icons/pwa-512x512.png">
@@ -448,7 +448,9 @@
 
 <template id="dynamic-component-templates">
     <li class="question-card question-card-active is-reorderable is-dragging drag-over-top drag-over-bottom">
-        <button type="button" class="question-drag-handle is-grabbing" aria-label="Drag handle"></button>
+        <div class="question-reorder-controls">
+            <button type="button" class="question-drag-handle is-grabbing" aria-label="Drag handle"></button>
+        </div>
         <span class="question-card-badge question-card-badge-builtin question-card-badge-custom question-card-badge-archived">Status</span>
         <div class="card-action-row question-card-actions">
             <div class="card-actions-non-dominant">
@@ -456,7 +458,12 @@
             </div>
         </div>
     </li>
-    <div class="app-canvas no-transition"></div>
+    <li class="question-card">
+        <div class="question-reorder-controls">
+            <button type="button" class="question-drag-handle" aria-label="Drag handle"></button>
+        </div>
+    </li>
+    <div class="app-canvas view-hidden-left no-transition"></div>
     <header class="canvas-box header-box question-transition-out question-transition-enter question-transition-in"></header>
     <input class="form-input is-invalid" aria-label="Input template placeholder" />
     <button type="button" class="modal-button modal-button-primary button-wiggle">Save</button>

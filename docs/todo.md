@@ -344,7 +344,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
 - [x] **Task 8.1: Code Base JSDoc & Architectural Comments**
   - Perform a complete documentation pass across all modular ES files in `public/js/` (`storage/db.js`, `checkin.js`, `data-io.js`, `questions.js`, `ui/*.js`), adding JSDoc comments to all core functions (`initDatabase`, `renderCurrentQuestion`, `exportAllDataAndConfig`, `handleFileImport`).
 
-- [ ] **Task 8.2: Workspace File Cleanup**
+- [x] **Task 8.2: Workspace File Cleanup**
   - Remove any unneeded project boilerplate files (such as `index.js` if created by IDE defaults) and verify the repository remains strictly clean vanilla files.
   - In `package.json`, remove the `dev`/`build` scripts that invoke `vite` — `vite` isn't a declared dependency, and those scripts contradict the "no compilers" stack rule in `AGENTS.md`.
 

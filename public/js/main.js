@@ -106,7 +106,7 @@ export function setupServiceWorkerLifecycle(registration) {
     });
 
     // Listen for controllerchange events to reload active tabs when new service worker takes over
-    if (typeof window.navigator?.serviceWorker?.addEventListener === 'function' && !window.navigator.serviceWorker._hasControllerChangeListener) {
+    if (typeof window.navigator?.serviceWorker?.addEventListener === 'function' && !window.navigator.serviceWorker['_hasControllerChangeListener']) {
         window.navigator.serviceWorker._hasControllerChangeListener = true;
         window.navigator.serviceWorker.addEventListener('controllerchange', () => {
             if (isRefreshingTab) return;
