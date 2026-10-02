@@ -1,5 +1,14 @@
 # JetBrains IDE settings (machine-specific)
 .idea/
+.package-lock.json
+
+# Local LLM specific
+/LLM/
 .aider*
 .opencode.json
-.package-lock.json
+
+# Environment and local server files
+server.js
+metadata.json
+node_modules/
+.git-backup.tar.gz
