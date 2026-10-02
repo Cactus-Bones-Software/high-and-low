@@ -115,15 +115,22 @@ export const DEFAULT_QUESTIONS = [
 // Daily set established on first run (ids into the 'questions' store).
 export const DEFAULT_ACTIVE_SET = ['q_energy', 'q_sadness', 'q_irritability', 'q_overall'];
 
-// Collapse leading/trailing and internal whitespace so trivially different
-// wordings resolve to the same content-addressed id.
+/**
+ * Normalizes question text by trimming leading/trailing whitespace and collapsing internal whitespace runs.
+ * Ensures consistent hashing for content-addressed question identification.
+ * @param {string} text - Raw input string.
+ * @returns {string} Cleaned, single-spaced string.
+ */
 export function normalizeQuestionText(text) {
     return text.trim().replace(/\s+/g, ' ');
 }
 
-// FNV-1a 32-bit -> 8 hex chars. NOT cryptographic: used only for stable,
-// content-addressed question identity. Identical (normalized) text yields an
-// identical id, which lets identical questions self-dedupe when backups merge.
+/**
+ * Calculates a 32-bit FNV-1a non-cryptographic hash formatted as an 8-character hex string.
+ * Used for deterministic, content-addressed question deduplication across backup merges.
+ * @param {string} inputString - Input string to hash.
+ * @returns {string} 8-character lowercase hex string.
+ */
 export function fnv1a32(inputString) {
     let hash = 0x811c9dc5;
     for (let index = 0; index < inputString.length; index++) {
@@ -133,18 +140,22 @@ export function fnv1a32(inputString) {
     return (hash >>> 0).toString(16).padStart(8, '0');
 }
 
-// Custom (user-authored) question ids are prefixed 'c_' so a raw export is
-// human-scannable against the built-in 'q_' slugs. The id is frozen at creation
-// from the original text; later edits to display text never change it, so
-// historical entries never orphan.
+/**
+ * Generates a stable content-addressed identifier ('c_' + 8 hex chars) for a user-authored question.
+ * The identifier remains frozen to originalText so subsequent edits never orphan historical check-in records.
+ * @param {string} text - Question prompt text.
+ * @returns {string} Prefixed unique identifier string (e.g. 'c_811c9dc5').
+ */
 export function makeCustomId(text) {
     return 'c_' + fnv1a32(normalizeQuestionText(text));
 }
 
-// Idempotently insert any built-in question whose id is not already present.
-// Runs every load: because we never hard-delete (only archive), an id the user
-// archived still exists and won't be re-added, while genuinely new built-ins in
-// a later SEED_VERSION get picked up automatically.
+/**
+ * Idempotently inserts built-in default questions into the 'questions' store.
+ * Backfills tags, shortLabel, and responseType on existing records if missing,
+ * establishes the initial activeQuestionSet on first run, and records the current seedVersion.
+ * @returns {Promise<void>} Resolves when database seeding transaction finishes.
+ */
 export async function seedDefaults() {
     const existingQuestions = await getAll('questions');
     const existingQuestionIds = new Set(existingQuestions.map(question => question.id));
@@ -219,8 +230,11 @@ export async function seedDefaults() {
     await setConfig('seedVersion', SEED_VERSION);
 }
 
-// Resolve the ordered active-set ids into full question definitions, dropping
-// any that are missing or archived.
+/**
+ * Loads the active question set from IndexedDB into STATE.activeQuestions in order,
+ * excluding any questions that are missing or flagged as archived.
+ * @returns {Promise<void>} Resolves when active questions are loaded into memory.
+ */
 export async function loadActiveQuestions() {
     const [allQuestions, activeSet] = await Promise.all([getAll('questions'), getConfig('activeQuestionSet')]);
     const questionsById = new Map(allQuestions.map(question => [question.id, question]));
@@ -228,7 +242,11 @@ export async function loadActiveQuestions() {
     STATE.activeQuestions = set.map(id => questionsById.get(id)).filter(question => question && !question.archived);
 }
 
-// Reorder the active question set to match an explicit array of question ids.
+/**
+ * Reorders the active question sequence in configuration to match an explicit array of question IDs.
+ * @param {string[]} orderedQuestionIds - Full array of active question IDs in desired order.
+ * @returns {Promise<boolean>} True if reordering was successfully saved, false otherwise.
+ */
 export async function reorderActiveQuestions(orderedQuestionIds) {
     if (!Array.isArray(orderedQuestionIds)) return false;
     await setConfig('activeQuestionSet', orderedQuestionIds);
@@ -236,7 +254,12 @@ export async function reorderActiveQuestions(orderedQuestionIds) {
     return true;
 }
 
-// Reorder an active question up or down within the active set sequence.
+/**
+ * Moves an active question up or down by one position within the active set sequence.
+ * @param {string} questionId - ID of the question to move.
+ * @param {'up' | 'down'} direction - Direction to shift the question.
+ * @returns {Promise<boolean>} True if position was changed, false if already at boundary or not found.
+ */
 export async function moveActiveQuestion(questionId, direction) {
     const activeSet = await getConfig('activeQuestionSet');
     const set = Array.isArray(activeSet) ? [...activeSet] : [...DEFAULT_ACTIVE_SET];
@@ -254,7 +277,12 @@ export async function moveActiveQuestion(questionId, direction) {
     return true;
 }
 
-// Remove an active question from the tracker into the catalog.
+/**
+ * Removes a question from the active tracker set into the inactive questions catalog.
+ * Does not archive or delete the question record from the database.
+ * @param {string} questionId - ID of the question to remove from tracker.
+ * @returns {Promise<boolean>} Resolves with true when removed.
+ */
 export async function removeQuestionFromTracker(questionId) {
     const activeSet = await getConfig('activeQuestionSet');
     const set = Array.isArray(activeSet) ? [...activeSet] : [...DEFAULT_ACTIVE_SET];
@@ -265,7 +293,11 @@ export async function removeQuestionFromTracker(questionId) {
     return true;
 }
 
-// Add an inactive question from the catalog into the active tracker.
+/**
+ * Adds an inactive question from the catalog into the active tracker set.
+ * @param {string} questionId - ID of the question to add to tracker.
+ * @returns {Promise<boolean>} Resolves with true when added.
+ */
 export async function addQuestionToTracker(questionId) {
     const activeSet = await getConfig('activeQuestionSet');
     const set = Array.isArray(activeSet) ? [...activeSet] : [...DEFAULT_ACTIVE_SET];
@@ -277,7 +309,23 @@ export async function addQuestionToTracker(questionId) {
     return true;
 }
 
-// Persist a user-authored question.
+/**
+ * Persists a user-authored custom question into the 'questions' store.
+ * Validates text, shortLabel, responseType, and normalizes tags.
+ * Generates a stable content-addressed ID (c_<hash>). If the question previously existed and was archived,
+ * restores the record with updated fields; otherwise inserts a new record.
+ * @param {Object} options - Custom question properties.
+ * @param {string} options.text - Full question prompt text.
+ * @param {string} options.shortLabel - Concise label for compact UI / headers.
+ * @param {string[] | string} [options.tags=[]] - Category tags array or comma-separated string.
+ * @param {'more-is-better' | 'less-is-better' | 'middle-is-best'} options.curve - Trajectory curve type.
+ * @param {string | null} [options.minLabel] - Label for minimum rating (score 1).
+ * @param {string | null} [options.maxLabel] - Label for maximum rating (score 5).
+ * @param {string | null} [options.midLabel] - Label for middle rating (score 3).
+ * @param {boolean} [options.addToSet=false] - Whether to immediately append question ID to active tracker set.
+ * @param {'scale' | 'boolean'} [options.responseType='scale'] - Input deck type.
+ * @returns {Promise<{ status: 'added' | 'exists' | 'restored', id: string, question: Object }>}
+ */
 export async function createCustomQuestion({
                                                text,
                                                shortLabel,
@@ -375,6 +423,22 @@ export async function createCustomQuestion({
     return outcome;
 }
 
+/**
+ * Updates editable fields of an existing user-authored question.
+ * Preserves immutable properties (id, originalText, builtIn, createdAt).
+ * Built-in questions cannot be edited and will throw an error.
+ * @param {string} questionId - ID of the custom question to update.
+ * @param {Object} [updates={}] - Fields to update.
+ * @param {string} [updates.text] - New question prompt text.
+ * @param {string} [updates.shortLabel] - New short label.
+ * @param {string[] | string} [updates.tags] - Updated tags array or comma-separated string.
+ * @param {'scale' | 'boolean'} [updates.responseType] - Updated response type.
+ * @param {'more-is-better' | 'less-is-better' | 'middle-is-best'} [updates.curve] - Updated curve.
+ * @param {string | null} [updates.minLabel] - Updated label for rating 1.
+ * @param {string | null} [updates.maxLabel] - Updated label for rating 5.
+ * @param {string | null} [updates.midLabel] - Updated label for rating 3.
+ * @returns {Promise<Object>} Resolves with the updated question record.
+ */
 export async function updateCustomQuestion(questionId, updates = {}) {
     if (!questionId || typeof questionId !== 'string') {
         throw new Error('Valid question ID is required to update a question.');
@@ -475,6 +539,12 @@ export async function updateCustomQuestion(questionId, updates = {}) {
     return updatedRecord;
 }
 
+/**
+ * Archives a question (soft-delete) by setting archived: true and removing it from the active tracker set.
+ * Invariant: questions are never hard-deleted so historical entry foreign keys remain intact.
+ * @param {string} questionId - ID of the question to archive.
+ * @returns {Promise<Object>} Resolves with the archived question record.
+ */
 export async function archiveQuestion(questionId) {
     if (!questionId || typeof questionId !== 'string') {
         throw new Error('Valid question ID is required to archive a question.');
@@ -521,6 +591,12 @@ export async function archiveQuestion(questionId) {
     return archivedRecord;
 }
 
+/**
+ * Restores an archived question by setting archived: false.
+ * Does not automatically add the question to the active tracker set.
+ * @param {string} questionId - ID of the question to restore.
+ * @returns {Promise<Object>} Resolves with the restored question record.
+ */
 export async function restoreQuestion(questionId) {
     if (!questionId || typeof questionId !== 'string') {
         throw new Error('Valid question ID is required to restore a question.');
@@ -563,7 +639,13 @@ export const restoreCustomQuestion = restoreQuestion;
 export const removeQuestion = archiveQuestion;
 export const removeCustomQuestion = archiveQuestion;
 
-export function getCurveColor(curve, index) {
+/**
+ * Returns the hex color string for a question's trajectory curve.
+ * @param {'more-is-better' | 'less-is-better' | 'middle-is-best' | string} curve - Curve type.
+ * @param {number} [index=0] - Fallback palette sequence index.
+ * @returns {string} Hex color code (e.g. '#34c759').
+ */
+export function getCurveColor(curve, index = 0) {
     if (curve === 'more-is-better') return '#34c759';
     if (curve === 'less-is-better') return '#ff3b30';
     if (curve === 'middle-is-best') return '#007aff';
@@ -581,6 +663,12 @@ export const QUESTION_DASH_PATTERNS = [
     '10,3,4,3'       // 6: Long-dash short-dash
 ];
 
+/**
+ * Returns the SVG stroke-dasharray pattern corresponding to a series index.
+ * Enables accessible, non-color-exclusive differentiation between line series on the graph.
+ * @param {number} index - Sequential series index.
+ * @returns {string} SVG stroke-dasharray attribute value (e.g. 'none', '6,4', '2,3').
+ */
 export function getQuestionDashArray(index) {
     return QUESTION_DASH_PATTERNS[index % QUESTION_DASH_PATTERNS.length];
 }

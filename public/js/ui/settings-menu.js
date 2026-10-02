@@ -9,6 +9,11 @@ import { updateHoldActionAriaLabels, setIsHoldDelayEnabled } from './hold-action
 import { startNewCheckIn } from '../checkin.js';
 import { safeRAF } from '../utils.js';
 
+/**
+ * Synchronizes browser <meta name="theme-color"> header with active theme setting.
+ * @param {'dark' | 'light' | 'system' | string} themeValue - Active theme preference.
+ * @returns {void}
+ */
 export function syncMetaThemeColor(themeValue) {
     const metaTag = document.querySelector('meta[name="theme-color"]');
     if (!metaTag) return;
@@ -16,6 +21,12 @@ export function syncMetaThemeColor(themeValue) {
     metaTag.setAttribute('content', isDark ? '#121212' : '#f2f2f7');
 }
 
+/**
+ * Sets inert property and HTML attribute on an element for accessible dialog modal traps.
+ * @param {HTMLElement} element - Target DOM element.
+ * @param {boolean} isInert - Whether to set inert.
+ * @returns {void}
+ */
 export function setInert(element, isInert) {
     if (!element) return;
     element.inert = isInert;
@@ -26,6 +37,10 @@ export function setInert(element, isInert) {
     }
 }
 
+/**
+ * Opens the side navigation drawer, setting all background canvases to inert and focusing first item.
+ * @returns {void}
+ */
 export function openDrawer() {
     document.body.classList.add('drawer-open');
     const drawer = document.getElementById('side-drawer');
@@ -45,6 +60,10 @@ export function openDrawer() {
     }
 }
 
+/**
+ * Closes the side navigation drawer, restoring interactivity to the active canvas and returning focus.
+ * @returns {void}
+ */
 export function closeDrawer() {
     document.body.classList.remove('drawer-open');
     const drawer = document.getElementById('side-drawer');
@@ -63,20 +82,36 @@ export function closeDrawer() {
     }
 }
 
+/**
+ * Navigates to the settings canvas.
+ * @returns {void}
+ */
 export function openSettings() {
     navigateTo('settings-canvas');
 }
 
+/**
+ * Navigates back from settings to the tracker canvas.
+ * @returns {void}
+ */
 export function closeSettings() {
     navigateTo('tracker-canvas');
 }
 
+/**
+ * Binds click events on buttons with [data-close-view] attribute to return to the tracker canvas.
+ * @returns {void}
+ */
 export function setupCanvasBackButtons() {
     document.querySelectorAll('[data-close-view]').forEach(button => {
         button.addEventListener('click', () => navigateTo('tracker-canvas'));
     });
 }
 
+/**
+ * Initializes listeners for theme, contrast, hold-delay, handedness selectors, and drawer toggle controls.
+ * @returns {void}
+ */
 export function setupSettingsAndMenu() {
     const themeSelect = document.getElementById('theme-select');
     const drawerThemeSelect = document.getElementById('drawer-theme-select');
@@ -244,6 +279,11 @@ export function setupSettingsAndMenu() {
     }
 }
 
+/**
+ * Reads stored theme, contrast, handedness, and hold-delay preferences from IndexedDB/localStorage
+ * and applies them to <body> attributes and settings form controls on application startup.
+ * @returns {Promise<void>} Resolves when display settings are loaded and applied.
+ */
 export async function applyStoredDisplay() {
     const [
         theme,

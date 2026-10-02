@@ -3,7 +3,8 @@
  * Single in-memory state singleton shared across modules.
  */
 
-export let STATE = {
+// biome-ignore lint/style/useConst: Variable may not be reassigned, but is modified.
+export  let STATE = {
     activeQuestions: [],
     currentQuestionIndex: 0,
     checkinAnswers: [],

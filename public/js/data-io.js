@@ -4,8 +4,14 @@
  */
 
 import { getDatabase } from './storage/db.js';
-import {showNoticeDialog} from "./ui/dialogs.js";
+import { showNoticeDialog } from "./ui/dialogs.js";
 
+/**
+ * Serializes the entire IndexedDB database ('config', 'questions', and 'entries' stores)
+ * into a JSON backup file and triggers a browser download.
+ * Produces a full schema 2.0 export containing all records, including archived questions.
+ * @returns {void}
+ */
 export function exportAllDataAndConfig() {
     const database = getDatabase();
     if (!database) {
@@ -56,6 +62,12 @@ export function exportAllDataAndConfig() {
     };
 }
 
+/**
+ * Initiates the asynchronous reading of an uploaded JSON backup file.
+ * @param {File} file - The uploaded JSON file object.
+ * @param {'replace' | 'merge'} mode - Import strategy: 'replace' wipes database first, 'merge' dedupes.
+ * @returns {void}
+ */
 export function handleFileImport(file, mode) {
     if (!file) return;
     const reader = new FileReader();
@@ -63,6 +75,13 @@ export function handleFileImport(file, mode) {
     reader.readAsText(file);
 }
 
+/**
+ * Handles FileReader load event, validates backup JSON structure, and executes database writes.
+ * Reloads the browser tab on successful completion to re-initialize application state.
+ * @param {'replace' | 'merge'} mode - Import strategy ('replace' or 'merge').
+ * @param {ProgressEvent<FileReader>} event - FileReader load event containing the raw file text.
+ * @returns {void}
+ */
 function handleFileImportReaderLoad(mode, event) {
     const result = event.target.result;
     if (typeof result !== 'string') {
@@ -73,9 +92,17 @@ function handleFileImportReaderLoad(mode, event) {
         const importedData = JSON.parse(result);
         if (!importedData.entries || !importedData.config) {
             if (typeof showNoticeDialog === 'function') {
-                showNoticeDialog('Invalid Backup File', 'The selected file is missing required blueprint structure (entries or configuration).', 'file-import');
+                showNoticeDialog(
+                    'Invalid Backup File',
+                    'The selected file is missing required blueprint structure (entries or configuration).',
+                    'file-import'
+                );
             } else if (typeof window !== 'undefined' && typeof window.showNoticeDialog === 'function') {
-                window.showNoticeDialog('Invalid Backup File', 'The selected file is missing required blueprint structure (entries or configuration).', 'file-import');
+                window.showNoticeDialog(
+                    'Invalid Backup File',
+                    'The selected file is missing required blueprint structure (entries or configuration).',
+                    'file-import'
+                );
             }
             return;
         }
@@ -119,13 +146,28 @@ function handleFileImportReaderLoad(mode, event) {
     } catch (error) {
         console.error('File import failed:', error);
         if (typeof showNoticeDialog === 'function') {
-            showNoticeDialog('Corrupted File', 'The selected file could not be parsed or contains corrupted data.', 'file-import');
+            showNoticeDialog(
+                'Corrupted File',
+                'The selected file could not be parsed or contains corrupted data.',
+                'file-import'
+            );
         } else if (typeof window !== 'undefined' && typeof window.showNoticeDialog === 'function') {
-            window.showNoticeDialog('Corrupted File', 'The selected file could not be parsed or contains corrupted data.', 'file-import');
+            window.showNoticeDialog(
+                'Corrupted File',
+                'The selected file could not be parsed or contains corrupted data.',
+                'file-import'
+            );
         }
     }
 }
 
+/**
+ * Merges an incoming question into the questions store with conflict resolution.
+ * If the question already exists, retains the record with the newer updatedAt timestamp.
+ * @param {IDBObjectStore} store - Questions IDBObjectStore transaction reference.
+ * @param {Object} incoming - Incoming question record to merge.
+ * @returns {void}
+ */
 export function mergeQuestionWithConflictCheck(store, incoming) {
     const getRequest = store.get(incoming.id);
     getRequest.onsuccess = (event) => {
@@ -140,6 +182,15 @@ export function mergeQuestionWithConflictCheck(store, incoming) {
     };
 }
 
+/**
+ * Inserts an entry into the entries store, resolving timestamp key collisions recursively.
+ * If an entry with the exact same timestamp and identical answers exists, skips it as a duplicate.
+ * If timestamps collide with different answers, increments the timestamp by 1 millisecond.
+ * @param {IDBObjectStore} store - Entries IDBObjectStore transaction reference.
+ * @param {Object} incomingEntry - Entry record being inserted.
+ * @param {number} [attempt=0] - Recursion attempt counter (capped at 1000).
+ * @returns {void}
+ */
 export function safelyAddEntryWithCollisionCheck(store, incomingEntry, attempt = 0) {
     const MAX_COLLISION_ATTEMPTS = 1000;
     const getRequest = store.get(incomingEntry.timestamp);
@@ -149,7 +200,12 @@ export function safelyAddEntryWithCollisionCheck(store, incomingEntry, attempt =
             if (areEntryAnswersIdentical(existingRecord.answers, incomingEntry.answers)) return;
 
             if (attempt >= MAX_COLLISION_ATTEMPTS) {
-                console.error('safelyAddEntryWithCollisionCheck: could not resolve a free timestamp key after', MAX_COLLISION_ATTEMPTS, 'attempts near', incomingEntry.timestamp, '- entry NOT imported:', incomingEntry);
+                console.error(
+                    'safelyAddEntryWithCollisionCheck: could not resolve timestamp key near',
+                    incomingEntry.timestamp,
+                    '- entry NOT imported:',
+                    incomingEntry
+                );
                 return;
             }
 
@@ -163,10 +219,22 @@ export function safelyAddEntryWithCollisionCheck(store, incomingEntry, attempt =
     };
 }
 
+/**
+ * Deep-compares two check-in answers arrays for identical question IDs, scores, and status flags.
+ * Used to detect genuine duplicate check-in entries during Smart Merge.
+ * @param {Array<Object>} answersA - First answers array.
+ * @param {Array<Object>} answersB - Second answers array.
+ * @returns {boolean} True if both arrays contain identical answers regardless of order.
+ */
 export function areEntryAnswersIdentical(answersA, answersB) {
     if (answersA.length !== answersB.length) return false;
-    const sortFunction = (firstAnswer, secondAnswer) => firstAnswer.questionId > secondAnswer.questionId ? 1 : -1;
+    const sortFunction = (firstAnswer, secondAnswer) =>
+        firstAnswer.questionId > secondAnswer.questionId ? 1 : -1;
     const sortedAnswersA = [...answersA].sort(sortFunction);
     const sortedAnswersB = [...answersB].sort(sortFunction);
-    return sortedAnswersA.every((answerItem, index) => answerItem.questionId === sortedAnswersB[index].questionId && answerItem.score === sortedAnswersB[index].score && answerItem.status === sortedAnswersB[index].status);
+    return sortedAnswersA.every((answerItem, index) =>
+        answerItem.questionId === sortedAnswersB[index].questionId &&
+        answerItem.score === sortedAnswersB[index].score &&
+        answerItem.status === sortedAnswersB[index].status
+    );
 }

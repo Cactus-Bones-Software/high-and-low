@@ -14,6 +14,18 @@ import { clearActiveCheckin, saveActiveCheckin } from './storage/session.js';
 import { updateNotesButtonLabel } from './ui/dialogs.js';
 import { escapeHTML, safeRAF } from './utils.js';
 
+/**
+ * Builds the HTML string for the interactive score button deck.
+ * For boolean questions, renders a 2-button (Yes/No) deck.
+ * For 5-point scale questions, renders a 5-button vertical stack with curve-appropriate labels.
+ * @param {Object} question - The question definition object to build buttons for.
+ * @param {string} [question.responseType] - 'boolean' or 'scale'.
+ * @param {string} [question.curve] - 'more-is-better', 'less-is-better', or 'middle-is-best'.
+ * @param {string | null} [question.minLabel] - Label for score 1.
+ * @param {string | null} [question.maxLabel] - Label for score 5.
+ * @param {string | null} [question.midLabel] - Label for score 3 when curve is 'middle-is-best'.
+ * @returns {string} Safe HTML string containing the rendered score buttons.
+ */
 export function buildScoreButtonsHTML(question) {
     if (!question) return '';
 
@@ -51,6 +63,12 @@ export function buildScoreButtonsHTML(question) {
     return buttonsHTML;
 }
 
+/**
+ * Renders the active question on the tracker canvas.
+ * Updates question prompt text, progress counter, input attributes, and attaches click event handlers.
+ * If all questions have been answered, automatically triggers finalizeCheckin().
+ * @returns {void}
+ */
 export function renderCurrentQuestion() {
     const currentQuestion = STATE.activeQuestions[STATE.currentQuestionIndex];
 
@@ -96,6 +114,10 @@ export function renderCurrentQuestion() {
     });
 }
 
+/**
+ * Removes animation transition CSS classes from the question header and input containers.
+ * @returns {void}
+ */
 export function clearQuestionTransitions() {
     const headerBox = document.getElementById('header-box');
     const inputBox = document.getElementById('input-box');
@@ -107,6 +129,13 @@ export function clearQuestionTransitions() {
     }
 }
 
+/**
+ * Records a question score, persists check-in progress, and advances to the next question.
+ * Orchestrates smooth CSS transition animations without screen blanking.
+ * @param {string} questionId - Identifier of the answered question.
+ * @param {number} score - Numeric score recorded (1-5, or BOOLEAN_NO_SCORE / BOOLEAN_YES_SCORE).
+ * @returns {void}
+ */
 export function handleScoreSubmission(questionId, score) {
     STATE.checkinAnswers.push({ questionId, score, status: 'answered' });
     STATE.currentQuestionIndex++;
@@ -161,6 +190,11 @@ export function handleScoreSubmission(questionId, score) {
     }, 120);
 }
 
+/**
+ * Resets state and starts a fresh check-in session at Question 1.
+ * Clears sessionStorage check-in cache, resets question index and note, and reloads active questions.
+ * @returns {Promise<void>} Resolves when active questions are reloaded and the first question is rendered.
+ */
 export function startNewCheckIn() {
     clearQuestionTransitions();
     clearActiveCheckin();
@@ -202,6 +236,12 @@ export function startNewCheckIn() {
     });
 }
 
+/**
+ * Finalizes the check-in session.
+ * Marks any unanswered active questions as skipped, compiles the entry with ISO timestamp,
+ * writes the record to IndexedDB 'entries' store, clears sessionStorage cache, and shows the completion card.
+ * @returns {void}
+ */
 export function finalizeCheckin() {
     clearQuestionTransitions();
     clearActiveCheckin();

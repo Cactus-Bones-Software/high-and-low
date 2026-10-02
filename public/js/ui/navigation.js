@@ -12,14 +12,29 @@ import {setInert} from "./settings-menu.js";
 
 let currentViewId = 'tracker-canvas';
 
+/**
+ * Returns the identifier of the currently visible canvas view.
+ * @returns {string} View canvas DOM element ID (e.g. 'tracker-canvas', 'history-canvas').
+ */
 export function getCurrentViewId() {
     return currentViewId;
 }
 
+/**
+ * Directly updates the internal current view tracking state without animating transitions.
+ * @param {string} viewId - View canvas ID.
+ * @returns {void}
+ */
 export function setCurrentViewId(viewId) {
     currentViewId = viewId;
 }
 
+/**
+ * Applies or removes accessibility inert attribute and property on an element.
+ * @param {HTMLElement} element - Target DOM element.
+ * @param {boolean} isInert - Whether the element should be non-interactive and hidden from assistive tech.
+ * @returns {void}
+ */
 function setInertLocal(element, isInert) {
     if (!element) return;
     if (typeof setInert === 'function') {
@@ -38,6 +53,17 @@ function setInertLocal(element, isInert) {
     }
 }
 
+/**
+ * Switches the active canvas view with orthogonal horizontal slide animations.
+ * Manages inert states, focus transfer, history state updates, and view lifecycle initialization.
+ * @param {string} targetViewId - ID of destination canvas (e.g. 'tracker-canvas', 'history-canvas').
+ * @param {Object} [options={}] - Navigation options.
+ * @param {boolean} [options.instant=false] - If true, bypasses slide animation for immediate switch.
+ * @param {boolean} [options.fromInit=false] - Indicates initial app boot transition.
+ * @param {boolean} [options.fromPopState=false] - If true, avoids pushing duplicate browser history state.
+ * @param {boolean} [options.force=false] - Forces transition even if already on target canvas.
+ * @returns {void}
+ */
 export function navigateTo(targetViewId, options = {}) {
     if (targetViewId === currentViewId && !options.force) return;
 

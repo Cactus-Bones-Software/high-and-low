@@ -18,6 +18,12 @@ import {showNoticeDialog} from './dialogs.js';
 export const BASE_PIXELS_PER_HOUR = 2;
 export const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;
 
+/**
+ * Formats a numeric zoom scale into a readable string with up to two decimal places.
+ * Trims extraneous trailing zeroes (e.g. 1.50 -> 1.5, 1.00 -> 1).
+ * @param {number | string} zoomScale - Zoom scale multiplier to format.
+ * @returns {string} Formatted zoom string (e.g. '1', '1.5', '2.25').
+ */
 export function formatZoomValue(zoomScale) {
     const formatted = Number(zoomScale).toFixed(2).replace(/0+$/, '');
     return formatted.endsWith('.') ? `${formatted}0` : formatted;
@@ -989,6 +995,11 @@ export function setupGraphGestureZoom(scrollContainerElement, options = {}) {
     };
 }
 
+/**
+ * Loads check-in entries, question definitions, and active question configuration from IndexedDB,
+ * sorts entries chronologically, prepares history dataset, and renders the mood timeline graph.
+ * @returns {Promise<void>} Resolves when history view data is loaded and rendered.
+ */
 export async function loadHistoryView() {
     const container = document.getElementById('history-graph-container') || document.getElementById('panel-history');
     if (!container) return;
@@ -1047,6 +1058,11 @@ export async function loadHistoryView() {
     }
 }
 
+/**
+ * Formats an ISO 8601 timestamp string into a human-readable date and time representation (M/D/YYYY, H:MM AM/PM).
+ * @param {string} isoString - ISO formatted timestamp string.
+ * @returns {string} Formatted localized date-time string.
+ */
 export function formatEntryDateTime(isoString) {
     if (!isoString) return '';
     try {
@@ -1067,6 +1083,12 @@ export function formatEntryDateTime(isoString) {
     }
 }
 
+/**
+ * Formats a timestamp in milliseconds into an X-axis timeline tick label.
+ * @param {number} timeMilliseconds - Epoch timestamp in milliseconds.
+ * @param {boolean} [isShortRange=false] - Whether to include hours and am/pm indicator for short timeframes.
+ * @returns {string} Formatted tick label (e.g. '10/2' or '10/2 4p').
+ */
 export function formatTickDate(timeMilliseconds, isShortRange) {
     try {
         const date = new Date(timeMilliseconds);
@@ -1088,6 +1110,11 @@ export function formatTickDate(timeMilliseconds, isShortRange) {
     }
 }
 
+/**
+ * Returns a human-friendly display label for a timeframe preset key.
+ * @param {string} rangeKey - Timeframe preset key ('7d', '14d', '30d', '90d', 'all').
+ * @returns {string} Human-readable label (e.g. '7 Days', '30 Days', 'All Time').
+ */
 export function getTimeframeLabel(rangeKey) {
     switch (rangeKey) {
         case '7d': return '7 Days';
@@ -1578,6 +1605,21 @@ export function renderGraphSVG(layout) {
     `;
 }
 
+/**
+ * Main DOM rendering orchestrator for the mood timeline graph.
+ * Computes layout dimensions, renders the SVG timeline, injects timeframe preset buttons,
+ * builds the interactive questions legend, attaches gesture zoom controller, and restores scroll position.
+ * @param {HTMLElement} container - DOM container element where the graph UI is mounted.
+ * @param {Object} [data={}] - Graph datasets and configuration options.
+ * @param {Array<Object>} [data.entries] - Chronologically sorted check-in entries.
+ * @param {Array<Object>} [data.allEntries] - Complete unwindowed entries dataset.
+ * @param {Array<Object>} [data.questions] - Question definitions to visualize.
+ * @param {Set<string>|Array<string>} [data.visibleQuestionIds] - Filtered set of visible question IDs.
+ * @param {string} [data.timeRange] - Timeframe preset key ('7d', '14d', '30d', '90d', 'all').
+ * @param {number} [data.zoomScale] - Zoom scale multiplier.
+ * @param {Object} [data.gestureOptions] - Optional gesture zoom configuration overrides.
+ * @returns {void}
+ */
 export function renderLineGraph(container, {
     entries,
     allEntries,

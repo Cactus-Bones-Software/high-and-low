@@ -11,11 +11,23 @@ import { resetHold, updateHoldActionAriaLabels } from './hold-actions.js';
 let noticeReturnFocusElement = null;
 let pendingImportFile = null;
 
+/**
+ * Displays a notice or feedback modal dialog with custom title and subtitle.
+ * Manages accessibility attributes, removes inert, and sets focus on confirmation button.
+ * @param {string} title - Heading text for the notice dialog.
+ * @param {string} subtitle - Body text or explanation.
+ * @param {HTMLElement | string | null} [returnFocusTarget=null] - Element or ID to return focus to on dismiss.
+ * @param {boolean} [isNote=false] - Whether the content is a check-in note (applies note typography styling).
+ * @returns {void}
+ */
 export function showNoticeDialog(title, subtitle, returnFocusTarget, isNote = false) {
     noticeReturnFocusElement = returnFocusTarget || null;
-    const overlay = document.getElementById('notice-dialog-overlay') || document.getElementById('question-feedback-dialog-overlay');
-    const titleElement = document.getElementById('notice-dialog-title') || document.getElementById('question-feedback-title');
-    const subtitleElement = document.getElementById('notice-dialog-subtitle') || document.getElementById('question-feedback-subtitle');
+    const overlay = document.getElementById('notice-dialog-overlay') ||
+        document.getElementById('question-feedback-dialog-overlay');
+    const titleElement = document.getElementById('notice-dialog-title') ||
+        document.getElementById('question-feedback-title');
+    const subtitleElement = document.getElementById('notice-dialog-subtitle') ||
+        document.getElementById('question-feedback-subtitle');
     if (!overlay) return;
 
     if (titleElement) titleElement.textContent = title;
@@ -32,19 +44,26 @@ export function showNoticeDialog(title, subtitle, returnFocusTarget, isNote = fa
     overlay.setAttribute('aria-hidden', 'false');
     overlay.classList.add('is-open');
 
-    const okButton = document.getElementById('button-notice-ok') || document.getElementById('button-question-feedback-ok');
+    const okButton = document.getElementById('button-notice-ok') ||
+        document.getElementById('button-question-feedback-ok');
     if (okButton) setTimeout(() => okButton.focus(), 60);
 }
 
+/**
+ * Closes the active notice dialog, re-applies inert, and returns focus to the triggering element.
+ * @returns {void}
+ */
 export function closeNoticeDialog() {
-    const overlay = document.getElementById('notice-dialog-overlay') || document.getElementById('question-feedback-dialog-overlay');
+    const overlay = document.getElementById('notice-dialog-overlay') ||
+        document.getElementById('question-feedback-dialog-overlay');
     if (!overlay) return;
 
     overlay.classList.remove('is-open');
     overlay.setAttribute('aria-hidden', 'true');
     overlay.setAttribute('inert', '');
 
-    const dialog = document.getElementById('notice-dialog') || document.getElementById('question-feedback-dialog');
+    const dialog = document.getElementById('notice-dialog') ||
+        document.getElementById('question-feedback-dialog');
     if (dialog) {
         for (const button of dialog.querySelectorAll('.hold-action')) {
             resetHold(button);
@@ -62,8 +81,13 @@ export function closeNoticeDialog() {
     }
 }
 
+/**
+ * Attaches Escape/Enter keydown listeners and OK button click listeners to notice dialogs.
+ * @returns {void}
+ */
 export function setupNoticeDialog() {
-    const overlay = document.getElementById('notice-dialog-overlay') || document.getElementById('question-feedback-dialog-overlay');
+    const overlay = document.getElementById('notice-dialog-overlay') ||
+        document.getElementById('question-feedback-dialog-overlay');
     if (!overlay) return;
 
     overlay.addEventListener('keydown', (event) => {
@@ -73,7 +97,8 @@ export function setupNoticeDialog() {
         }
     });
 
-    const okButton = document.getElementById('button-notice-ok') || document.getElementById('button-question-feedback-ok');
+    const okButton = document.getElementById('button-notice-ok') ||
+        document.getElementById('button-question-feedback-ok');
     if (okButton) {
         okButton.addEventListener('click', (event) => {
             event.preventDefault();
@@ -82,6 +107,11 @@ export function setupNoticeDialog() {
     }
 }
 
+/**
+ * Opens the file import modal with mode choices (Smart Merge vs Wipe & Replace) for a staged JSON file.
+ * @param {File} file - Selected backup file.
+ * @returns {void}
+ */
 export function openImportDialog(file) {
     if (!file) return;
     pendingImportFile = file;
@@ -102,6 +132,10 @@ export function openImportDialog(file) {
     if (mergeButton) setTimeout(() => mergeButton.focus(), 60);
 }
 
+/**
+ * Closes the file import modal and resets the file input field.
+ * @returns {void}
+ */
 export function closeImportDialog() {
     const overlay = document.getElementById('import-dialog-overlay');
     const fileInput = document.getElementById('file-import');
@@ -118,6 +152,11 @@ export function closeImportDialog() {
     }
 }
 
+/**
+ * Confirms backup import in specified mode and delegates to the data-io import engine.
+ * @param {'replace' | 'merge'} mode - Import strategy ('replace' or 'merge').
+ * @returns {void}
+ */
 export function confirmImport(mode) {
     const file = pendingImportFile;
     closeImportDialog();
@@ -126,6 +165,10 @@ export function confirmImport(mode) {
     }
 }
 
+/**
+ * Binds Escape key listener on the file import dialog overlay.
+ * @returns {void}
+ */
 export function setupImportDialog() {
     const overlay = document.getElementById('import-dialog-overlay');
     if (!overlay) return;
@@ -138,6 +181,10 @@ export function setupImportDialog() {
     });
 }
 
+/**
+ * Opens the check-in custom note composition dialog, populates current note, and focuses input textarea.
+ * @returns {void}
+ */
 export function openNotesDialog() {
     const overlay = document.getElementById('notes-dialog-overlay');
     const input = document.getElementById('checkin-note-input');
@@ -156,6 +203,10 @@ export function openNotesDialog() {
     }, 60);
 }
 
+/**
+ * Closes the notes dialog, re-applies inert, and returns focus to the notes button on tracker canvas.
+ * @returns {void}
+ */
 export function closeNotesDialog() {
     const overlay = document.getElementById('notes-dialog-overlay');
     if (!overlay) return;
@@ -174,6 +225,10 @@ export function closeNotesDialog() {
     if (notesButton) notesButton.focus({ preventScroll: true });
 }
 
+/**
+ * Saves note text from the modal input into active check-in state, updates button label, and closes dialog.
+ * @returns {void}
+ */
 export function saveNotesFromDialog() {
     const input = document.getElementById('checkin-note-input');
     if (input) {
@@ -185,6 +240,10 @@ export function saveNotesFromDialog() {
     closeNotesDialog();
 }
 
+/**
+ * Binds Escape and Ctrl/Cmd+Enter keyboard shortcuts to the notes composition modal.
+ * @returns {void}
+ */
 export function setupNotesDialog() {
     const overlay = document.getElementById('notes-dialog-overlay');
     const input = document.getElementById('checkin-note-input');
@@ -206,6 +265,10 @@ export function setupNotesDialog() {
     });
 }
 
+/**
+ * Updates the notes toggle button label on tracker canvas depending on whether a note is attached.
+ * @returns {void}
+ */
 export function updateNotesButtonLabel() {
     const notesButton = document.getElementById('button-notes');
     if (!notesButton) return;

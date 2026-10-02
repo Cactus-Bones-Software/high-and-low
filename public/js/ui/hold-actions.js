@@ -19,10 +19,20 @@ let holdTimer = null;
 let isExecutingAction = false;
 let isHoldDelayEnabled = true; // Enabled on by default
 
+/**
+ * Sets whether the 1.5-second hold confirmation delay is enforced for destructive/hold actions.
+ * @param {boolean} enabled - True if hold delay barrier is enabled, false for instant execution.
+ * @returns {void}
+ */
 export function setIsHoldDelayEnabled(enabled) {
     isHoldDelayEnabled = Boolean(enabled);
 }
 
+/**
+ * Initializes pointer, mouse, touch, and keyboard event handlers across all elements with .hold-action class.
+ * Enforces 1500ms continuous hold barrier with pointer capture and visual feedback.
+ * @returns {void}
+ */
 export function setupHoldActions() {
     document.querySelectorAll('.hold-action').forEach(button => {
         const startHold = () => {
@@ -128,6 +138,11 @@ export function setupHoldActions() {
     });
 }
 
+/**
+ * Cancels active hold timer and strips .is-holding class from button element.
+ * @param {HTMLElement} element - Target hold action button.
+ * @returns {void}
+ */
 export function resetHold(element) {
     clearTimeout(holdTimer);
     if (element?.classList) {
@@ -135,6 +150,12 @@ export function resetHold(element) {
     }
 }
 
+/**
+ * Executes the discrete application command associated with a hold-action button ID.
+ * Debounced to prevent accidental double-execution.
+ * @param {string} id - DOM element ID of the action button.
+ * @returns {void}
+ */
 export function executeHoldAction(id) {
     if (isExecutingAction) return;
     isExecutingAction = true;
@@ -211,6 +232,10 @@ export function executeHoldAction(id) {
     }
 }
 
+/**
+ * Updates accessible aria-labels on hold action buttons to indicate whether hold-to-confirm is required.
+ * @returns {void}
+ */
 export function updateHoldActionAriaLabels() {
     const skipButton = document.getElementById('button-skip');
     if (skipButton) {

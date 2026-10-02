@@ -27,34 +27,66 @@ let archiveAuthoringHandler = null;
 let openCopyAuthoringHandler = null;
 let isRemovedQuestionsExpanded = false;
 
+/**
+ * Sets whether the removed (archived) questions section is expanded in the UI.
+ * @param {boolean} expanded - True to expand the removed questions list, false to collapse.
+ * @returns {void}
+ */
 export function setRemovedQuestionsExpanded(expanded) {
     isRemovedQuestionsExpanded = Boolean(expanded);
 }
 
+/**
+ * Checks whether the removed (archived) questions section is currently expanded.
+ * @returns {boolean} True if expanded, false if collapsed.
+ */
 export function isRemovedQuestionsSectionExpanded() {
     return isRemovedQuestionsExpanded;
 }
 
+/**
+ * Cancels active question authoring or editing and closes the question modal dialog.
+ * @returns {void}
+ */
 export function cancelQuestionAuthoring() {
     if (cancelAuthoringHandler) cancelAuthoringHandler();
 }
 
+/**
+ * Validates and saves question data currently entered in the question authoring modal.
+ * @returns {Promise<void>} Resolves when the question has been created or updated.
+ */
 export async function saveQuestionFromAuthoring() {
     if (saveAuthoringHandler) await saveAuthoringHandler();
 }
 
+/**
+ * Archives (soft-deletes) the question currently being edited in the authoring modal.
+ * @returns {Promise<void>} Resolves when the question has been archived.
+ */
 export async function archiveQuestionFromAuthoring() {
     if (archiveAuthoringHandler) await archiveAuthoringHandler();
 }
 
 export const removeQuestionFromAuthoring = archiveQuestionFromAuthoring;
 
+/**
+ * Opens the question authoring modal in copy/template mode pre-populated with another question's fields.
+ * @param {Object} question - The source question to copy.
+ * @returns {Promise<void>}
+ */
 export async function openCopyModalForQuestion(question) {
     if (openCopyAuthoringHandler) {
         await openCopyAuthoringHandler(question);
     }
 }
 
+/**
+ * Evaluates whether a question matches a search query string across text, shortLabel, and tags.
+ * @param {Object} question - Question definition to test.
+ * @param {string} searchQuery - Search query string.
+ * @returns {boolean} True if question matches query or query is empty.
+ */
 export function questionMatchesSearch(question, searchQuery) {
     const normalizedQuery = searchQuery.trim().toLowerCase();
     if (!normalizedQuery) return true;
@@ -68,6 +100,14 @@ export function questionMatchesSearch(question, searchQuery) {
     return searchableParts.some(part => part.toLowerCase().includes(normalizedQuery));
 }
 
+/**
+ * Partitions all question records into active tracker questions, catalog questions,
+ * and archived questions, filtering each subset by the given search query.
+ * @param {Array<Object>} allQuestions - All question records from IndexedDB.
+ * @param {Array<string>} activeSetIds - Array of active question IDs in order.
+ * @param {string} searchQuery - Current search filter string.
+ * @returns {{ activeQuestions: Object[], catalogQuestions: Object[], archivedQuestions: Object[] }}
+ */
 export function partitionQuestionsForView(allQuestions, activeSetIds, searchQuery) {
     const questionsById = new Map(allQuestions.map(question => [question.id, question]));
 
@@ -94,6 +134,17 @@ export function partitionQuestionsForView(allQuestions, activeSetIds, searchQuer
     return { activeQuestions, catalogQuestions, archivedQuestions };
 }
 
+/**
+ * Builds safe HTML markup for a question card in active, catalog, or archived question lists.
+ * @param {Object} question - Question definition object.
+ * @param {Object | boolean} [options={}] - Card display options or boolean for isActiveInTracker.
+ * @param {boolean} [options.isActiveInTracker=false] - Whether question is currently active in tracker.
+ * @param {boolean} [options.isReorderable=false] - Whether reorder handles and controls are rendered.
+ * @param {boolean} [options.isArchived=false] - Whether question is archived.
+ * @param {number} [options.questionIndex=0] - 0-based sequence index in active questions set.
+ * @param {number} [options.totalQuestionsCount=1] - Total count of active questions.
+ * @returns {string} Safe HTML string for the question card <li> element.
+ */
 export function buildQuestionCardHTML(question, options = {}) {
     const parsedOptions = typeof options === 'boolean'
         ? { isActiveInTracker: options, isReorderable: false, isArchived: false, questionIndex: 0, totalQuestionsCount: 1 }
@@ -219,6 +270,13 @@ export function buildQuestionCardHTML(question, options = {}) {
     `;
 }
 
+/**
+ * Builds HTML for an active question card with reorder arrows and drag handles.
+ * @param {Object} question - Question definition object.
+ * @param {number} questionIndex - 0-based sequence index.
+ * @param {number} totalQuestionsCount - Total count of active questions.
+ * @returns {string} Safe HTML string for the active question card.
+ */
 export function buildActiveQuestionCardHTML(question, questionIndex, totalQuestionsCount) {
     return buildQuestionCardHTML(question, {
         isActiveInTracker: true,
@@ -228,6 +286,12 @@ export function buildActiveQuestionCardHTML(question, questionIndex, totalQuesti
     });
 }
 
+/**
+ * Handles common interactive events on question cards (copy, edit, archive/remove buttons).
+ * Dispatches custom events or triggers database archiving actions with notice feedback.
+ * @param {Event} event - Delegated click event on the question list container.
+ * @returns {Promise<boolean>} True if a common action was matched and handled, false otherwise.
+ */
 export async function handleCommonQuestionCardAction(event) {
     const copyButton = event.target.closest('.question-copy-button, [data-action="copy-question"]');
     if (copyButton && !copyButton.disabled) {
@@ -271,6 +335,12 @@ export async function handleCommonQuestionCardAction(event) {
     return false;
 }
 
+/**
+ * Sets up pointer-drag, HTML5 drag-and-drop, keyboard arrow reordering, and click listeners
+ * on the active questions list container.
+ * @param {HTMLElement} activeList - Active questions unordered list container element.
+ * @returns {void}
+ */
 export function setupActiveQuestionsListeners(activeList) {
     if (!activeList || activeList.dataset.hasActiveListeners === 'true') return;
     activeList.dataset.hasActiveListeners = 'true';
@@ -556,6 +626,12 @@ export function setupActiveQuestionsListeners(activeList) {
     activeList.addEventListener('pointercancel', finishPointerDrag);
 }
 
+/**
+ * Attaches delegated click listeners to the questions catalog container for adding or removing
+ * questions from the active tracker set.
+ * @param {HTMLElement} catalogList - Catalog list element.
+ * @returns {void}
+ */
 export function setupCatalogQuestionsListeners(catalogList) {
     if (!catalogList || catalogList.dataset.hasCatalogListeners === 'true') return;
     catalogList.dataset.hasCatalogListeners = 'true';
@@ -583,6 +659,11 @@ export function setupCatalogQuestionsListeners(catalogList) {
     });
 }
 
+/**
+ * Attaches click event listeners to the archived (removed) questions list for restoring or copying questions.
+ * @param {HTMLElement} archivedList - Archived questions list element.
+ * @returns {void}
+ */
 export function setupArchivedQuestionsListeners(archivedList) {
     if (!archivedList || archivedList.dataset.hasArchivedListeners === 'true') return;
     archivedList.dataset.hasArchivedListeners = 'true';
@@ -614,6 +695,11 @@ export function setupArchivedQuestionsListeners(archivedList) {
     });
 }
 
+/**
+ * Attaches click listener to the collapsible toggle button for showing or hiding removed questions.
+ * @param {HTMLElement} toggleRemovedButton - Toggle button element.
+ * @returns {void}
+ */
 export function setupRemovedQuestionsToggleListener(toggleRemovedButton) {
     if (!toggleRemovedButton || toggleRemovedButton.dataset.hasToggleListener === 'true') return;
     toggleRemovedButton.dataset.hasToggleListener = 'true';
@@ -625,6 +711,11 @@ export function setupRemovedQuestionsToggleListener(toggleRemovedButton) {
     });
 }
 
+/**
+ * Loads all questions and active question sequence from IndexedDB, partitions them into active,
+ * catalog, and archived lists, applies active search filtering, and renders the questions canvas cards.
+ * @returns {Promise<void>} Resolves when the questions view is rendered.
+ */
 export async function loadQuestionsView() {
     const activeList = document.getElementById('questions-active-list');
     const catalogList = document.getElementById('questions-catalog-list');
@@ -726,6 +817,11 @@ export async function loadQuestionsView() {
     }
 }
 
+/**
+ * Initializes the Question Authoring modal dialog: binds form controls, live score deck preview,
+ * custom event listeners for edit and copy requests, validation banners, and save/archive workflows.
+ * @returns {void}
+ */
 export function setupQuestionAuthoring() {
     let currentEditingQuestionId = null;
 

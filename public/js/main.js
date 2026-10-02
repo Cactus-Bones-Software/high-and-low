@@ -54,6 +54,11 @@ import { safeRAF } from './utils.js';
 export let isRefreshingTab = false;
 export let activeServiceWorkerRegistration = null;
 
+/**
+ * Triggers a browser location reload to activate newly installed service worker updates.
+ * Safely guards against environments where window.location.reload is unavailable.
+ * @returns {void}
+ */
 export function reloadActiveTab() {
     if (typeof window !== 'undefined' && typeof window.location?.reload === 'function') {
         try {
@@ -176,10 +181,19 @@ if (typeof window !== 'undefined') {
 
 export let isAppInitialized = false;
 
+/**
+ * Resets the application initialization guard flag (primarily used in test harness teardown).
+ * @returns {void}
+ */
 export function resetAppInitialized() {
     isAppInitialized = false;
 }
 
+/**
+ * Bootstraps the application runtime: opens IndexedDB, seeds defaults, loads questions and settings,
+ * wires DOM event listeners for check-in controls, navigation, and modal dialogs, and renders initial view.
+ * @returns {Promise<void>} Resolves when asynchronous startup completes.
+ */
 export function initApp() {
     if (isAppInitialized) return Promise.resolve();
     isAppInitialized = true;

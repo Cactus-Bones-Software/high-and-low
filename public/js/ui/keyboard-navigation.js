@@ -6,6 +6,11 @@
 import { executeHoldAction } from './hold-actions.js';
 import { openSettings, closeSettings } from './settings-menu.js';
 
+/**
+ * Registers global keyboard listeners for score submission (1-5), shortcuts (N, S, M, Escape),
+ * and arrow-key focus cycling through all interactive controls on the tracker canvas.
+ * @returns {void}
+ */
 export function setupKeyboardNavigation() {
     window.addEventListener('scroll', () => {
         if (window.scrollX !== 0 || window.scrollY !== 0) {

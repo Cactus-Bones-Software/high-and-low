@@ -3,6 +3,11 @@
  * Small, dependency-free helper functions used across modules.
  */
 
+/**
+ * Escapes unsafe HTML characters (&, <, >, ", ') in a string to prevent XSS vulnerabilities.
+ * @param {any} stringToEscape - Input value or string to sanitize.
+ * @returns {string} Safe HTML-escaped string, or empty string if null/undefined.
+ */
 export function escapeHTML(stringToEscape) {
     if (stringToEscape === null || stringToEscape === undefined) return '';
     return String(stringToEscape)
@@ -13,6 +18,12 @@ export function escapeHTML(stringToEscape) {
         .replace(/'/g, '&#039;');
 }
 
+/**
+ * Safely invokes requestAnimationFrame in browser environments, with a setTimeout fallback
+ * for headless testing or non-browser execution contexts.
+ * @param {FrameRequestCallback} callback - Function to execute on the next animation frame.
+ * @returns {number} Request ID identifier.
+ */
 export function safeRAF(callback) {
     if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
         return window.requestAnimationFrame(callback);
@@ -26,6 +37,9 @@ export function safeRAF(callback) {
 /**
  * Tagged template literal helper that automatically escapes interpolated expressions.
  * Use rawHTML() when an interpolated expression already contains safe, pre-rendered markup.
+ * @param {TemplateStringsArray} strings - Template literal string parts.
+ * @param {...any} values - Interpolated values to sanitize or inject.
+ * @returns {string} Composed safe HTML string.
  */
 export function html(strings, ...values) {
     let result = '';
@@ -47,6 +61,12 @@ export function html(strings, ...values) {
     return result;
 }
 
+/**
+ * Wraps pre-escaped or trusted HTML markup in a marker object so html`` template literals
+ * inject it raw without double-escaping.
+ * @param {string | null | undefined} htmlString - Trusted HTML markup string.
+ * @returns {{ __isRawHTML: boolean, content: string }} Object marked for raw injection.
+ */
 export function rawHTML(htmlString) {
     return {
         __isRawHTML: true,

@@ -10,6 +10,11 @@ export const CHECKIN_STORAGE_KEY = 'high_and_low_active_checkin';
 export const VIEW_STORAGE_KEY = 'high_and_low_active_view';
 export const CHECKIN_TIMEOUT_MS = 30 * 60 * 1000; // 30-minute timeout for stale check-ins
 
+/**
+ * Persists the current in-progress check-in state to sessionStorage.
+ * Stores question index, answers array, custom note, and updated timestamp.
+ * @returns {void}
+ */
 export function saveActiveCheckin() {
     try {
         const payload = {
@@ -24,6 +29,10 @@ export function saveActiveCheckin() {
     }
 }
 
+/**
+ * Removes any saved in-progress check-in from sessionStorage.
+ * @returns {void}
+ */
 export function clearActiveCheckin() {
     try {
         sessionStorage.removeItem(CHECKIN_STORAGE_KEY);
@@ -32,6 +41,11 @@ export function clearActiveCheckin() {
     }
 }
 
+/**
+ * Restores an in-progress check-in from sessionStorage if not expired (>30 minutes).
+ * Populates STATE.currentQuestionIndex, STATE.checkinAnswers, and STATE.checkinNote.
+ * @returns {boolean} True if an unexpired check-in was successfully restored, false otherwise.
+ */
 export function restoreActiveCheckin() {
     try {
         const rawCheckin = sessionStorage.getItem(CHECKIN_STORAGE_KEY);
@@ -58,6 +72,11 @@ export function restoreActiveCheckin() {
     return false;
 }
 
+/**
+ * Stores the identifier of the currently active canvas view in sessionStorage.
+ * @param {string} viewId - Canvas element ID (e.g. 'tracker-canvas', 'history-canvas').
+ * @returns {void}
+ */
 export function saveActiveView(viewId) {
     try {
         sessionStorage.setItem(VIEW_STORAGE_KEY, viewId);
@@ -66,6 +85,10 @@ export function saveActiveView(viewId) {
     }
 }
 
+/**
+ * Retrieves the last stored active view identifier from sessionStorage.
+ * @returns {string | null} Stored view identifier, or null if none or retrieval failed.
+ */
 export function getStoredActiveView() {
     try {
         return sessionStorage.getItem(VIEW_STORAGE_KEY);
