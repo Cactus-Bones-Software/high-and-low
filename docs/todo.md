@@ -74,6 +74,101 @@
   - Add a "Restart Check-In" / "Start Over" action within the navigation side drawer to allow users to reset their in-progress check-in back to Question 1 without cluttering the main tracker canvas.
   - Clear active check-in storage, reset the state to Question 1, update the tracker view, and close the drawer cleanly.
 
+- [ ] **Task 2.14: About, Licence & Thank-You Screen**
+  - The README promises an "about section of the app", but no such view exists. Add a dedicated `#about-canvas` view
+    reachable from the drawer, following the same navigation, transition, and focus-management pattern as the
+    Settings and Data views. This is a high-energy-path view; do not add anything to the tracker canvas.
+  - Include: the app name, a plain-language statement that all data stays on the device, the AGPL licence notice
+    with a link to the source repository, the "no advertisements, no tracking" statement, donation links
+    (GitHub Sponsors, Ko-fi), and the Thank-You list (real-world names only, per the README's donation terms).
+  - All copy must use the Check-In / Entry terminology and be written so it can be extracted by Task 8.3.
+
+- [ ] **Task 2.15: Last-Backup Indicator in the Data View**
+  - Data lives only on the device and browsers can evict or clear it, so users need to know how stale their backup
+    is. Add a `lastBackupAt` config key (ISO-8601 string or `null`), written after a successful export.
+  - Show "Last backup: <date>" (or "No backup yet") in the Data view only. Do not add reminders, banners, or badges
+    to the tracker canvas (see the two-energy-modes rule in `docs/decisions.md`).
+  - Decide whether `lastBackupAt` belongs in the export; it must not break import or merge of older backups.
+  - This is an additive config key: update `docs/state.md` and check `docs/versioning.md` for the bump.
+
+- [ ] **Task 2.16: Decide on Safety / Crisis Resources (Developer Decision Required)**
+  - This is a decision task. **Stop and ask the developer before implementing anything.** The app is used by people
+    in severe lows, and the README already plans a licensed-psychologist review, so the answer may belong to that
+    review.
+  - Options to put to the developer: (a) no in-app crisis information, (b) a static, clearly labelled "If you need
+    urgent help" entry in the drawer or About view, (c) something else.
+  - If any resource is added, constrain it: it lives in the high-energy path only, is never triggered or hidden
+    based on a user's scores or notes, and is region-aware through the localization system (Task 8.3), since
+    hotlines are country-specific.
+  - Record the outcome in `docs/decisions.md` (it constrains future work and passes the admission test).
+
+- [ ] **Task 2.17: Selective Backup — Data Layer & Scope Model**
+  - Today the only export is `exportAllDataAndConfig()`, which dumps everything. There is no way to back up settings
+    without history, or history without settings. Add a scope-aware export in `public/js/data-io.js`, e.g.
+    `exportBackup({ includeHistory, includeSettings })`, with at least one scope required. Keep the existing full
+    export as the default so the one-tap path never changes.
+  - Define the two scopes explicitly and document them in `docs/state.md`:
+    - **History**: the `entries` store, plus every question record those entries reference (archived included).
+      Entries must always resolve to a question, so a history-only file that omitted questions would leave orphaned
+      answers on a fresh device.
+    - **Settings**: the question library and `activeQuestionSet` (so a tailored tracker can be carried to a new
+      device or shared with a clinician's patients), plus the display preferences (`theme`, `contrast`,
+      `handedness`, `holdDelay`, and later `language`).
+  - Use an explicit allowlist of exportable config keys. Never export `seedVersion` or `lastBackupAt`; they describe
+    the device, not the user's choices.
+  - Record the scope in the file (an optional `scope` field such as `["history", "settings"]`), keep
+    `exportVersion` readable by the current importer for full backups, and put the scope in the filename
+    (`-full`, `-history-only`, `-settings-only`) so users can tell files apart at a glance.
+  - `docs/decisions.md` currently says "Never a partial export". Edit that rule (do not append): the default and
+    primary export is complete; partial exports are allowed only when explicitly chosen, labelled in the file and
+    filename, and never presented as a full backup.
+  - Coordinate with Task 2.15: any export that includes history updates `lastBackupAt`; a settings-only export
+    does not.
+  - Additive schema and file-format change: update `docs/state.md` and check `docs/versioning.md` for the bump.
+
+- [ ] **Task 2.18: Export Dialog with Scope Checkboxes**
+  - In the Data view, keep a prominent one-tap **Back Up Everything** button as the primary action. Add a secondary
+    **Choose What to Export…** button that opens an accessible modal (same overlay, focus-trap, Escape-to-close, and
+    focus-return pattern as the other dialogs) containing two checkboxes, both checked by default:
+    "Check-In history" and "Settings & questions". Each has one plain-language line saying what it includes. The
+    history line must say that the questions those Check-Ins refer to come along with it.
+  - The Export button is disabled, with a visible reason, when neither box is checked. Show a short summary of what
+    will be saved ("History only — 142 Entries") so the result is never a surprise.
+  - Use ordinary dialog buttons; do not wrap them in the hold-to-confirm barrier (see bug 7.1).
+  - The CSV export (Task 3.12) stays a separate button; it serves a different purpose (reading, not restoring).
+  - All copy uses Check-In / Entry terminology and is written for extraction by Task 8.3.
+
+- [ ] **Task 2.19: Import Partial Backups Safely**
+  - `handleFileImportReaderLoad()` currently rejects any file missing `entries` or `config`, so the files from Task
+    2.17 would be refused. Relax validation to: valid JSON, a recognised `exportVersion`, and at least one of
+    `entries`, `questions`, or `config` present as an array. Full 2.0 backups must keep importing unchanged.
+  - **Wipe & Replace must only clear the stores whose data the file actually contains.** Importing a settings-only
+    file in replace mode must never erase history, and importing a history-only file must never reset settings.
+    Smart Merge keeps its current rules (entries dedupe on exact timestamp; questions resolve by newest
+    `updatedAt`, with the `originalText` collision rule).
+  - Show what the file contains in the import dialog ("This file contains: Settings only") before the user
+    chooses a mode, and word the Wipe & Replace description to match.
+  - On import, ignore `seedVersion` and `lastBackupAt` even if an older file contains them.
+  - Tests: full backup round-trip, history-only into a populated device, settings-only into a populated device,
+    replace-mode scoping, malformed and empty-array files, and orphan prevention (history-only import brings its
+    questions).
+
+- [ ] **Task 2.20: Erase All Data from Inside the App**
+  - Task 2.6 lists "Reset Data" for the Data view, but no such control exists; the only way to clear data today is
+    to import a file in Wipe & Replace mode, or to clear browser storage by hand. Add an **Erase All Data** action
+    in its own clearly separated section at the bottom of the Data view, away from the export and import buttons.
+  - Protect it with the existing hold-to-confirm barrier, and make it work even when the `holdDelay` setting is
+    disabled (an irreversible action should not be a single stray tap). The confirmation dialog states plainly what
+    will be erased, and offers **Back Up First** (a full export) as the first, default-focused option.
+  - Erase: the `entries`, `questions`, and `config` stores; the in-progress Check-In and view in `sessionStorage`;
+    and the `localStorage` display caches (`handedness`, `holdDelay`, and the legacy `menuSide` if present). Then
+    re-seed the built-in questions and default active set and reload into a clean first-run state. Do not touch the
+    service worker or its caches; those are app code, not user data.
+  - Never leave a half-erased state: perform the IndexedDB clears in one transaction and only reload on its
+    successful completion; on failure, show a notice dialog and leave the data intact.
+  - Tests: every store and storage key above is empty or re-seeded afterwards, the app starts at Question 1 with
+    default settings, and a failed transaction leaves data intact.
+
 ---
 
 ### Phase 3: Analytics & Data Visualization
@@ -133,6 +228,26 @@ Patients and psychiatrists need a way to actually read the collected data back, 
   - Zoom adjusts horizontal point spacing in `computeGraphLayout()` without changing the active timeframe or filters.
   - Preserve the user's current horizontal scroll anchor when zooming.
   - Use large, keyboard-reachable buttons with clear aria-labels.
+
+- [ ] **Task 3.12: CSV Export for Sharing with a Clinician**
+  - The README says users can share data with a psychologist, but the only output today is the raw JSON backup,
+    which is unreadable for a clinician. Add an "Export as CSV" action to the Data view, kept separate from the
+    full JSON backup (which must remain a complete export, per `docs/decisions.md`).
+  - One row per Entry with columns for timestamp, date, note, and one column per question (use each question's
+    `shortLabel`, including archived questions that have answers). Skipped answers are an empty cell, not-asked
+    answers are an empty cell with a distinguishing convention documented in the file header or README, and boolean
+    questions are written as `Yes`/`No` using the constants in `questions.js`. Never write `0` or `-1`.
+  - Escape notes and labels correctly for CSV, and neutralize spreadsheet formula injection (cells starting with
+    `=`, `+`, `-`, or `@`). The file is generated entirely on the device; no network requests.
+  - Add tests for quoting, newlines in notes, formula-prefixed notes, skipped vs. not-asked, and boolean output.
+
+- [ ] **Task 3.13: Print-Friendly History View**
+  - Add an `@media print` stylesheet for the History view so a user can print or "Save as PDF" the graph for an
+    appointment: hide the drawer, toolbars, and floating buttons; show the full graph unclipped and the legend.
+  - Notes are currently revealed by tapping a marker, which is invisible on paper. In print output, render a dated
+    list of notes (escaped via `escapeHTML()`) beneath the graph.
+  - Ensure line differentiation does not rely on colour alone in print (the dash patterns from Task 3.5 must
+    survive), since printers are often greyscale.
 
 ---
 
@@ -334,11 +449,44 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - Listen for service worker state changes and `controllerchange` events in `public/js/main.js` to automatically prompt users or reload active tabs when app updates deploy.
   - Implement app lifecycle re-checks (`visibilitychange` / `registration.update()`) to force fresh update checks when the installed PWA resumes from background states.
 
+- [ ] **Task 6.4: Precache List Integrity Test**
+  - `PRECACHE_ASSETS` in `sw.js` is maintained by hand, and `CACHE_NAME` is bumped by hand, so a forgotten file or
+    bump leaves offline users on stale or missing assets. Add a Vitest test that fails if any file under
+    `public/js/` (and `index.html`, `style.css`, `manifest.json`, and the `icons/` files referenced by the manifest
+    and HTML) is missing from `PRECACHE_ASSETS`, or if any listed path does not exist on disk.
+  - Document the `CACHE_NAME` bump rule (when it must change) in `docs/state.md` next to the `sw.js` entry.
+  - Do the cleanup in bug 7.4 first or in the same edit, otherwise this test will fail on the nonexistent paths.
+
+- [ ] **Task 6.5: Request Persistent Storage**
+  - Browsers may evict IndexedDB for sites that are not installed or are under storage pressure. After the first
+    successfully saved Check-In (not on page load), call `navigator.storage.persist()` if available and not already
+    granted. Never show a blocking prompt of our own; browsers that ask for permission do so themselves.
+  - Failure or unsupported browsers must be silent to the user and logged with `console.warn` (per Task 4.15).
+  - Show the persistence status ("Storage protected" / "Storage not protected: back up regularly") in the Data view
+    only, next to the Task 2.15 backup indicator.
+
 ---
 
 ### Phase 7: Bugs and Issues
 
 - [ ] **7.1**: Buttons in dialogs sometimes have the hold-to-actuate effect, even if they do not need to be held.
+
+- [ ] **7.2**: The viewport meta tag in `index.html` sets `maximum-scale=1.0, user-scalable=no`, which blocks
+  browser zoom for low-vision users (fails WCAG 1.4.4 Resize Text) in an app that has accessibility as a core
+  principle. Remove those restrictions. Confirm the graph's own pinch-zoom (Tasks 9.7–9.10) still works without
+  triggering page zoom by relying on `touch-action` on `.graph-scroll-container`, and add a test or documented
+  manual check for it.
+
+- [ ] **7.3**: There is no `prefers-reduced-motion` handling anywhere in `style.css`. Add a
+  `@media (prefers-reduced-motion: reduce)` block that removes or minimizes view slides, question transitions, the
+  save-button wiggle, and graph animations. Ensure any JS that waits on `transitionend` or a timer still completes
+  its work when transitions are disabled (otherwise views or questions could get stuck). Add a test alongside
+  `tests/transitions.test.js`.
+
+- [ ] **7.4**: `PRECACHE_ASSETS` in `sw.js` lists root-level icon paths (`./favicon.ico`, `./favicon.png`,
+  `./apple-touch-icon.png`, `./pwa-*.png`) that do not exist; the icons live in `./icons/`. They fail silently in the
+  install handler's `try/catch`, hiding real precache failures. Remove the nonexistent entries and confirm offline
+  start still works. Bump `CACHE_NAME`.
 
 ### Phase 8: Documentation & Final Cleanup
 - [x] **Task 8.1: Code Base JSDoc & Architectural Comments**
@@ -351,6 +499,44 @@ just native `<script type="module">`, staying within the vanilla-only constraint
 - [ ] **Task 8.3: Internationalization & Localization Pass**
   - Extract all hardcoded user-facing UI strings across `index.html` and `public/js/` modules into a centralized translation dictionary.
   - Implement language switching and localization readiness for questions, controls, navigation, and settings interface elements.
+
+- [ ] **Task 8.3.1: Localization Design Decision — Built-In Question Translation (Developer Decision Required)**
+  - Do this before or at the start of Task 8.3. **Stop and ask the developer.** `docs/decisions.md` says question
+    `id` and `originalText` are immutable and custom IDs are hashes of `originalText`, so translating built-in
+    questions by overwriting stored `text` would violate the model.
+  - Proposal to confirm: built-in questions resolve their `text`, `shortLabel`, and endpoint labels from translation
+    keys at render time (keyed by `id`), while custom and user-edited questions display their stored text
+    untranslated. Decide what happens when a user has edited a built-in's copy, what backups contain, and whether
+    `SEED_VERSION` needs a bump.
+  - Record the outcome in `docs/decisions.md` and the schema impact in `docs/state.md`.
+
+- [ ] **Task 8.3.2: Locale-Aware Dates and Document Language**
+  - `formatEntryDateTime`, `formatTickDate`, and related helpers in `ui/history-graph.js` use no `Intl` APIs. Route
+    all date/time display (graph ticks, tooltips, note markers, Data view dates) through `Intl.DateTimeFormat` using
+    the active locale.
+  - Keep `<html lang>` and `dir` in sync with the selected language at startup and on language change.
+  - Add tests for at least two locales, including a different date order and 12/24-hour convention.
+
+- [ ] **Task 8.3.3: Localize Static Files and Offline Caching**
+  - `index.html` `<title>` and meta description, the testing banner, and `manifest.json` `name`/`description` are
+    not reachable by the translation dictionary. Localize `<title>` and the banner from JS, and decide (and
+    document in `docs/state.md`) how the single `manifest.json` is handled (default-locale only, or per-locale files).
+  - Add every locale file to `PRECACHE_ASSETS` in `sw.js` and bump `CACHE_NAME`. This must pass the Task 6.4 test.
+  - Persist the chosen language as a new `language` config key (mirror it in `localStorage` for pre-render access,
+    like `handedness`); update `docs/state.md` and check `docs/versioning.md`.
+
+- [ ] **Task 8.3.4: Translation Glossary and Key-Parity Test**
+  - Add a short glossary (in `docs/`) fixing the translation of "Check-In" and "Entry" per language, since the
+    terminology rule in `docs/decisions.md` is written in English. "Session", "Quiz", "Test", and "Log" equivalents
+    remain forbidden in every language.
+  - Add a test asserting that every locale defines exactly the same keys as the default locale, that no value is
+    empty, and that interpolation placeholders match across locales.
+
+- [ ] **Task 8.3.5: Right-to-Left Layout Review (Only When an RTL Locale Is Added)**
+  - Convert physical CSS properties (`margin-left`, `left`, `text-align: left`, etc.) to logical ones where needed.
+  - Decide whether `handedness` stays a physical left/right setting under RTL (it should, because it describes the
+    user's hand, not reading direction) and verify the menu, edit buttons, and graph axes still behave correctly.
+  - Do not start this until an RTL locale actually exists.
 
 - [x] **Task 8.4: Shared Test Harness & Helper Utilities**
   - Extract repetitive JSDOM bootstrapping, IndexedDB mocking, matchMedia/serviceWorker polyfills, and helper functions into a centralized `tests/test-utils.js` harness.
@@ -382,6 +568,56 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - Add tests for any rule that has no enforcement (candidates: the `score: 0` / `-1` sentinel ban, the
     `SEED_VERSION` bump requirement, the no-hard-delete rule for questions, and export including archived questions).
   - Remove or correct any rule the code does not follow, or record the discrepancy as a bug in Phase 7.
+
+
+- [ ] **Task 8.8: Documentation Consistency Pass**
+  - Fix contradictions between the docs and the code or each other, verifying against the code each time:
+    - `docs/dataset-guidelines.md` schema is outdated: no `originalText`, `tags`, or `responseType`; uses `menuSide`
+      and `contrast: "low"`; shows `seedVersion: 3`.
+    - `docs/state.md` calls `decisions.md` "append-only"; `docs/versioning.md` says it "logs rationale for bumps".
+      Both contradict `AGENTS.md` and the header of `decisions.md`.
+    - `docs/state.md` lists `question_copying.test.js`; the real file is `question-copying.test.js`.
+    - `docs/state.md` documents `contrast` as `'standard'` or `'high'`, but `index.html` uses `data-contrast="low"`.
+      Determine which is correct, and fix the docs or file a bug in Phase 7.
+    - `biome.json` uses `lineWidth: 100`; `AGENTS.md` specifies a 120-column limit. Align them.
+    - `docs/todo.md`: Task 5.9 has broken bold markup; Phase 8 appears before Phase 9; Task 8.4 references a
+      nonexistent `session_persistence.test.js`; several older tasks still mention `app.js` and `logs` where the code
+      now uses modules and `entries`.
+  - Docs-only change; no version bump.
+
+- [ ] **Task 8.9: Record Product Non-Goals in `decisions.md` (Developer Decision Required)**
+  - **Ask the developer which of these are permanent non-goals** before writing anything: push notifications or
+    reminders, accounts or cloud sync (the README says others may fork for this), analytics or telemetry of any
+    kind, and advertising.
+  - For each confirmed item, add a standing-constraint entry to `docs/decisions.md` in the existing
+    **Rule.** Why. format, so future agents stop and ask rather than re-litigating it.
+
+- [ ] **Task 8.10: CI — Run Tests and Lint Before Deploy**
+  - `.github/workflows/static.yml` deploys `public/` to Pages on every push to `main` without running `npm test` or
+    `npm run lint`. Add a workflow (or a prior job in the same one) that runs `npm ci`, `npm run lint`, and
+    `npm test`, also on pull requests, and make the deploy job depend on it.
+  - Dev dependencies are acceptable here; do not introduce any runtime dependency or build step for `public/`.
+
+- [ ] **Task 8.11: Repository Community and Policy Files**
+  - Add a `SECURITY.md` (how to report a vulnerability or a privacy issue) and a `CONTRIBUTING.md` that points to
+    `AGENTS.md`, `docs/decisions.md`, and the donation terms ("donors have no influence on development").
+  - Add a plain-language privacy statement (what is stored, where, that nothing is transmitted) and link it from
+    the README and the Task 2.14 About view.
+
+- [ ] **Task 8.12: Custom Domain Setup**
+  - The README reserves `high-and-low.app` (primary) and `highandlow.app` (secondary). Add a `public/CNAME` file,
+    document the DNS and GitHub Pages settings steps, and configure the secondary domain to redirect to the primary.
+  - Verify the service worker scope, `manifest.json` `start_url`, and all asset paths still work on both the domain
+    root and the old sub-path (per the relative-path convention in `AGENTS.md`).
+
+- [ ] **Task 8.13: 1.0 Readiness Checklist**
+  - Track the prerequisites in `docs/versioning.md` as concrete steps: remove the testing banner (Task 1.3 switch in
+    `style.css`), declare the `HighAndLowDB` schema and backup format stable with a documented migration policy,
+    confirm Tasks 7.1–7.4 are closed, and confirm the About, privacy, and safety-resource decisions (Tasks 2.14,
+    2.16, 8.11) are done.
+  - Note the professional mental-health and accessibility reviews from the README as recommended, and decide
+    explicitly whether they block 1.0.
+  - Do not bump to 1.0.0 as part of this task; it only produces the checklist.
 
 
 ### Phase 9: History View — Uniform Time-Scale Rendering & Gesture Zoom
@@ -454,4 +690,3 @@ and zoom operate on consistently, and add continuous gesture-driven zoom on top 
   - The legend, timeframe/zoom toolbars, guide key, and note-marker listeners must remain untouched (not
     rebuilt, not rebound) for the entire gesture lifecycle — only the graph/point/text elements are touched, and
     only once per full gesture, not per frame.
- 
