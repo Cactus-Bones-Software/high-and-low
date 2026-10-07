@@ -1,9 +1,4 @@
 {
-  "metadata": {
-    "code": "en",
-    "name": "English",
-    "direction": "ltr"
-  },
   "common": {
     "yes": "Yes",
     "no": "No",

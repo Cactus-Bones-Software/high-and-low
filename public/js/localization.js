@@ -5,20 +5,40 @@
 
 import { STATE } from './state.js';
 import { setConfig } from './storage/db.js';
-import { LOCALES, SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE, getAvailableLocales } from '../locales/index.js';
 
-export { SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE, getAvailableLocales };
+export const DEFAULT_LANGUAGE = 'en';
+const LOCALES_DIRECTORY = './locales/';
+const MANIFEST_URL = `${LOCALES_DIRECTORY}manifest.json`;
 
 /**
- * Mutable in-memory translations dictionary initialized with built-in drop-in locales.
- * New drop-in locales can be added dynamically via registerLocale().
+ * Language codes the app may switch to. Always contains the default language; extended by the manifest.
+ * @type {string[]}
+ */
+export const SUPPORTED_LANGUAGES = [DEFAULT_LANGUAGE];
+
+/**
+ * Language options for the settings menu, as listed in locales/manifest.json.
+ * @type {Array<{ code: string, name: string, direction: string }>}
+ */
+const AVAILABLE_LOCALES = [{ code: DEFAULT_LANGUAGE, name: 'English', direction: 'ltr' }];
+
+/**
+ * In-memory translation dictionaries keyed by language code. Filled at runtime from locales/<code>.json.
  * @type {Record<string, Record<string, any>>}
  */
-export const TRANSLATIONS = { ...LOCALES };
+export const TRANSLATIONS = {};
 
 /**
- * Registers a drop-in translation dictionary for a language code.
- * @param {string} languageCode - ISO 639-1 language code (e.g. 'fr', 'de').
+ * Returns available language options for the settings UI.
+ * @returns {Array<{ code: string, name: string, direction: string }>}
+ */
+export function getAvailableLocales() {
+    return AVAILABLE_LOCALES;
+}
+
+/**
+ * Registers a translation dictionary for a language code and makes the language selectable.
+ * @param {string} languageCode - Language code (e.g. 'fr', 'de').
  * @param {Record<string, any>} localeData - Complete or partial locale translations object.
  * @returns {void}
  */
@@ -31,15 +51,61 @@ export function registerLocale(languageCode, localeData) {
 }
 
 /**
- * Populates the language selector dropdown with all available drop-in locales.
+ * Fetches locales/manifest.json and records which languages are available. On failure only the
+ * default language remains available.
+ * @param {string} [manifestUrl] - Path to the manifest file.
+ * @returns {Promise<Array<{ code: string, name: string, direction: string }>>}
+ */
+export async function loadManifest(manifestUrl = MANIFEST_URL) {
+    try {
+        const response = await fetch(manifestUrl);
+        if (response.ok) {
+            const manifest = await response.json();
+            (manifest.locales || []).forEach(({ code, name, direction }) => {
+                if (!code || typeof code !== 'string') return;
+                if (!SUPPORTED_LANGUAGES.includes(code)) SUPPORTED_LANGUAGES.push(code);
+                const entry = { code, name: name || code, direction: direction || 'ltr' };
+                const existingIndex = AVAILABLE_LOCALES.findIndex((locale) => locale.code === code);
+                if (existingIndex === -1) AVAILABLE_LOCALES.push(entry);
+                else AVAILABLE_LOCALES[existingIndex] = entry;
+            });
+        }
+    } catch (fetchError) {
+        console.warn('Could not load locale manifest:', fetchError);
+    }
+    return AVAILABLE_LOCALES;
+}
+
+/**
+ * Loads a locale's translations from locales/<code>.json unless it is already in memory.
+ * @param {string} languageCode - Language code to load (e.g. 'de', 'fr').
+ * @param {string} [jsonUrl] - Path to the locale JSON file.
+ * @returns {Promise<Record<string, any> | null>} The dictionary, or null if it could not be loaded.
+ */
+export async function loadLocale(languageCode, jsonUrl = `${LOCALES_DIRECTORY}${languageCode}.json`) {
+    if (TRANSLATIONS[languageCode]) return TRANSLATIONS[languageCode];
+    try {
+        const response = await fetch(jsonUrl);
+        if (response.ok) {
+            const localeData = await response.json();
+            registerLocale(languageCode, localeData);
+            return localeData;
+        }
+    } catch (fetchError) {
+        console.warn(`Could not load locale ${languageCode}:`, fetchError);
+    }
+    return null;
+}
+
+/**
+ * Populates the language selector dropdown with every locale listed in the manifest.
  * @returns {void}
  */
 export function populateLanguageOptions() {
     if (typeof document === 'undefined') return;
     const languageSelect = document.getElementById('language-select');
     if (!languageSelect) return;
-    const locales = getAvailableLocales();
-    locales.forEach(({ code, name }) => {
+    getAvailableLocales().forEach(({ code, name }) => {
         let option = languageSelect.querySelector(`option[value="${code}"]`);
         if (!option) {
             option = document.createElement('option');
@@ -48,27 +114,6 @@ export function populateLanguageOptions() {
             languageSelect.appendChild(option);
         }
     });
-}
-
-/**
- * Asynchronously loads and registers a drop-in locale from a JSON file.
- * @param {string} languageCode - Language code to register (e.g. 'de', 'fr').
- * @param {string} [jsonUrl] - Path to the locale JSON file.
- * @returns {Promise<Record<string, any> | null>}
- */
-export async function loadLocaleFromJSON(languageCode, jsonUrl = `./locales/${languageCode}.json`) {
-    try {
-        const response = await fetch(jsonUrl);
-        if (response.ok) {
-            const localeData = await response.json();
-            registerLocale(languageCode, localeData);
-            populateLanguageOptions();
-            return localeData;
-        }
-    } catch (fetchError) {
-        console.warn(`Could not load drop-in JSON locale for ${languageCode}:`, fetchError);
-    }
-    return null;
 }
 
 /**
@@ -193,11 +238,16 @@ export function applyTranslations(rootElement = typeof document !== 'undefined' 
 /**
  * Sets the active application language, persists it to storage, updates STATE,
  * updates form selectors, and re-translates the UI.
- * @param {string} languageCode - Language code ('en' or 'es').
+ * Loads the language (and the default-language fallback) first; if loading fails, uses the default.
+ * @param {string} languageCode - Language code listed in locales/manifest.json.
  * @returns {Promise<void>}
  */
 export async function setLanguage(languageCode) {
-    const validatedLanguage = SUPPORTED_LANGUAGES.includes(languageCode) ? languageCode : DEFAULT_LANGUAGE;
+    let validatedLanguage = SUPPORTED_LANGUAGES.includes(languageCode) ? languageCode : DEFAULT_LANGUAGE;
+    await loadLocale(DEFAULT_LANGUAGE);
+    if (validatedLanguage !== DEFAULT_LANGUAGE && !(await loadLocale(validatedLanguage))) {
+        validatedLanguage = DEFAULT_LANGUAGE;
+    }
     STATE.language = validatedLanguage;
 
     try {

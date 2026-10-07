@@ -90,6 +90,14 @@ Entry format: **Rule.** Why. *(Enforced in: ...)* — omit the last part if noth
 - **Import stays keyboard- and screen-reader-accessible:** a real `<button>` fronts the hidden file input, which is
   removed from the focus and accessibility trees.
 
+## Localization
+
+- **Translations are plain JSON only.** A language is `public/locales/<code>.json` plus one entry in
+  `public/locales/manifest.json`; adding one must never require editing JavaScript. Do not add a second translation
+  format (ES modules, generated templates). Why: translators are not necessarily programmers, and two formats drift
+  apart. `en.json` is the template and the fallback for missing keys.
+  *(Enforced in: `tests/localization.test.js` manifest check.)*
+
 ## Open Questions
 
 *(None currently.)*

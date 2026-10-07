@@ -66,6 +66,23 @@ import {
 import { applyStoredDisplay } from '../public/js/ui/settings-menu.js';
 import { escapeHTML, html, rawHTML } from '../public/js/utils.js';
 
+const PUBLIC_DIRECTORY = resolve(__dirname, '../public');
+
+/**
+ * Minimal fetch stand-in that serves files from public/ (the app fetches locales/*.json at runtime).
+ * @param {string} url
+ * @returns {Promise<{ ok: boolean, json: () => Promise<any> }>}
+ */
+async function fetchFromPublicDirectory(url) {
+    try {
+        const filePath = resolve(PUBLIC_DIRECTORY, String(url).replace(/^\.\//, ''));
+        const fileContent = readFileSync(filePath, 'utf8');
+        return { ok: true, json: async () => JSON.parse(fileContent) };
+    } catch {
+        return { ok: false, json: async () => null };
+    }
+}
+
 const htmlContent = readFileSync(resolve(__dirname, '../public/index.html'), 'utf8');
 
 /**
@@ -158,6 +175,7 @@ export async function setupTestDOM(customSessionStorage = {}) {
     }
 
     // Bind globals safely so imported modules execute against this active window/document instance
+    global.fetch = fetchFromPublicDirectory;
     global.window = windowInstance;
     global.document = documentInstance;
     global.sessionStorage = windowInstance.sessionStorage;
@@ -507,4 +525,3 @@ export async function createAndRemoveCustomQuestion(windowInstance, options = {}
 }
 
 export const createAndArchiveCustomQuestion = createAndRemoveCustomQuestion;
-

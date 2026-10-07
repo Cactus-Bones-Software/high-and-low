@@ -1,20 +1,15 @@
-# High & Low — Drop-In Localization Guide
+# High & Low — Adding a Translation
 
-This directory contains drop-in localization modules and resources for High & Low. Anyone can contribute a new
-translation by dropping in a single translation file without modifying core application code.
+Anyone can add a language with a plain text file. No programming is needed.
 
 ---
 
-## File Structure
+## Files
 
 ```text
 public/locales/
-├── index.js        # Central registry importing and exposing all active locales
-├── en.js           # English locale ES module (default)
-├── en.json         # English translation dictionary in JSON format
-├── es.js           # Spanish locale ES module
-├── es.json         # Spanish translation dictionary in JSON format
-├── template.json   # Base translation template ready for translation
+├── manifest.json   # The list of available languages
+├── en.json         # English: the template, and the fallback for any missing text
 └── README.md       # This guide
 ```
 
@@ -22,61 +17,30 @@ public/locales/
 
 ## How to Add a New Language
 
-### Option A: ES Module Drop-In (Recommended for Built-in Languages)
-
-1. Copy `en.js` to `<languageCode>.js` (for example, `fr.js` for French or `de.js` for German).
-2. Update the `metadata` object at the top:
-   ```javascript
-   export default {
-       metadata: {
-           code: 'fr',
-           name: 'Français',
-           direction: 'ltr' // or 'rtl'
-       },
-       // ... translated keys
-   };
+1. Copy `en.json` to `<code>.json`, using a language code such as `fr` or `de`.
+2. Translate the **values** (the text on the right). Do not change the **keys** (the text on the left).
+3. Add one line to the `locales` list in `manifest.json`:
+   ```json
+   { "code": "fr", "name": "Français", "direction": "ltr" }
    ```
-3. Translate the strings in your new file.
-4. Open `public/locales/index.js` and register the new module:
-   ```javascript
-   import en from './en.js';
-   import es from './es.js';
-   import fr from './fr.js';
+   `name` is the language written in itself (it appears in the Language menu). `direction` is `ltr` or `rtl`.
+4. Done. The language shows up in Settings, is loaded when chosen, and is saved for offline use automatically.
 
-   export const LOCALES = {
-       en,
-       es,
-       fr
-   };
-   ```
-5. The language automatically appears in the application's Language dropdown menu.
+If a translation is missing a key, the English text is shown instead, so a partial translation still works.
 
 ---
 
-### Option B: Drop-In JSON File (Runtime & Offline)
+## Translation Guidelines
 
-1. Copy `template.json` or `en.json` to `<languageCode>.json` (for example, `de.json`).
-2. Translate all string values while keeping the keys intact.
-3. Load the JSON at runtime using the built-in loader:
-   ```javascript
-   import { loadLocaleFromJSON } from './js/localization.js';
-   await loadLocaleFromJSON('de');
-   ```
+Per `docs/decisions.md`:
 
----
-
-## Important Translation Guidelines & Standing Constraints
-
-Per the architectural guidelines in `docs/decisions.md`:
-
-1. **Terminology Rules**:
-    - **Check-In**: The primary user action is a **Check-In** (for example, in Spanish: *Registro* or *Chequeo*).
-    - **Forbidden Words**: Do **NOT** use words meaning *Session*, *Quiz*, *Test*, or *Log* in any language.
-      High & Low is not an evaluation, examination, or chore.
-2. **Built-In Questions**:
-    - Built-in questions retain their immutable `id` (such as `q_energy`, `q_mood`, `q_anxiety`).
-    - Provide localized text and short labels under `builtInQuestions.<id>`.
-3. **Interpolation Placeholders**:
-    - Keep placeholders like `{current}`, `{total}`, and `{score}` exactly as written.
-4. **Tone & Style**:
-    - Neutral, gentle, and compassionate tone suitable for mental health fatigue.
+1. **Terminology**
+   - The main action is a **Check-In** (for example, in Spanish: *Registro* or *Chequeo*). A saved record is an
+     **Entry**.
+   - Never use words meaning *Session*, *Quiz*, *Test*, or *Log* in any language. High & Low is not an evaluation,
+     examination, or chore.
+2. **Built-in questions** keep their fixed `id` (such as `q_energy`). Put the translated text and short label under
+   `builtInQuestions.<id>`.
+3. **Placeholders** such as `{current}`, `{total}`, and `{score}` must stay exactly as written. You may move them
+   within the sentence.
+4. **Tone** is neutral, gentle, and compassionate. Many users are mentally exhausted.

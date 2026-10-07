@@ -20,7 +20,7 @@ import {buildScoreButtonsHTML, renderCurrentQuestion} from '../checkin.js';
 import {showNoticeDialog} from './dialogs.js';
 import {resetHold} from './hold-actions.js';
 import {escapeHTML, html, rawHTML} from '../utils.js';
-import {t, getLocalizedQuestion} from '../i18n.js';
+import {t, getLocalizedQuestion} from '../localization.js';
 
 let cancelAuthoringHandler = null;
 let saveAuthoringHandler = null;
@@ -137,7 +137,7 @@ export function partitionQuestionsForView(allQuestions, activeSetIds, searchQuer
 
 /**
  * Builds safe HTML markup for a question card in active, catalog, or archived question lists.
- * @param {Object} question - Question definition object.
+ * @param {Object} rawQuestion - Question definition object.
  * @param {Object | boolean} [options={}] - Card display options or boolean for isActiveInTracker.
  * @param {boolean} [options.isActiveInTracker=false] - Whether question is currently active in tracker.
  * @param {boolean} [options.isReorderable=false] - Whether reorder handles and controls are rendered.

@@ -51,7 +51,7 @@ import { setupKeyboardNavigation } from './ui/keyboard-navigation.js';
 // Import safe animation frame requests.
 import { safeRAF } from './utils.js';
 // Import translation lookup
-import { t } from './i18n.js';
+import { t } from './localization.js';
 
 export let isRefreshingTab = false;
 export let activeServiceWorkerRegistration = null;

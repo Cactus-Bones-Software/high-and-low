@@ -1,6 +1,6 @@
 // High & Low - Offline Service Worker
 // Cache Name with versioning.md
-const CACHE_NAME = 'high-and-low-v9';
+const CACHE_NAME = 'high-and-low-v10';
 
 // Static relative assets required for complete offline operation
 const PRECACHE_ASSETS = [
@@ -38,17 +38,31 @@ const PRECACHE_ASSETS = [
     './js/ui/keyboard-navigation.js',
     './js/ui/question-view.js',
     './js/localization.js',
-    './locales/index.js',
-    './locales/en.js',
-    './locales/en.json',
-    './locales/template.json'
+    './locales/manifest.json',
+    './locales/en.json'
 ];
+
+// Every language listed in locales/manifest.json is precached, so adding a translation needs no change here
+async function listLocaleAssets() {
+    try {
+        const manifestUrl = new URL('./locales/manifest.json', self.registration.scope).toString();
+        const response = await fetch(manifestUrl);
+        if (!response.ok) return [];
+        const manifest = await response.json();
+        return (manifest.locales || []).map(({ code }) => `./locales/${code}.json`);
+    } catch (error) {
+        console.warn('Could not read locale manifest for precaching:', error);
+        return [];
+    }
+}
 
 // Install: precache application shell assets resolved against service worker scope
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then(async (cache) => {
-            const urlsToCache = PRECACHE_ASSETS.map((asset) => new URL(asset, self.registration.scope).toString());
+            const localeAssets = await listLocaleAssets();
+            const urlsToCache = [...new Set([...PRECACHE_ASSETS, ...localeAssets])]
+                .map((asset) => new URL(asset, self.registration.scope).toString());
             await Promise.all(
                 urlsToCache.map(async (url) => {
                     try {

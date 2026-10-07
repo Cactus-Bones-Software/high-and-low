@@ -529,6 +529,8 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - Add a short glossary (in `docs/`) fixing the translation of "Check-In" and "Entry" per language, since the
     terminology rule in `docs/decisions.md` is written in English. "Session", "Quiz", "Test", and "Log" equivalents
     remain forbidden in every language.
+  - Locales are JSON-only (see `docs/decisions.md`); the test reads every locale listed in
+    `public/locales/manifest.json`.
   - Add a test asserting that every locale defines exactly the same keys as the default locale, that no value is
     empty, and that interpolation placeholders match across locales.
 

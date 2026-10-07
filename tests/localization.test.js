@@ -1,4 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { readFileSync, existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { setupTestDOM, waitFor } from './test-utils.js';
 import {
     t,
@@ -7,6 +9,10 @@ import {
     applyTranslations,
     getLocalizedQuestion,
     registerLocale,
+    loadManifest,
+    loadLocale,
+    getAvailableLocales,
+    TRANSLATIONS,
     DEFAULT_LANGUAGE
 } from '../public/js/localization.js';
 import { STATE } from '../public/js/state.js';
@@ -225,6 +231,47 @@ describe('Phase 8: Internationalization & Localization Pass (Task 8.3)', () => {
             );
             if (backButtonText) {
                 expect(backButtonText.textContent).toBe('Atrás');
+            }
+        });
+    });
+
+    describe('6. JSON-Only Locale Loading (manifest.json + <code>.json)', () => {
+        const localesDirectory = resolve(process.cwd(), 'public', 'locales');
+
+        it('every locale listed in manifest.json has a matching JSON file', () => {
+            const manifest = JSON.parse(readFileSync(resolve(localesDirectory, 'manifest.json'), 'utf8'));
+            expect(manifest.default).toBe(DEFAULT_LANGUAGE);
+            expect(manifest.locales.some(({ code }) => code === DEFAULT_LANGUAGE)).toBe(true);
+            manifest.locales.forEach(({ code, name }) => {
+                expect(name).toBeTruthy();
+                expect(existsSync(resolve(localesDirectory, `${code}.json`))).toBe(true);
+            });
+        });
+
+        it('loadManifest makes manifest locales available for the language selector', async () => {
+            const locales = await loadManifest();
+            expect(locales.map(({ code }) => code)).toContain('en');
+            expect(getAvailableLocales().find(({ code }) => code === 'en').name).toBe('English');
+        });
+
+        it('loadLocale fetches and registers a locale from JSON, and returns null when it is missing', async () => {
+            delete TRANSLATIONS.en;
+            const english = await loadLocale('en');
+            expect(english.common.yes).toBe('Yes');
+            expect(TRANSLATIONS.en).toBe(english);
+            expect(await loadLocale('zz')).toBeNull();
+        });
+
+        it('setLanguage falls back to the default language when a locale file cannot be loaded', async () => {
+            const originalFetch = global.fetch;
+            global.fetch = async () => ({ ok: false, json: async () => null });
+            try {
+                registerLocale('missingfile', null);
+                await loadManifest('./locales/does-not-exist.json');
+                await setLanguage('missingfile');
+                expect(getCurrentLanguage()).toBe(DEFAULT_LANGUAGE);
+            } finally {
+                global.fetch = originalFetch;
             }
         });
     });

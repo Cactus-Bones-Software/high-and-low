@@ -7,7 +7,7 @@ import { STATE } from '../state.js';
 import { handleFileImport } from '../data-io.js';
 import { saveActiveCheckin } from '../storage/session.js';
 import { resetHold, updateHoldActionAriaLabels } from './hold-actions.js';
-import { t } from '../i18n.js';
+import { t } from '../localization.js';
 
 let noticeReturnFocusElement = null;
 let pendingImportFile = null;

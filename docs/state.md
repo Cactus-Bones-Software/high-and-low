@@ -101,7 +101,7 @@ export const STATE = {
   checkinAnswers: [], // In-flight answers for current check-in
   checkinNote: null, // In-flight note text
   deviceMode: 'mouse', // 'mouse' | 'touch'
-  language: 'en', // Active language code ('en' | 'es')
+  language: 'en', // Active language code, as listed in locales/manifest.json
   historyVisibleQuestionIds: null, // Set<string> | null (null = show all active)
   historyTimeRange: 'all', // '7d' | '14d' | '30d' | '90d' | 'all'
   historyZoomScale: 1, // Timeline zoom scale (unbounded continuous scale, default 1.0)
@@ -131,7 +131,7 @@ export const STATE = {
 │   ├── index.html             # Single-page HTML canvas structure and modal dialogs
 │   ├── style.css              # Consolidated stylesheet (tokens, themes, components, layouts)
 │   ├── manifest.json          # PWA web application manifest
-│   ├── sw.js                  # Offline service worker (precache & network-first strategy, CACHE_NAME v9)
+│   ├── sw.js                  # Offline service worker (precache & network-first strategy, CACHE_NAME v10)
 │   ├── icons/                 # PWA and browser icon assets
 │   │   ├── favicon.ico        # Desktop favicon
 │   │   ├── favicon.png        # PNG favicon
@@ -139,18 +139,16 @@ export const STATE = {
 │   │   ├── pwa-192x192.png    # Standard PWA application icon (192x192)
 │   │   ├── pwa-512x512.png    # High-res PWA application icon (512x512)
 │   │   └── pwa-maskable-512x512.png # Maskable adaptive icon (512x512)
-│   ├── locales/               # Drop-in localization directory
-│   │   ├── index.js           # Central locales registry (LOCALES, SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE)
-│   │   ├── en.js              # English locale ES module
-│   │   ├── en.json            # English translation dictionary JSON
-│   │   ├── template.json      # Complete base translation template for easy contributor drop-ins
-│   │   └── README.md          # Drop-in localization contribution instructions & terminology rules
+│   ├── locales/               # Drop-in localization directory (JSON only)
+│   │   ├── manifest.json      # Lists available languages (code, name, direction); read at startup and by sw.js
+│   │   ├── en.json            # English translation dictionary (default language, template, and fallback)
+│   │   └── README.md          # Contribution instructions & terminology rules
 │   └── js/
 │       ├── main.js            # Entry point: app bootstrap, event delegation, SW lifecycle
 │       ├── service-worker.js  # Legacy service worker forwarder (delegates to ../sw.js)
 │       ├── state.js           # STATE singleton object definition
 │       ├── utils.js           # Pure utility helpers (escapeHTML, html tagged template, safeRAF)
-│       ├── localization.js    # Translation engine, DOM attribute translations, and language state
+│       ├── localization.js    # Translation engine, runtime JSON locale loader, DOM attribute translations, and language state
 │       ├── questions.js       # Default question definitions, FNV-1a hashing, curve color helpers
 │       ├── checkin.js         # Check-in card rendering, score submission, completion workflows
 │       ├── data-io.js         # JSON export/import engines (Wipe & Replace, Smart Merge)

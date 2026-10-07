@@ -5,7 +5,7 @@
 
 import { getDatabase } from './storage/db.js';
 import { showNoticeDialog } from "./ui/dialogs.js";
-import { t } from './i18n.js';
+import { t } from './localization.js';
 
 /**
  * Serializes the entire IndexedDB database ('config', 'questions', and 'entries' stores)

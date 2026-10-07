@@ -8,7 +8,7 @@ import { navigateTo, getCurrentViewId } from './navigation.js';
 import { updateHoldActionAriaLabels, setIsHoldDelayEnabled } from './hold-actions.js';
 import { startNewCheckIn, renderCurrentQuestion } from '../checkin.js';
 import { safeRAF } from '../utils.js';
-import { setLanguage, populateLanguageOptions } from '../localization.js';
+import { setLanguage, populateLanguageOptions, loadManifest } from '../localization.js';
 import { STATE } from '../state.js';
 
 /**
@@ -375,6 +375,7 @@ export async function applyStoredDisplay() {
         console.warn('Failed to initialize debug-bounds setting in localStorage:', error);
     }
 
+    await loadManifest();
     populateLanguageOptions();
     let storedLanguage = null;
     try {
