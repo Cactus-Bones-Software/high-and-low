@@ -7,6 +7,7 @@ import { STATE } from '../state.js';
 import { handleFileImport } from '../data-io.js';
 import { saveActiveCheckin } from '../storage/session.js';
 import { resetHold, updateHoldActionAriaLabels } from './hold-actions.js';
+import { t } from '../i18n.js';
 
 let noticeReturnFocusElement = null;
 let pendingImportFile = null;
@@ -274,7 +275,7 @@ export function updateNotesButtonLabel() {
     if (!notesButton) return;
     const labelSpan = notesButton.querySelector('.button-label');
     if (labelSpan) {
-        labelSpan.textContent = STATE.checkinNote ? 'Note Attached ✓' : 'Add Note';
+        labelSpan.textContent = STATE.checkinNote ? t('tracker.noteAttached') : t('tracker.addNote');
     }
     updateHoldActionAriaLabels();
 }

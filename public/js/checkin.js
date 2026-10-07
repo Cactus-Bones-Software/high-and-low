@@ -13,6 +13,7 @@ import { getDatabase, put } from './storage/db.js';
 import { clearActiveCheckin, saveActiveCheckin } from './storage/session.js';
 import { updateNotesButtonLabel } from './ui/dialogs.js';
 import { escapeHTML, safeRAF } from './utils.js';
+import { getLocalizedQuestion, t } from './localization.js';
 
 /**
  * Builds the HTML string for the interactive score button deck.
@@ -70,16 +71,21 @@ export function buildScoreButtonsHTML(question) {
  * @returns {void}
  */
 export function renderCurrentQuestion() {
-    const currentQuestion = STATE.activeQuestions[STATE.currentQuestionIndex];
+    const rawQuestion = STATE.activeQuestions[STATE.currentQuestionIndex];
 
-    if (!currentQuestion) {
+    if (!rawQuestion) {
         finalizeCheckin();
         return;
     }
 
+    const currentQuestion = getLocalizedQuestion(rawQuestion);
+
     const progressElement = document.getElementById('progress-text');
     if (progressElement) {
-        progressElement.textContent = `Question ${STATE.currentQuestionIndex + 1} of ${STATE.activeQuestions.length}`;
+        progressElement.textContent = t('tracker.progress', {
+            current: STATE.currentQuestionIndex + 1,
+            total: STATE.activeQuestions.length
+        });
     }
 
     const questionTextElement = document.getElementById('question-text');
@@ -97,7 +103,9 @@ export function renderCurrentQuestion() {
     if (buttonStack) {
         buttonStack.setAttribute(
             'aria-label',
-            currentQuestion.responseType === 'boolean' ? 'Select Yes or No' : 'Select score from 1 to 5'
+            currentQuestion.responseType === 'boolean'
+                ? t('tracker.selectYesOrNo')
+                : t('tracker.selectScore')
         );
         buttonStack.innerHTML = buildScoreButtonsHTML(currentQuestion);
     }

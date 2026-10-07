@@ -50,6 +50,8 @@ import { setupQuestionAuthoring, loadQuestionsView } from './ui/question-view.js
 import { setupKeyboardNavigation } from './ui/keyboard-navigation.js';
 // Import safe animation frame requests.
 import { safeRAF } from './utils.js';
+// Import translation lookup
+import { t } from './i18n.js';
 
 export let isRefreshingTab = false;
 export let activeServiceWorkerRegistration = null;
@@ -106,7 +108,7 @@ export function setupServiceWorkerLifecycle(registration) {
     });
 
     // Listen for controllerchange events to reload active tabs when new service worker takes over
-    if (typeof window.navigator?.serviceWorker?.addEventListener === 'function' && !window.navigator.serviceWorker['_hasControllerChangeListener']) {
+    if (typeof window.navigator?.serviceWorker?.addEventListener === 'function' && !window.navigator.serviceWorker._hasControllerChangeListener) {
         window.navigator.serviceWorker._hasControllerChangeListener = true;
         window.navigator.serviceWorker.addEventListener('controllerchange', () => {
             if (isRefreshingTab) return;
@@ -289,8 +291,8 @@ export function initApp() {
                 if (footerBox) footerBox.style.display = 'none';
                 const progressElement = document.getElementById('progress-text');
                 const questionElement = document.getElementById('question-text');
-                if (progressElement) progressElement.textContent = "Check-In Complete";
-                if (questionElement) questionElement.textContent = "Check-In recorded. Rest easy.";
+                if (progressElement) progressElement.textContent = t('tracker.completeTitle');
+                if (questionElement) questionElement.textContent = t('tracker.completeSubtitle');
             } else {
                 renderCurrentQuestion();
             }
@@ -352,7 +354,7 @@ export function initApp() {
         .catch(error => {
             console.error('Initialization failed:', error);
             const questionText = document.getElementById('question-text');
-            if (questionText) questionText.textContent = "Could not open local storage.";
+            if (questionText) questionText.textContent = t('tracker.storageError');
             safeRAF(() => {
                 safeRAF(() => {
                     if (typeof document !== 'undefined' && document.body) {

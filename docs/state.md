@@ -35,9 +35,10 @@ Current Version: `3`
 | `contrast`          | `string`   | `'standard'` or `'high'`    | Contrast mode                                            |
 | `handedness`        | `string`   | `'right'\|'left'`           | Menu and non-dominant action alignment                   |
 | `holdDelay`         | `string`   | `'enabled'\|'disabled'`     | 1.5s hold-to-confirm barrier on touch actions            |
+| `language`          | `string`   | `'en'` (expandable)         | Active user interface language preference                |
 | `seedVersion`       | `number`   | Integer (e.g. `4`)          | Tracks built-in default question seeding                 |
 
-*Note: `handedness` and `holdDelay` preferences are also mirrored in `localStorage` for immediate pre-render access.*
+*Note: `handedness`, `holdDelay`, and `language` preferences are also mirrored in `localStorage` for pre-render access.*
 
 #### `questions` Store
 * **KeyPath**: `'id'` (string, immutable once created)
@@ -100,6 +101,7 @@ export const STATE = {
   checkinAnswers: [], // In-flight answers for current check-in
   checkinNote: null, // In-flight note text
   deviceMode: 'mouse', // 'mouse' | 'touch'
+  language: 'en', // Active language code ('en' | 'es')
   historyVisibleQuestionIds: null, // Set<string> | null (null = show all active)
   historyTimeRange: 'all', // '7d' | '14d' | '30d' | '90d' | 'all'
   historyZoomScale: 1, // Timeline zoom scale (unbounded continuous scale, default 1.0)
@@ -116,6 +118,7 @@ export const STATE = {
 ├── AGENTS.md                  # Development rules & documentation routing table
 ├── README.md                  # User-facing overview, motivation, donations & license
 ├── package.json               # Test script & development tooling configuration
+├── server.js                  # Zero-dependency local development static server (Port 3000)
 │
 ├── docs/
 │   ├── state.md               # Current stack, schemas, config keys, and file layout (THIS FILE)
@@ -128,7 +131,7 @@ export const STATE = {
 │   ├── index.html             # Single-page HTML canvas structure and modal dialogs
 │   ├── style.css              # Consolidated stylesheet (tokens, themes, components, layouts)
 │   ├── manifest.json          # PWA web application manifest
-│   ├── sw.js                  # Offline service worker (precache & network-first strategy, root scope)
+│   ├── sw.js                  # Offline service worker (precache & network-first strategy, CACHE_NAME v9)
 │   ├── icons/                 # PWA and browser icon assets
 │   │   ├── favicon.ico        # Desktop favicon
 │   │   ├── favicon.png        # PNG favicon
@@ -136,11 +139,18 @@ export const STATE = {
 │   │   ├── pwa-192x192.png    # Standard PWA application icon (192x192)
 │   │   ├── pwa-512x512.png    # High-res PWA application icon (512x512)
 │   │   └── pwa-maskable-512x512.png # Maskable adaptive icon (512x512)
+│   ├── locales/               # Drop-in localization directory
+│   │   ├── index.js           # Central locales registry (LOCALES, SUPPORTED_LANGUAGES, DEFAULT_LANGUAGE)
+│   │   ├── en.js              # English locale ES module
+│   │   ├── en.json            # English translation dictionary JSON
+│   │   ├── template.json      # Complete base translation template for easy contributor drop-ins
+│   │   └── README.md          # Drop-in localization contribution instructions & terminology rules
 │   └── js/
 │       ├── main.js            # Entry point: app bootstrap, event delegation, SW lifecycle
 │       ├── service-worker.js  # Legacy service worker forwarder (delegates to ../sw.js)
 │       ├── state.js           # STATE singleton object definition
 │       ├── utils.js           # Pure utility helpers (escapeHTML, html tagged template, safeRAF)
+│       ├── localization.js    # Translation engine, DOM attribute translations, and language state
 │       ├── questions.js       # Default question definitions, FNV-1a hashing, curve color helpers
 │       ├── checkin.js         # Check-in card rendering, score submission, completion workflows
 │       ├── data-io.js         # JSON export/import engines (Wipe & Replace, Smart Merge)
@@ -149,7 +159,7 @@ export const STATE = {
 │       │   └── session.js     # sessionStorage active check-in persistence with 30-min TTL
 │       └── ui/
 │           ├── navigation.js  # View switching with 220ms orthogonal slide transitions
-│           ├── settings-menu.js # Side drawer, theme, contrast, and handedness controllers
+│           ├── settings-menu.js # Side drawer, theme, contrast, handedness, and language controllers
 │           ├── dialogs.js     # Accessible modal notice, import, and note-taking dialogs
 │           ├── history-graph.js # SVG mood timeline, gesture zoom, live CSS transform & counter-scaling, legend
 │           ├── hold-actions.js # 1.5s touch hold-to-confirm barrier engine
@@ -166,6 +176,7 @@ export const STATE = {
     ├── graph_gestures.test.js
     ├── handedness.test.js
     ├── hold_actions.test.js
+    ├── localization.test.js
     ├── question_copying.test.js
     ├── question_editing.test.js
     ├── question_response_type.test.js

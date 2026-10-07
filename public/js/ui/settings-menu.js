@@ -6,8 +6,10 @@
 import { getConfig, setConfig } from '../storage/db.js';
 import { navigateTo, getCurrentViewId } from './navigation.js';
 import { updateHoldActionAriaLabels, setIsHoldDelayEnabled } from './hold-actions.js';
-import { startNewCheckIn } from '../checkin.js';
+import { startNewCheckIn, renderCurrentQuestion } from '../checkin.js';
 import { safeRAF } from '../utils.js';
+import { setLanguage, populateLanguageOptions } from '../localization.js';
+import { STATE } from '../state.js';
 
 /**
  * Synchronizes browser <meta name="theme-color"> header with active theme setting.
@@ -17,7 +19,9 @@ import { safeRAF } from '../utils.js';
 export function syncMetaThemeColor(themeValue) {
     const metaTag = document.querySelector('meta[name="theme-color"]');
     if (!metaTag) return;
-    const isDark = themeValue === 'dark' || (themeValue === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const isDark = themeValue === 'dark' || (
+        themeValue === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+    );
     metaTag.setAttribute('content', isDark ? '#121212' : '#f2f2f7');
 }
 
@@ -55,7 +59,8 @@ export function openDrawer() {
 
     // Focus active or first button in drawer
     if (drawer) {
-        const activeNavButton = drawer.querySelector('.drawer-nav-button.active') || drawer.querySelector('.drawer-nav-button');
+        const activeNavButton = drawer.querySelector('.drawer-nav-button.active') ||
+            drawer.querySelector('.drawer-nav-button');
         if (activeNavButton) activeNavButton.focus({ preventScroll: true });
     }
 }
@@ -159,7 +164,19 @@ export function setupSettingsAndMenu() {
         holdDelaySelect.addEventListener('change', (event) => handleHoldDelayChange(event.target.value));
     }
 
-    // Debug bounds functionality (Console controllable: window.setDebugBounds(true/false) or window.toggleDebugBounds())
+    const languageSelect = document.getElementById('language-select');
+    if (languageSelect) {
+        languageSelect.addEventListener('change', async (event) => {
+            const selectedLanguage = event.target.value;
+            await setLanguage(selectedLanguage);
+            if (STATE.activeQuestions && STATE.activeQuestions.length > 0) {
+                renderCurrentQuestion();
+            }
+        });
+    }
+
+    // Debug bounds functionality
+    // Console controllable: window.setDebugBounds(true/false) or window.toggleDebugBounds()
     window.setDebugBounds = async (enable) => {
         const isEnabled = Boolean(enable);
         document.body.setAttribute('data-debug-bounds', isEnabled ? 'true' : 'false');
@@ -357,4 +374,15 @@ export async function applyStoredDisplay() {
     } catch (error) {
         console.warn('Failed to initialize debug-bounds setting in localStorage:', error);
     }
+
+    populateLanguageOptions();
+    let storedLanguage = null;
+    try {
+        storedLanguage = localStorage.getItem('language');
+    } catch (error) {
+        console.warn('Failed to read language setting from localStorage:', error);
+    }
+    const databaseLanguage = await getConfig('language');
+    const activeLanguage = databaseLanguage || storedLanguage || 'en';
+    await setLanguage(activeLanguage);
 }

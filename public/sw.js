@@ -1,6 +1,6 @@
 // High & Low - Offline Service Worker
 // Cache Name with versioning.md
-const CACHE_NAME = 'high-and-low-v8';
+const CACHE_NAME = 'high-and-low-v9';
 
 // Static relative assets required for complete offline operation
 const PRECACHE_ASSETS = [
@@ -36,7 +36,12 @@ const PRECACHE_ASSETS = [
     './js/ui/dialogs.js',
     './js/ui/settings-menu.js',
     './js/ui/keyboard-navigation.js',
-    './js/ui/question-view.js'
+    './js/ui/question-view.js',
+    './js/localization.js',
+    './locales/index.js',
+    './locales/en.js',
+    './locales/en.json',
+    './locales/template.json'
 ];
 
 // Install: precache application shell assets resolved against service worker scope

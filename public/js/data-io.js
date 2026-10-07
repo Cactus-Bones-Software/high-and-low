@@ -5,6 +5,7 @@
 
 import { getDatabase } from './storage/db.js';
 import { showNoticeDialog } from "./ui/dialogs.js";
+import { t } from './i18n.js';
 
 /**
  * Serializes the entire IndexedDB database ('config', 'questions', and 'entries' stores)
@@ -93,14 +94,14 @@ function handleFileImportReaderLoad(mode, event) {
         if (!importedData.entries || !importedData.config) {
             if (typeof showNoticeDialog === 'function') {
                 showNoticeDialog(
-                    'Invalid Backup File',
-                    'The selected file is missing required blueprint structure (entries or configuration).',
+                    t('data.invalidBackupTitle'),
+                    t('data.invalidBackupMessage'),
                     'file-import'
                 );
             } else if (typeof window !== 'undefined' && typeof window.showNoticeDialog === 'function') {
                 window.showNoticeDialog(
-                    'Invalid Backup File',
-                    'The selected file is missing required blueprint structure (entries or configuration).',
+                    t('data.invalidBackupTitle'),
+                    t('data.invalidBackupMessage'),
                     'file-import'
                 );
             }
@@ -147,14 +148,14 @@ function handleFileImportReaderLoad(mode, event) {
         console.error('File import failed:', error);
         if (typeof showNoticeDialog === 'function') {
             showNoticeDialog(
-                'Corrupted File',
-                'The selected file could not be parsed or contains corrupted data.',
+                t('data.corruptedTitle'),
+                t('data.corruptedMessage'),
                 'file-import'
             );
         } else if (typeof window !== 'undefined' && typeof window.showNoticeDialog === 'function') {
             window.showNoticeDialog(
-                'Corrupted File',
-                'The selected file could not be parsed or contains corrupted data.',
+                t('data.corruptedTitle'),
+                t('data.corruptedMessage'),
                 'file-import'
             );
         }

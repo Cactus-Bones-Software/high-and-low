@@ -108,44 +108,59 @@
         <!-- ================================================================= -->
         <!-- VIEW: SETTINGS & DISPLAY PREFERENCES                              -->
         <!-- ================================================================= -->
-        <section id="settings-canvas" class="app-canvas view-canvas view-hidden-right" aria-label="Application Settings" inert>
+        <section id="settings-canvas" class="app-canvas view-canvas view-hidden-right"
+                 aria-label="Application Settings" inert>
 
             <header class="canvas-box view-header-box">
                 <button type="button" class="canvas-back-button" data-close-view aria-label="Back to Mood Tracker">
-                    <span class="back-arrow" aria-hidden="true">&larr;</span> Back
+                    <span class="back-arrow" aria-hidden="true">&larr;</span> <span data-i18n="common.back">Back</span>
                 </button>
-                <h1 class="view-title">Application Settings</h1>
+                <h1 class="view-title" data-i18n="settings.title">Application Settings</h1>
             </header>
 
             <section class="canvas-box view-content-box menu-box" id="panel-display">
-                <h3>Display &amp; Interaction Preferences</h3>
+                <h3 data-i18n="settings.preferencesHeading">Display &amp; Interaction Preferences</h3>
                 <div class="setting-row">
-                    <label for="theme-select">Theme:</label>
+                    <label for="language-select" data-i18n="settings.language">Language:</label>
+                    <select id="language-select">
+                        <option value="en" selected data-i18n="settings.languageEnglish">English</option>
+                    </select>
+                </div>
+                <div class="setting-row">
+                    <label for="theme-select" data-i18n="settings.theme">Theme:</label>
                     <select id="theme-select">
-                        <option value="system">Match System</option>
-                        <option value="dark" selected>Muted Dark</option>
-                        <option value="light">Clean Light</option>
+                        <option value="system" data-i18n="settings.themeSystem">Match System</option>
+                        <option value="dark" selected data-i18n="settings.themeDark">Muted Dark</option>
+                        <option value="light" data-i18n="settings.themeLight">Clean Light</option>
                     </select>
                 </div>
                 <div class="setting-row">
-                    <label for="contrast-select">Contrast:</label>
+                    <label for="contrast-select" data-i18n="settings.contrast">Contrast:</label>
                     <select id="contrast-select">
-                        <option value="low" selected>Low (Gentle on eyes)</option>
-                        <option value="high">High (Crisp Text)</option>
+                        <option value="low" selected data-i18n="settings.contrastLow">Low (Gentle on eyes)</option>
+                        <option value="high" data-i18n="settings.contrastHigh">High (Crisp Text)</option>
                     </select>
                 </div>
                 <div class="setting-row">
-                    <label for="hold-delay-select">Hold to Confirm Delay:</label>
+                    <label for="hold-delay-select" data-i18n="settings.holdDelay">Hold to Confirm Delay:</label>
                     <select id="hold-delay-select">
-                        <option value="enabled" selected>Enabled (1.5 s hold protection)</option>
-                        <option value="disabled">Disabled (Instant click/tap)</option>
+                        <option value="enabled" selected data-i18n="settings.holdDelayEnabled">
+                            Enabled (1.5&nbsp;s hold protection)
+                        </option>
+                        <option value="disabled" data-i18n="settings.holdDelayDisabled">
+                            Disabled (Instant click/tap)
+                        </option>
                     </select>
                 </div>
                 <div class="setting-row">
-                    <label for="handedness-select">Handedness:</label>
+                    <label for="handedness-select" data-i18n="settings.handedness">Handedness:</label>
                     <select id="handedness-select">
-                        <option value="right" selected>Right-Handed (Menu right)</option>
-                        <option value="left">Left-Handed (Menu left)</option>
+                        <option value="right" selected data-i18n="settings.handednessRight">
+                            Right-Handed (Menu right)
+                        </option>
+                        <option value="left" data-i18n="settings.handednessLeft">
+                            Left-Handed (Menu left)
+                        </option>
                     </select>
                 </div>
             </section>

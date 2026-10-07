@@ -32,18 +32,20 @@ describe('Phase 6: Offline Capabilities & Service Worker (Task 6.1, 6.2, 6.3)', 
     it('2. Service worker registers on window load event or via registerServiceWorker', async () => {
         let registeredPath = null;
         let registeredOptions = null;
-        windowInstance.navigator.serviceWorker.register = vi.fn().mockImplementation((serviceWorkerScriptPath, options) => {
-            registeredPath = serviceWorkerScriptPath;
-            registeredOptions = options;
-            return Promise.resolve({
-                scope: './',
-                installing: null,
-                waiting: null,
-                active: null,
-                addEventListener: vi.fn(),
-                update: vi.fn().mockResolvedValue(undefined)
-            });
-        });
+        windowInstance.navigator.serviceWorker.register = vi.fn().mockImplementation(
+            (serviceWorkerScriptPath, options) => {
+                registeredPath = serviceWorkerScriptPath;
+                registeredOptions = options;
+                return Promise.resolve({
+                    scope: './',
+                    installing: null,
+                    waiting: null,
+                    active: null,
+                    addEventListener: vi.fn(),
+                    update: vi.fn().mockResolvedValue(undefined)
+                });
+            }
+        );
 
         await windowInstance.registerServiceWorker();
 
@@ -123,10 +125,15 @@ describe('Phase 6: Offline Capabilities & Service Worker (Task 6.1, 6.2, 6.3)', 
     });
 
     it('6. controllerchange event triggers active tab reload (Task 6.3)', () => {
+        if (windowInstance.navigator?.serviceWorker) {
+            delete windowInstance.navigator.serviceWorker._hasControllerChangeListener;
+        }
         const serviceWorkerListeners = new Map();
-        vi.spyOn(windowInstance.navigator.serviceWorker, 'addEventListener').mockImplementation((eventName, callback) => {
-            serviceWorkerListeners.set(eventName, callback);
-        });
+        vi.spyOn(windowInstance.navigator.serviceWorker, 'addEventListener').mockImplementation(
+            (eventName, callback) => {
+                serviceWorkerListeners.set(eventName, callback);
+            }
+        );
 
         const mockRegistration = {
             scope: './',

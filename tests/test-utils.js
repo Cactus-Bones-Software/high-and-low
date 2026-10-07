@@ -28,7 +28,12 @@ import {
     saveQuestionFromAuthoring,
     cancelQuestionAuthoring
 } from '../public/js/ui/question-view.js';
-import { startNewCheckIn, finalizeCheckin, renderCurrentQuestion, buildScoreButtonsHTML } from '../public/js/checkin.js';
+import {
+    startNewCheckIn,
+    finalizeCheckin,
+    renderCurrentQuestion,
+    buildScoreButtonsHTML
+} from '../public/js/checkin.js';
 import {
     renderLineGraph,
     loadHistoryView,
@@ -51,7 +56,13 @@ import {
 } from '../public/js/ui/history-graph.js';
 import { navigateTo, setCurrentViewId } from '../public/js/ui/navigation.js';
 import { get, getAll, put, getConfig, setConfig, deleteConfig } from '../public/js/storage/db.js';
-import { saveActiveCheckin, clearActiveCheckin, restoreActiveCheckin, saveActiveView, getStoredActiveView } from '../public/js/storage/session.js';
+import {
+    saveActiveCheckin,
+    clearActiveCheckin,
+    restoreActiveCheckin,
+    saveActiveView,
+    getStoredActiveView
+} from '../public/js/storage/session.js';
 import { applyStoredDisplay } from '../public/js/ui/settings-menu.js';
 import { escapeHTML, html, rawHTML } from '../public/js/utils.js';
 
@@ -119,7 +130,8 @@ export async function setupTestDOM(customSessionStorage = {}) {
     }));
 
     // Polyfill requestAnimationFrame
-    windowInstance.requestAnimationFrame = windowInstance.requestAnimationFrame || ((callback) => setTimeout(callback, 0));
+    windowInstance.requestAnimationFrame = windowInstance.requestAnimationFrame ||
+        ((callback) => setTimeout(callback, 0));
     windowInstance.cancelAnimationFrame = windowInstance.cancelAnimationFrame || ((identifier) => {
         clearTimeout(identifier);
     });
@@ -127,7 +139,19 @@ export async function setupTestDOM(customSessionStorage = {}) {
     // Polyfill navigator.serviceWorker
     if (!windowInstance.navigator.serviceWorker) {
         Object.defineProperty(windowInstance.navigator, 'serviceWorker', {
-            value: { register: async () => {} },
+            value: {
+                register: async () => ({
+                    scope: './',
+                    installing: null,
+                    waiting: null,
+                    active: null,
+                    addEventListener: () => {},
+                    removeEventListener: () => {},
+                    update: async () => {}
+                }),
+                addEventListener: () => {},
+                removeEventListener: () => {}
+            },
             writable: true,
             configurable: true
         });

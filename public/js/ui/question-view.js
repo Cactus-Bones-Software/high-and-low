@@ -20,6 +20,7 @@ import {buildScoreButtonsHTML, renderCurrentQuestion} from '../checkin.js';
 import {showNoticeDialog} from './dialogs.js';
 import {resetHold} from './hold-actions.js';
 import {escapeHTML, html, rawHTML} from '../utils.js';
+import {t, getLocalizedQuestion} from '../i18n.js';
 
 let cancelAuthoringHandler = null;
 let saveAuthoringHandler = null;
@@ -145,9 +146,16 @@ export function partitionQuestionsForView(allQuestions, activeSetIds, searchQuer
  * @param {number} [options.totalQuestionsCount=1] - Total count of active questions.
  * @returns {string} Safe HTML string for the question card <li> element.
  */
-export function buildQuestionCardHTML(question, options = {}) {
+export function buildQuestionCardHTML(rawQuestion, options = {}) {
+    const question = getLocalizedQuestion(rawQuestion);
     const parsedOptions = typeof options === 'boolean'
-        ? { isActiveInTracker: options, isReorderable: false, isArchived: false, questionIndex: 0, totalQuestionsCount: 1 }
+        ? {
+            isActiveInTracker: options,
+            isReorderable: false,
+            isArchived: false,
+            questionIndex: 0,
+            totalQuestionsCount: 1
+        }
         : options;
 
     const isArchived = Boolean(parsedOptions.isArchived || question.archived);
@@ -160,10 +168,10 @@ export function buildQuestionCardHTML(question, options = {}) {
         ? parsedOptions.totalQuestionsCount
         : 1;
 
-    let statusLabel = question.builtIn ? 'Built-in' : 'Custom';
+    let statusLabel = question.builtIn ? t('questions.badgeBuiltIn') : t('questions.badgeCustom');
     let statusClass = question.builtIn ? 'question-card-badge-builtin' : 'question-card-badge-custom';
     if (isArchived) {
-        statusLabel = 'Removed';
+        statusLabel = t('questions.badgeRemoved');
         statusClass = 'question-card-badge-archived';
     }
 
@@ -214,21 +222,41 @@ export function buildQuestionCardHTML(question, options = {}) {
     const isBuiltIn = Boolean(question.builtIn);
     let actionButtonsHTML;
     if (isArchived) {
-        actionButtonsHTML = `<button type="button" class="question-restore-button card-action-restore" data-action="restore-question" data-question-id="${question.id}" aria-label="Restore question: ${questionTitle}">
-            Restore
-        </button>`;
+        actionButtonsHTML = `
+            <button type="button" class="question-restore-button card-action-restore"
+                    data-action="restore-question" data-question-id="${question.id}"
+                    aria-label="Restore question: ${questionTitle}">
+                ${escapeHTML(t('common.restore'))}
+            </button>
+        `;
     } else if (isBuiltIn) {
-        actionButtonsHTML = `<button type="button" class="question-copy-button card-action-copy card-action-edit" data-action="copy-question" data-question-id="${question.id}" aria-label="Copy question: ${questionTitle}">
-            Copy
-        </button> <button type="button" class="question-archive-button question-remove-button card-action-archive card-action-remove" data-action="archive-question" data-question-id="${question.id}" aria-label="Remove question: ${questionTitle}">
-            Remove
-        </button>`;
+        actionButtonsHTML = `
+            <button type="button" class="question-copy-button card-action-copy card-action-edit"
+                    data-action="copy-question" data-question-id="${question.id}"
+                    aria-label="Copy question: ${questionTitle}">
+                ${escapeHTML(t('common.copy'))}
+            </button>
+            <button type="button"
+                    class="question-archive-button question-remove-button card-action-archive card-action-remove"
+                    data-action="archive-question" data-question-id="${question.id}"
+                    aria-label="Remove question: ${questionTitle}">
+                ${escapeHTML(t('common.remove'))}
+            </button>
+        `;
     } else {
-        actionButtonsHTML = `<button type="button" class="question-edit-button card-action-edit" data-action="edit-question" data-question-id="${question.id}" aria-label="Edit question: ${questionTitle}">
-            Edit
-        </button> <button type="button" class="question-archive-button question-remove-button card-action-archive card-action-remove" data-action="archive-question" data-question-id="${question.id}" aria-label="Remove question: ${questionTitle}">
-            Remove
-        </button>`;
+        actionButtonsHTML = `
+            <button type="button" class="question-edit-button card-action-edit"
+                    data-action="edit-question" data-question-id="${question.id}"
+                    aria-label="Edit question: ${questionTitle}">
+                ${escapeHTML(t('common.edit'))}
+            </button>
+            <button type="button"
+                    class="question-archive-button question-remove-button card-action-archive card-action-remove"
+                    data-action="archive-question" data-question-id="${question.id}"
+                    aria-label="Remove question: ${questionTitle}">
+                ${escapeHTML(t('common.remove'))}
+            </button>
+        `;
     }
 
     return html`
@@ -327,7 +355,11 @@ export async function handleCommonQuestionCardAction(event) {
             await loadActiveQuestions();
             await loadQuestionsView();
             renderCurrentQuestion();
-            showNoticeDialog('Question Removed', 'This question has been removed.', archiveButton);
+            showNoticeDialog(
+                t('questions.noticeRemovedTitle'),
+                t('questions.noticeRemovedMessage'),
+                archiveButton
+            );
         }
         return true;
     }
@@ -676,7 +708,11 @@ export function setupArchivedQuestionsListeners(archivedList) {
             if (questionId) {
                 await restoreQuestion(questionId);
                 await loadQuestionsView();
-                showNoticeDialog('Question Restored', 'The question has been restored to your question catalog.', restoreButton);
+                showNoticeDialog(
+                    t('questions.noticeRestoredTitle'),
+                    t('questions.noticeRestoredMessage'),
+                    restoreButton
+                );
             }
             return;
         }
@@ -780,8 +816,8 @@ export async function loadQuestionsView() {
         toggleRemovedButton.hidden = totalArchivedCount === 0;
         toggleRemovedButton.setAttribute('aria-expanded', isRemovedQuestionsExpanded ? 'true' : 'false');
         toggleRemovedButton.textContent = isRemovedQuestionsExpanded
-            ? 'Hide Removed Questions'
-            : 'Show Removed Questions';
+            ? t('questions.hideRemoved')
+            : t('questions.showRemoved');
     }
 
     if (archivedDivider) {
@@ -972,12 +1008,12 @@ export function setupQuestionAuthoring() {
         sourceCopiedQuestion = null;
         resetForm();
 
-        if (modalTitle) modalTitle.textContent = 'Add Custom Question';
-        if (modalSubtitle) modalSubtitle.textContent = 'Create a new question for your library and optional daily tracker.';
+        if (modalTitle) modalTitle.textContent = t('questions.modalAddTitle');
+        if (modalSubtitle) modalSubtitle.textContent = t('questions.modalAddSubtitle');
         const saveButtonLabel = saveButton.querySelector('.button-label');
-        if (saveButtonLabel) saveButtonLabel.textContent = 'Save Question';
+        if (saveButtonLabel) saveButtonLabel.textContent = t('questions.saveQuestion');
         if (archiveRow) archiveRow.hidden = true;
-        if (addToSetLabel) addToSetLabel.textContent = 'Add to my daily set now';
+        if (addToSetLabel) addToSetLabel.textContent = t('questions.addToDailySet');
 
         showAuthoringOverlay();
     }
@@ -1008,12 +1044,12 @@ export function setupQuestionAuthoring() {
         sourceCopiedQuestion = question;
         resetForm();
 
-        if (modalTitle) modalTitle.textContent = 'Copy Question';
-        if (modalSubtitle) modalSubtitle.textContent = 'Create a custom question based on this built-in question.';
+        if (modalTitle) modalTitle.textContent = t('questions.modalCopyTitle');
+        if (modalSubtitle) modalSubtitle.textContent = t('questions.modalCopySubtitle');
         const saveButtonLabel = saveButton.querySelector('.button-label');
-        if (saveButtonLabel) saveButtonLabel.textContent = 'Save Question';
+        if (saveButtonLabel) saveButtonLabel.textContent = t('questions.saveQuestion');
         if (archiveRow) archiveRow.hidden = true;
-        if (addToSetLabel) addToSetLabel.textContent = 'Add to my daily set now';
+        if (addToSetLabel) addToSetLabel.textContent = t('questions.addToDailySet');
 
         populateAuthoringFieldsFromQuestion(question);
         if (addToSetInput) addToSetInput.checked = false;
@@ -1028,14 +1064,14 @@ export function setupQuestionAuthoring() {
         sourceCopiedQuestion = null;
         resetForm();
 
-        if (modalTitle) modalTitle.textContent = 'Edit Custom Question';
-        if (modalSubtitle) modalSubtitle.textContent = 'Update question details or remove this question.';
+        if (modalTitle) modalTitle.textContent = t('questions.modalEditTitle');
+        if (modalSubtitle) modalSubtitle.textContent = t('questions.modalEditSubtitle');
         const saveButtonLabel = saveButton.querySelector('.button-label');
-        if (saveButtonLabel) saveButtonLabel.textContent = 'Save Changes';
+        if (saveButtonLabel) saveButtonLabel.textContent = t('questions.saveChanges');
         if (archiveRow) archiveRow.hidden = false;
         const removeButtonLabel = archiveRow?.querySelector('.button-label');
-        if (removeButtonLabel) removeButtonLabel.textContent = 'Remove Question';
-        if (addToSetLabel) addToSetLabel.textContent = 'Active in daily tracker';
+        if (removeButtonLabel) removeButtonLabel.textContent = t('questions.removeQuestion');
+        if (addToSetLabel) addToSetLabel.textContent = t('questions.addToDailySet');
 
         populateAuthoringFieldsFromQuestion(question);
 
@@ -1114,8 +1150,8 @@ export function setupQuestionAuthoring() {
                 closeAuthoringModal();
 
                 showNoticeDialog(
-                    'Question Updated',
-                    'Your changes have been saved to this question.',
+                    t('questions.noticeUpdatedTitle'),
+                    t('questions.noticeUpdatedMessage'),
                     addQuestionButton
                 );
             } else {
@@ -1142,20 +1178,20 @@ export function setupQuestionAuthoring() {
 
                 if (outcome.status === 'added') {
                     showNoticeDialog(
-                        'Question Saved',
-                        'Your custom question has been saved and will appear in your check-in tracker.',
+                        t('questions.noticeSavedTitle'),
+                        t('questions.noticeSavedMessage'),
                         addQuestionButton
                     );
                 } else if (outcome.status === 'restored') {
                     showNoticeDialog(
-                        'Question Restored',
-                        'That question already existed in your removed items and has been restored.',
+                        t('questions.noticeRestoredTitle'),
+                        t('questions.noticeRestoredExistingMessage'),
                         addQuestionButton
                     );
                 } else {
                     showNoticeDialog(
-                        'Question Exists',
-                        'You already have an active question with this text in your library.',
+                        t('questions.noticeExistsTitle'),
+                        t('questions.noticeExistsMessage'),
                         addQuestionButton
                     );
                 }
@@ -1163,8 +1199,8 @@ export function setupQuestionAuthoring() {
         } catch (error) {
             console.error('Failed to save question:', error);
             showNoticeDialog(
-                'Could Not Save',
-                error?.message || 'Could not save the question. Please check the fields and try again.',
+                t('questions.noticeCouldNotSaveTitle'),
+                error?.message || t('questions.errorGeneric'),
                 addQuestionButton
             );
             syncSaveEnabled();
@@ -1183,15 +1219,15 @@ export function setupQuestionAuthoring() {
             closeAuthoringModal();
 
             showNoticeDialog(
-                'Question Removed',
-                'This question has been removed from your active tracker.',
+                t('questions.noticeRemovedTitle'),
+                t('questions.noticeRemovedMessage'),
                 addQuestionButton
             );
         } catch (error) {
             console.error('Failed to remove question:', error);
             showNoticeDialog(
-                'Could Not Remove',
-                error?.message || 'Could not remove the question.',
+                t('questions.noticeCouldNotRemoveTitle'),
+                error?.message || t('questions.noticeCouldNotRemoveTitle'),
                 addQuestionButton
             );
         }
@@ -1218,8 +1254,8 @@ export function setupQuestionAuthoring() {
 
         if (question.builtIn) {
             showNoticeDialog(
-                'Built-in Question',
-                'Built-in questions are part of the core tracker and cannot be edited or removed.',
+                t('questions.noticeBuiltInTitle'),
+                t('questions.noticeBuiltInMessage'),
                 event.target
             );
             return;
