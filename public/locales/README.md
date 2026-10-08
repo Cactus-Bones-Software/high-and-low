@@ -30,17 +30,14 @@ If a translation is missing a key, the English text is shown instead, so a parti
 
 ---
 
-## Translation Guidelines
+## Translation Guidance
 
-Per `docs/decisions.md`:
+Read [`docs/translation-guide.md`](/docs/translation-guide.md) before you start. It explains who the app is for
+and how the wording should feel, which matters more than any word list.
 
-1. **Terminology**
-   - The main action is a **Check-In** (for example, in Spanish: *Registro* or *Chequeo*). A saved record is an
-     **Entry**.
-   - Never use words meaning *Session*, *Quiz*, *Test*, or *Log* in any language. High & Low is not an evaluation,
-     examination, or chore.
-2. **Built-in questions** keep their fixed `id` (such as `q_energy`). Put the translated text and short label under
+Two technical points:
+
+1. **Built-in questions** keep their fixed `id` (such as `q_energy`). Put the translated text and short label under
    `builtInQuestions.<id>`.
-3. **Placeholders** such as `{current}`, `{total}`, and `{score}` must stay exactly as written. You may move them
+2. **Placeholders** such as `{current}`, `{total}`, and `{score}` must stay exactly as written. You may move them
    within the sentence.
-4. **Tone** is neutral, gentle, and compassionate. Many users are mentally exhausted.
