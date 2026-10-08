@@ -61,6 +61,11 @@ Current Version: `3`
     updatedAt: string; // ISO-8601 timestamp
   }
   ```
+* **Localization Invariant**: Questions in IndexedDB and backups maintain their stored `text`, `shortLabel`, and
+  endpoint labels. At render time, unedited built-in questions (`builtIn: true` where `text === originalText`) resolve
+  their displayed copy dynamically from the active locale dictionary (`public/locales/<lang>.json`) by question `id`.
+  Custom and user-edited questions (`builtIn: false` or `text !== originalText`) always display user-provided text
+  untranslated. No `seedVersion` bump is required.
 
 #### `entries` Store
 * **KeyPath**: `'timestamp'` (string, ISO-8601 UTC)
@@ -148,7 +153,7 @@ export const STATE = {
 │       ├── service-worker.js  # Legacy service worker forwarder (delegates to ../sw.js)
 │       ├── state.js           # STATE singleton object definition
 │       ├── utils.js           # Pure utility helpers (escapeHTML, html tagged template, safeRAF)
-│       ├── localization.js    # Translation engine, runtime JSON locale loader, DOM attribute translations, and language state
+│       ├── localization.js    # Translation engine, JSON locale loader, DOM translations & state
 │       ├── questions.js       # Default question definitions, FNV-1a hashing, curve color helpers
 │       ├── checkin.js         # Check-in card rendering, score submission, completion workflows
 │       ├── data-io.js         # JSON export/import engines (Wipe & Replace, Smart Merge)

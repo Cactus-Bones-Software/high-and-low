@@ -143,6 +143,20 @@ describe('Phase 8: Internationalization & Localization Pass (Task 8.3)', () => {
             expect(localized.text).toBe('My custom daily prompt');
             expect(localized.shortLabel).toBe('Custom Prompt');
         });
+
+        it('does not translate user-edited built-in questions where text was customized', () => {
+            STATE.language = 'test';
+            const editedQuestion = {
+                id: 'q_energy',
+                originalText: 'How is your energy right now?',
+                text: 'My customized energy inquiry',
+                shortLabel: 'Energy Inquiry',
+                builtIn: true
+            };
+            const localized = getLocalizedQuestion(editedQuestion);
+            expect(localized.text).toBe('My customized energy inquiry');
+            expect(localized.shortLabel).toBe('Energy Inquiry');
+        });
     });
 
     describe('3. DOM Translation Engine (applyTranslations & translateElement)', () => {
@@ -208,31 +222,33 @@ describe('Phase 8: Internationalization & Localization Pass (Task 8.3)', () => {
     });
 
     describe('5. Settings UI Integration: Language Selector', () => {
-        it('changes language and re-translates tracker UI when user selects secondary language in settings', async () => {
-            const languageSelect = testHarnessEnvironment.document.getElementById('language-select');
-            expect(languageSelect).not.toBeNull();
-            expect(languageSelect.value).toBe('en');
+        it(
+            'changes language and re-translates tracker UI when user selects secondary language in settings',
+            async () => {
+                const languageSelect = testHarnessEnvironment.document.getElementById('language-select');
+                expect(languageSelect).not.toBeNull();
+                expect(languageSelect.value).toBe('en');
 
-            const testOption = testHarnessEnvironment.document.createElement('option');
-            testOption.value = 'test';
-            testOption.textContent = 'Test Language';
-            languageSelect.appendChild(testOption);
+                const testOption = testHarnessEnvironment.document.createElement('option');
+                testOption.value = 'test';
+                testOption.textContent = 'Test Language';
+                languageSelect.appendChild(testOption);
 
-            languageSelect.value = 'test';
-            languageSelect.dispatchEvent(new testHarnessEnvironment.window.Event('change'));
+                languageSelect.value = 'test';
+                languageSelect.dispatchEvent(new testHarnessEnvironment.window.Event('change'));
 
-            const progressElement = testHarnessEnvironment.document.getElementById('progress-text');
-            await waitFor(() => progressElement?.textContent.includes('Pregunta 1 de'));
+                const progressElement = testHarnessEnvironment.document.getElementById('progress-text');
+                await waitFor(() => progressElement?.textContent.includes('Pregunta 1 de'));
 
-            expect(progressElement.textContent).toContain('Pregunta 1 de');
+                expect(progressElement.textContent).toContain('Pregunta 1 de');
 
-            const backButtonText = testHarnessEnvironment.document.querySelector(
-                '#settings-canvas .canvas-back-button [data-i18n="common.back"]'
-            );
-            if (backButtonText) {
-                expect(backButtonText.textContent).toBe('Atrás');
-            }
-        });
+                const backButtonText = testHarnessEnvironment.document.querySelector(
+                    '#settings-canvas .canvas-back-button [data-i18n="common.back"]'
+                );
+                if (backButtonText) {
+                    expect(backButtonText.textContent).toBe('Atrás');
+                }
+            });
     });
 
     describe('6. JSON-Only Locale Loading (manifest.json + <code>.json)', () => {

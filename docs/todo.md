@@ -500,45 +500,45 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - Extract all hardcoded user-facing UI strings across `index.html` and `public/js/` modules into a centralized translation dictionary.
   - Implement language switching and localization readiness for questions, controls, navigation, and settings interface elements.
 
-- [ ] **Task 8.3.1: Localization Design Decision — Built-In Question Translation (Developer Decision Required)**
-  - Do this before or at the start of Task 8.3. **Stop and ask the developer.** `docs/decisions.md` says question
-    `id` and `originalText` are immutable and custom IDs are hashes of `originalText`, so translating built-in
-    questions by overwriting stored `text` would violate the model.
-  - Proposal to confirm: built-in questions resolve their `text`, `shortLabel`, and endpoint labels from translation
-    keys at render time (keyed by `id`), while custom and user-edited questions display their stored text
-    untranslated. Decide what happens when a user has edited a built-in's copy, what backups contain, and whether
-    `SEED_VERSION` needs a bump.
-  - Record the outcome in `docs/decisions.md` and the schema impact in `docs/state.md`.
+  - [x] **Task 8.3.1: Localization Design Decision — Built-In Question Translation (Developer Decision Required)**
+    - Do this before or at the start of Task 8.3. **Stop and ask the developer.** `docs/decisions.md` says question
+      `id` and `originalText` are immutable and custom IDs are hashes of `originalText`, so translating built-in
+      questions by overwriting stored `text` would violate the model.
+    - Proposal to confirm: built-in questions resolve their `text`, `shortLabel`, and endpoint labels from translation
+      keys at render time (keyed by `id`), while custom and user-edited questions display their stored text
+      untranslated. Decide what happens when a user has edited a built-in's copy, what backups contain, and whether
+      `SEED_VERSION` needs a bump.
+    - Record the outcome in `docs/decisions.md` and the schema impact in `docs/state.md`.
 
-- [ ] **Task 8.3.2: Locale-Aware Dates and Document Language**
-  - `formatEntryDateTime`, `formatTickDate`, and related helpers in `ui/history-graph.js` use no `Intl` APIs. Route
-    all date/time display (graph ticks, tooltips, note markers, Data view dates) through `Intl.DateTimeFormat` using
-    the active locale.
-  - Keep `<html lang>` and `dir` in sync with the selected language at startup and on language change.
-  - Add tests for at least two locales, including a different date order and 12/24-hour convention.
+  - [ ] **Task 8.3.2: Locale-Aware Dates and Document Language**
+    - `formatEntryDateTime`, `formatTickDate`, and related helpers in `ui/history-graph.js` use no `Intl` APIs. Route
+      all date/time display (graph ticks, tooltips, note markers, Data view dates) through `Intl.DateTimeFormat` using
+      the active locale.
+    - Keep `<html lang>` and `dir` in sync with the selected language at startup and on language change.
+    - Add tests for at least two locales, including a different date order and 12/24-hour convention.
 
-- [ ] **Task 8.3.3: Localize Static Files and Offline Caching**
-  - `index.html` `<title>` and meta description, the testing banner, and `manifest.json` `name`/`description` are
-    not reachable by the translation dictionary. Localize `<title>` and the banner from JS, and decide (and
-    document in `docs/state.md`) how the single `manifest.json` is handled (default-locale only, or per-locale files).
-  - Add every locale file to `PRECACHE_ASSETS` in `sw.js` and bump `CACHE_NAME`. This must pass the Task 6.4 test.
-  - Persist the chosen language as a new `language` config key (mirror it in `localStorage` for pre-render access,
-    like `handedness`); update `docs/state.md` and check `docs/versioning.md`.
+  - [ ] **Task 8.3.3: Localize Static Files and Offline Caching**
+    - `index.html` `<title>` and meta description, the testing banner, and `manifest.json` `name`/`description` are
+      not reachable by the translation dictionary. Localize `<title>` and the banner from JS, and decide (and
+      document in `docs/state.md`) how the single `manifest.json` is handled (default-locale only, or per-locale files).
+    - Add every locale file to `PRECACHE_ASSETS` in `sw.js` and bump `CACHE_NAME`. This must pass the Task 6.4 test.
+    - Persist the chosen language as a new `language` config key (mirror it in `localStorage` for pre-render access,
+      like `handedness`); update `docs/state.md` and check `docs/versioning.md`.
 
-- [ ] **Task 8.3.4: Translation Glossary and Key-Parity Test**
-  - Add a short glossary (in `docs/`) fixing the translation of "Check-In" and "Entry" per language, since the
-    terminology rule in `docs/decisions.md` is written in English. "Session", "Quiz", "Test", and "Log" equivalents
-    remain forbidden in every language.
-  - Locales are JSON-only (see `docs/decisions.md`); the test reads every locale listed in
-    `public/locales/manifest.json`.
-  - Add a test asserting that every locale defines exactly the same keys as the default locale, that no value is
-    empty, and that interpolation placeholders match across locales.
+  - [ ] **Task 8.3.4: Translation Glossary and Key-Parity Test**
+    - Add a short glossary (in `docs/`) fixing the translation of "Check-In" and "Entry" per language, since the
+      terminology rule in `docs/decisions.md` is written in English. "Session", "Quiz", "Test", and "Log" equivalents
+      remain forbidden in every language.
+    - Locales are JSON-only (see `docs/decisions.md`); the test reads every locale listed in
+      `public/locales/manifest.json`.
+    - Add a test asserting that every locale defines exactly the same keys as the default locale, that no value is
+      empty, and that interpolation placeholders match across locales.
 
-- [ ] **Task 8.3.5: Right-to-Left Layout Review (Only When an RTL Locale Is Added)**
-  - Convert physical CSS properties (`margin-left`, `left`, `text-align: left`, etc.) to logical ones where needed.
-  - Decide whether `handedness` stays a physical left/right setting under RTL (it should, because it describes the
-    user's hand, not reading direction) and verify the menu, edit buttons, and graph axes still behave correctly.
-  - Do not start this until an RTL locale actually exists.
+  - [ ] **Task 8.3.5: Right-to-Left Layout Review (Only When an RTL Locale Is Added)**
+    - Convert physical CSS properties (`margin-left`, `left`, `text-align: left`, etc.) to logical ones where needed.
+    - Decide whether `handedness` stays a physical left/right setting under RTL (it should, because it describes the
+      user's hand, not reading direction) and verify the menu, edit buttons, and graph axes still behave correctly.
+    - Do not start this until an RTL locale actually exists.
 
 - [x] **Task 8.4: Shared Test Harness & Helper Utilities**
   - Extract repetitive JSDOM bootstrapping, IndexedDB mocking, matchMedia/serviceWorker polyfills, and helper functions into a centralized `tests/test-utils.js` harness.

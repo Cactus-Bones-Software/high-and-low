@@ -97,6 +97,12 @@ Entry format: **Rule.** Why. *(Enforced in: ...)* — omit the last part if noth
   format (ES modules, generated templates). Why: translators are not necessarily programmers, and two formats drift
   apart. `en.json` is the template and the fallback for missing keys.
   *(Enforced in: `tests/localization.test.js` manifest check.)*
+- **Questions translate only at render time and only when translations exist without user edits.** Built-in questions
+  resolve text and labels dynamically by ID from the active locale dictionary at render time. User-edited questions
+  and custom questions always display what the user provided untranslated. Why: `id` and `originalText` are immutable
+  invariants; translating edited questions would overwrite the user's intent, and translating stored records in
+  IndexedDB or backups would corrupt user data and require ongoing migration churn. No SEED_VERSION bump is needed.
+  *(Enforced in: `tests/localization.test.js`)*
 
 ## Open Questions
 

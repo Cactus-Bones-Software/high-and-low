@@ -125,12 +125,18 @@ export function populateLanguageOptions() {
 export function getLocalizedQuestion(question) {
     if (!question) return question;
     const currentLanguage = getCurrentLanguage();
-    if (question.builtIn && TRANSLATIONS[currentLanguage]?.builtInQuestions?.[question.id]) {
+    // Only translate if there is an unedited built-in question and a translation exists.
+    // If user edited the question (text !== originalText or builtIn is false), display what user provided.
+    const isUserEdited = Boolean(question.originalText && question.text !== question.originalText);
+    if (!isUserEdited && question.builtIn && TRANSLATIONS[currentLanguage]?.builtInQuestions?.[question.id]) {
         const localized = TRANSLATIONS[currentLanguage].builtInQuestions[question.id];
         return {
             ...question,
             text: localized.text || question.text,
-            shortLabel: localized.shortLabel || question.shortLabel
+            shortLabel: localized.shortLabel || question.shortLabel,
+            minLabel: localized.minLabel !== undefined ? localized.minLabel : question.minLabel,
+            maxLabel: localized.maxLabel !== undefined ? localized.maxLabel : question.maxLabel,
+            midLabel: localized.midLabel !== undefined ? localized.midLabel : question.midLabel
         };
     }
     return question;
