@@ -55,6 +55,9 @@
                 <button type="button" class="drawer-nav-button" data-target="settings-canvas">
                     <span class="nav-button-text">Settings</span>
                 </button>
+                <button type="button" class="drawer-nav-button" data-target="about-canvas">
+                    <span class="nav-button-text" data-i18n="navigation.about">About</span>
+                </button>
             </nav>
 
             <div class="drawer-actions">
@@ -268,6 +271,83 @@
                         Your mood history will appear here over time.
                     </p>
                 </div>
+            </section>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- VIEW: ABOUT, LICENCE & THANKS                                     -->
+        <!-- ================================================================= -->
+        <section id="about-canvas" class="app-canvas view-canvas view-hidden-right"
+                 aria-label="About High &amp; Low" inert>
+            <header class="canvas-box view-header-box">
+                <button type="button" class="canvas-back-button" data-close-view
+                        aria-label="Back to Mood Tracker" data-i18n-aria="about.backAria">
+                    <span class="back-arrow" aria-hidden="true">&larr;</span> <span data-i18n="common.back">Back</span>
+                </button>
+                <h1 class="view-title" data-i18n="about.title">About High &amp; Low</h1>
+            </header>
+
+            <section class="canvas-box view-content-box menu-box about-content-box" id="panel-about">
+                <article class="about-section">
+                    <h2 class="about-app-heading">High &amp; Low</h2>
+                    <p data-i18n="about.tagline">
+                        A private mood tracker designed for individuals navigating mood cycles.
+                    </p>
+                </article>
+
+                <article class="about-section">
+                    <h3 data-i18n="about.privacyHeading">100% Private &amp; On-Device</h3>
+                    <p data-i18n="about.privacyText">
+                        All your data stays directly on your device. There are no accounts and no outside servers.
+                    </p>
+                </article>
+
+                <article class="about-section">
+                    <h3 data-i18n="about.ethicsHeading">No Advertisements, No Tracking</h3>
+                    <p data-i18n="about.ethicsText">
+                        Zero advertisements, zero analytics, zero tracking cookies, and zero commercial manipulation.
+                    </p>
+                </article>
+
+                <article class="about-section">
+                    <h3 data-i18n="about.licenseHeading">Free &amp; Open Source</h3>
+                    <p data-i18n="about.licenseText">
+                        High &amp; Low is free software published under the GNU AGPL-3.0 licence.
+                    </p>
+                    <p>
+                        <a href="https://github.com/Cactus-Bones-Software/high-and-low" target="_blank"
+                           rel="noopener noreferrer" class="about-link" data-i18n="about.sourceCodeLink">
+                            View Source on GitHub
+                        </a>
+                    </p>
+                </article>
+
+                <article class="about-section">
+                    <h3 data-i18n="about.donationsHeading">Donations</h3>
+                    <p data-i18n="about.donationsText">
+                        Voluntary donations help fund professional mental health reviews and accessibility audits.
+                    </p>
+                    <div class="about-donation-links">
+                        <a href="https://github.com/sponsors/Cactus-Bones-Software" target="_blank"
+                           rel="noopener noreferrer" class="about-donation-button" data-i18n="about.sponsorGitHub">
+                            GitHub Sponsors
+                        </a>
+                        <a href="https://ko-fi.com/cactusbonessoftware" target="_blank" rel="noopener noreferrer"
+                           class="about-donation-button" data-i18n="about.sponsorKofi">
+                            Ko-fi
+                        </a>
+                    </div>
+                </article>
+
+                <article class="about-section">
+                    <h3 data-i18n="about.thankYouHeading">Thank You</h3>
+                    <p data-i18n="about.thankYouText">
+                        With gratitude to supporters and contributors.
+                    </p>
+                    <ul class="about-thank-you-list" id="about-thank-you-list">
+                        <!-- Real-world donor names will be listed here per donation terms -->
+                    </ul>
+                </article>
             </section>
         </section>
 

@@ -1014,6 +1014,92 @@ select, .utility-button, .form-input {
     flex-shrink: 0;
 }
 
+/* About View Panels & Content */
+.about-content-box {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    line-height: 1.5;
+}
+
+.about-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.about-app-heading {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-bright);
+}
+
+.about-section h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-bright);
+}
+
+.about-section p {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.about-link {
+    color: var(--text-bright);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    word-break: break-all;
+}
+
+.about-donation-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.about-donation-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background-color: var(--button-default);
+    color: var(--button-text);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background-color 150ms var(--transition-curve);
+}
+
+@media (hover: hover) {
+    .about-donation-button:hover {
+        background-color: var(--border-color);
+    }
+}
+
+.about-donation-button:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+.about-thank-you-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
 /* ==========================================================================
 7. CUSTOM-QUESTION AUTHORING FORM & VIEW PANELS
 ========================================================================== */

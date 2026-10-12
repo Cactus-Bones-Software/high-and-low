@@ -109,13 +109,14 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
         const navigationButtons = Array.from(documentInstance.querySelectorAll('.drawer-nav-button'));
         const navigationTargets = navigationButtons.map(button => button.getAttribute('data-target'));
 
-        // Expected frequency order: Mood Tracker, History, Questions, Data, Settings
+        // Expected frequency order: Mood Tracker, History, Questions, Data, Settings, About
         expect(navigationTargets).toEqual([
             'tracker-canvas',
             'history-canvas',
             'questions-canvas',
             'data-canvas',
-            'settings-canvas'
+            'settings-canvas',
+            'about-canvas'
         ]);
 
         // Step A: Navigate to History (history-canvas)
@@ -170,7 +171,18 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
         expect(isElementInert(settingsCanvas)).toBe(false);
         expect(settingsNavigationButton.classList.contains('active')).toBe(true);
 
-        // Step E: Navigate back to Mood Tracker (tracker-canvas)
+        // Step E: Navigate to About (about-canvas)
+        menuButton.click();
+        const aboutNavigationButton = documentInstance.querySelector('.drawer-nav-button[data-target="about-canvas"]');
+        aboutNavigationButton.click();
+
+        const aboutCanvas = documentInstance.getElementById('about-canvas');
+        expect(body.classList.contains('drawer-open')).toBe(false);
+        expect(aboutCanvas.classList.contains('view-active')).toBe(true);
+        expect(isElementInert(aboutCanvas)).toBe(false);
+        expect(aboutNavigationButton.classList.contains('active')).toBe(true);
+
+        // Step F: Navigate back to Mood Tracker (tracker-canvas)
         menuButton.click();
         const trackerNavigationButton = documentInstance.querySelector('.drawer-nav-button[data-target="tracker-canvas"]');
         trackerNavigationButton.click();

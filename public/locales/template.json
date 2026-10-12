@@ -26,6 +26,7 @@
     "questions": "Questions",
     "data": "Data & Backups",
     "settings": "Settings",
+    "about": "About",
     "restartCheckin": "Restart Check-In",
     "backToTracker": "Back to Mood Tracker"
   },
@@ -198,6 +199,24 @@
     "notAsked": "Not Asked",
     "noteTitle": "Check-In Note",
     "closePrompt": "Tap anywhere to close"
+  },
+  "about": {
+    "title": "About High & Low",
+    "backAria": "Back to Mood Tracker",
+    "tagline": "A private mood tracker designed for individuals navigating mood cycles.",
+    "privacyHeading": "100% Private & On-Device",
+    "privacyText": "All your data stays directly on your device. There are no accounts and no outside servers.",
+    "ethicsHeading": "No Advertisements, No Tracking",
+    "ethicsText": "Zero advertisements, zero analytics, zero tracking cookies, and zero commercial manipulation.",
+    "licenseHeading": "Free & Open Source",
+    "licenseText": "High & Low is free software published under the GNU AGPL-3.0 licence.",
+    "sourceCodeLink": "View Source on GitHub",
+    "donationsHeading": "Donations & Principles",
+    "donationsText": "Voluntary donations help fund professional mental health reviews and accessibility audits.",
+    "sponsorGitHub": "GitHub Sponsors",
+    "sponsorKofi": "Ko-fi",
+    "thankYouHeading": "Thank You",
+    "thankYouText": "With gratitude to supporters and contributors. Real-world names are recognized per our terms."
   },
   "notes": {
     "modalTitle": "Check-In Note",
