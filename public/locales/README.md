@@ -7,7 +7,7 @@ Anyone can add a language with a plain text file. No programming is needed.
 ## Files
 
 ```text
-public/locales/
+/public/locales/
 ├── manifest.json   # The list of available languages
 ├── en.json         # English: the template, and the fallback for any missing text
 └── README.md       # This guide
@@ -23,8 +23,10 @@ public/locales/
    ```json
    { "code": "fr", "name": "Français", "direction": "ltr" }
    ```
-   `name` is the language written in itself (it appears in the Language menu). `direction` is `ltr` or `rtl`.
-4. Done. The language shows up in Settings, is loaded when chosen, and is saved for offline use automatically.
+   `name` is the language written in itself, such as `Français` (it appears in the Language menu). This is the only
+   place a language's name appears, so there is nothing to translate for it. 
+4. `direction` is `ltr` (left-t0-right) or `rtl` (right-to-left).
+5. Done. The language shows up in Settings, is loaded when chosen, and is saved for offline use automatically.
 
 If a translation is missing a key, the English text is shown instead, so a partial translation still works.
 
