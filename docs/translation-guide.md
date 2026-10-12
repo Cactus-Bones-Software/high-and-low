@@ -33,10 +33,10 @@ Aim for the voice of a calm friend who is happy to hear how you are and in no hu
   cheerful ones. If you would not say it out loud to someone you care about, reconsider it.
 - **Unhurried.** No urgency, pressure, or scolding. Questions are invitations. Skipping is always fine, and the text
   should never suggest otherwise.
-- **Warm without gushing.** Kindness matters more than enthusiasm. Avoid forced positivity, which can feel hollow or 
-  even mocking to someone having a hard time.
-- **Respectful of the user's pace and privacy.** The wording should treat their information as theirs: quiet and 
-  personal, never watched or reported on.
+- **Warm without gushing.** Kindness matters more than enthusiasm. Avoid piles of exclamation marks and forced
+  positivity, which can feel hollow or even mocking to someone having a hard time.
+- **Respectful of the user's pace and privacy.** Their data stays on their device. The wording should treat it as
+  theirs: quiet and personal, never watched or reported on.
 
 ---
 
@@ -53,6 +53,8 @@ and quiet, like a mark on a calendar.
 The two should stay recognizably different from each other. The app talks about doing a check-in and about looking at
 entries, and people should be able to tell which is meant. If your language has one natural word for both, a small
 difference in wording (an extra word, or a different one) is usually enough.
+
+The full list of the app's main terms, and what each is meant to make the reader feel, is in `docs/glossary.md`.
 
 These are short English words that make a small gesture sound small. Your task is to find words that feel the same way
 in your language, not to find a dictionary equivalent.
