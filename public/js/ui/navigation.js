@@ -8,7 +8,8 @@ import { saveActiveView } from '../storage/session.js';
 import { safeRAF } from '../utils.js';
 import { loadHistoryView } from './history-graph.js';
 import { loadQuestionsView } from './question-view.js';
-import {setInert} from "./settings-menu.js";
+import { setInert } from "./settings-menu.js";
+import { updateLastBackupDisplay } from '../data-io.js';
 
 let currentViewId = 'tracker-canvas';
 
@@ -81,6 +82,12 @@ export function navigateTo(targetViewId, options = {}) {
     if (targetViewId === 'questions-canvas') {
         void loadQuestionsView().catch(error => {
             console.error('Failed to load questions view:', error);
+        });
+    }
+
+    if (targetViewId === 'data-canvas') {
+        void updateLastBackupDisplay().catch(error => {
+            console.error('Failed to update last backup display:', error);
         });
     }
 

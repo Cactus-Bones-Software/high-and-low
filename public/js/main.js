@@ -23,7 +23,7 @@ import { DEFAULT_QUESTIONS,
 // Load the code for check-ins
 import { startNewCheckIn, renderCurrentQuestion, clearQuestionTransitions, finalizeCheckin } from './checkin.js';
 // Prepare to export data if necessary
-import { exportAllDataAndConfig } from './data-io.js';
+import { exportAllDataAndConfig, updateLastBackupDisplay, formatBackupDate } from './data-io.js';
 // Load the navigation drawer
 import { navigateTo } from './ui/navigation.js';
 // Set up the hold-to-actuate buttons
@@ -281,6 +281,7 @@ export function initApp() {
             restoreActiveCheckin();
             updateNotesButtonLabel();
             clearQuestionTransitions();
+            void updateLastBackupDisplay();
 
             if (STATE.currentQuestionIndex >= STATE.activeQuestions.length && STATE.activeQuestions.length > 0) {
                 const buttonStack = document.getElementById('button-stack');
@@ -341,6 +342,9 @@ export function initApp() {
                 window.setConfig = setConfig;
                 window.deleteConfig = deleteConfig;
                 window.applyStoredDisplay = applyStoredDisplay;
+                window.exportAllDataAndConfig = exportAllDataAndConfig;
+                window.updateLastBackupDisplay = updateLastBackupDisplay;
+                window.formatBackupDate = formatBackupDate;
             }
 
             safeRAF(() => {

@@ -36,6 +36,7 @@ Current Version: `3`
 | `handedness`        | `string`   | `'right'\|'left'`           | Menu and non-dominant action alignment                   |
 | `holdDelay`         | `string`   | `'enabled'\|'disabled'`     | 1.5s hold-to-confirm barrier on touch actions            |
 | `language`          | `string`   | `'en'` (expandable)         | Active user interface language preference                |
+| `lastBackupAt`      | `string\|null` | ISO-8601 string or `null` | ISO-8601 timestamp of last successful backup export      |
 | `seedVersion`       | `number`   | Integer (e.g. `4`)          | Tracks built-in default question seeding                 |
 
 *Note: `handedness`, `holdDelay`, and `language` preferences are also mirrored in `localStorage` for pre-render access.*
@@ -175,6 +176,7 @@ export const STATE = {
     ├── active_tracker_cards.test.js
     ├── catalog_cards.test.js
     ├── checkin_persistence.test.js
+    ├── data_backup.test.js
     ├── drawer.test.js
     ├── graph.test.js
     ├── graph_gestures.test.js

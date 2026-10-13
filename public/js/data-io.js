@@ -3,26 +3,72 @@
  * Backup serialization, JSON file export, and conflict-checked database restore operations.
  */
 
-import { getDatabase } from './storage/db.js';
+import { getDatabase, getConfig, setConfig } from './storage/db.js';
 import { showNoticeDialog } from "./ui/dialogs.js";
 import { t } from './localization.js';
+
+/**
+ * Formats an ISO-8601 string into a localized date string for backup display.
+ * @param {string | null | undefined} isoString - ISO-8601 timestamp string.
+ * @returns {string} Localized date string, or empty string if invalid or null.
+ */
+export function formatBackupDate(isoString) {
+    if (!isoString) return '';
+    try {
+        const date = new Date(isoString);
+        if (Number.isNaN(date.getTime())) return '';
+        return date.toLocaleDateString();
+    } catch {
+        return '';
+    }
+}
+
+/**
+ * Updates the last backup date indicator in the Data view (#panel-data).
+ * Displays "Last backup: <date>" or "No backup yet".
+ * @returns {Promise<void>}
+ */
+export async function updateLastBackupDisplay() {
+    const indicatorElement = document.getElementById('last-backup-display');
+    if (!indicatorElement) return;
+
+    try {
+        const lastBackupAt = await getConfig('lastBackupAt');
+        if (lastBackupAt) {
+            const formattedDate = formatBackupDate(lastBackupAt);
+            if (formattedDate) {
+                indicatorElement.textContent = t('data.lastBackup', { date: formattedDate });
+                indicatorElement.removeAttribute('data-i18n');
+                return;
+            }
+        }
+        indicatorElement.textContent = t('data.noBackupYet');
+        indicatorElement.setAttribute('data-i18n', 'data.noBackupYet');
+    } catch (error) {
+        console.warn('Could not retrieve lastBackupAt from config:', error);
+        indicatorElement.textContent = t('data.noBackupYet');
+        indicatorElement.setAttribute('data-i18n', 'data.noBackupYet');
+    }
+}
 
 /**
  * Serializes the entire IndexedDB database ('config', 'questions', and 'entries' stores)
  * into a JSON backup file and triggers a browser download.
  * Produces a full schema 2.0 export containing all records, including archived questions.
- * @returns {void}
+ * Writes `lastBackupAt` to the config store after a successful export and updates UI.
+ * @returns {Promise<void>} Resolves when export serialization and storage updates complete.
  */
 export function exportAllDataAndConfig() {
     const database = getDatabase();
     if (!database) {
         console.error('Database not initialized for export.');
-        return;
+        return Promise.resolve();
     }
 
+    const exportTimestamp = new Date().toISOString();
     const backupData = {
         exportVersion: "2.0",
-        exportTimestamp: new Date().toISOString(),
+        exportTimestamp,
         config: [],
         questions: [],
         entries: []
@@ -50,17 +96,38 @@ export function exportAllDataAndConfig() {
             cursor.continue();
         }
     };
-    transaction.oncomplete = () => {
-        const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const anchorLink = document.createElement('a');
-        anchorLink.href = url;
-        anchorLink.download = `high-and-low-backup-${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(anchorLink);
-        anchorLink.click();
-        document.body.removeChild(anchorLink);
-        URL.revokeObjectURL(url);
-    };
+    return new Promise((resolve) => {
+        transaction.oncomplete = async () => {
+            const existingConfigIndex = backupData.config.findIndex(item => item.key === 'lastBackupAt');
+            if (existingConfigIndex >= 0) {
+                backupData.config[existingConfigIndex] = { key: 'lastBackupAt', value: exportTimestamp };
+            } else {
+                backupData.config.push({ key: 'lastBackupAt', value: exportTimestamp });
+            }
+
+            const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+            if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+                const url = URL.createObjectURL(blob);
+                const anchorLink = document.createElement('a');
+                anchorLink.href = url;
+                anchorLink.download = `high-and-low-backup-${exportTimestamp.split('T')[0]}.json`;
+                document.body.appendChild(anchorLink);
+                anchorLink.click();
+                document.body.removeChild(anchorLink);
+                if (typeof URL.revokeObjectURL === 'function') {
+                    URL.revokeObjectURL(url);
+                }
+            }
+
+            try {
+                await setConfig('lastBackupAt', exportTimestamp);
+                await updateLastBackupDisplay();
+            } catch (error) {
+                console.error('Failed to record lastBackupAt after export:', error);
+            }
+            resolve();
+        };
+    });
 }
 
 /**

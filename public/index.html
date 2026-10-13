@@ -240,13 +240,17 @@
             </header>
 
             <section class="canvas-box view-content-box menu-box" id="panel-data">
-                <h3>Export &amp; Import Data</h3>
+                <h3 data-i18n="data.heading">Export &amp; Import Data</h3>
+                <p id="last-backup-display" class="last-backup-indicator" data-i18n="data.noBackupYet">
+                    No backup yet
+                </p>
                 <div class="button-grid">
-                    <button type="button" id="button-export-all" class="utility-button">Backup Data &amp; Settings</button>
+                    <button type="button" id="button-export-all" class="utility-button"
+                            data-i18n="data.backupButton">Backup Data &amp; Settings</button>
                 </div>
                 <div class="file-import-zone">
                     <button class="utility-button" type="button" id="button-import"
-                            aria-label="Import Backup File">Import Backup File</button>
+                            aria-label="Import Backup File" data-i18n="data.importButton">Import Backup File</button>
                     <input type="file" id="file-import" accept=".json" style="display: none;"
                            tabindex="-1" aria-hidden="true">
                 </div>

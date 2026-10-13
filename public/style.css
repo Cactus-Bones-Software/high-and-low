@@ -951,6 +951,13 @@ select, .utility-button, .form-input {
     font-size: 0.95rem;
 }
 
+.last-backup-indicator {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    margin: 0 0 14px 0;
+    line-height: 1.4;
+}
+
 .button-grid {
     display: flex;
     gap: 10px;

@@ -55,7 +55,7 @@ import {
     commitGraphGestureZoom
 } from '../public/js/ui/history-graph.js';
 import { navigateTo, setCurrentViewId } from '../public/js/ui/navigation.js';
-import { get, getAll, put, getConfig, setConfig, deleteConfig } from '../public/js/storage/db.js';
+import { get, getAll, put, getConfig, setConfig, deleteConfig, getDatabase } from '../public/js/storage/db.js';
 import {
     saveActiveCheckin,
     clearActiveCheckin,
@@ -64,6 +64,7 @@ import {
     getStoredActiveView
 } from '../public/js/storage/session.js';
 import { applyStoredDisplay } from '../public/js/ui/settings-menu.js';
+import { exportAllDataAndConfig, updateLastBackupDisplay, formatBackupDate } from '../public/js/data-io.js';
 import { escapeHTML, html, rawHTML } from '../public/js/utils.js';
 
 const PUBLIC_DIRECTORY = resolve(__dirname, '../public');
@@ -174,6 +175,16 @@ export async function setupTestDOM(customSessionStorage = {}) {
         });
     }
 
+    // Polyfill URL.createObjectURL and URL.revokeObjectURL
+    if (!windowInstance.URL.createObjectURL) {
+        windowInstance.URL.createObjectURL = () => 'blob:mock-url';
+        windowInstance.URL.revokeObjectURL = () => {};
+    }
+    if (typeof URL !== 'undefined' && !URL.createObjectURL) {
+        URL.createObjectURL = () => 'blob:mock-url';
+        URL.revokeObjectURL = () => {};
+    }
+
     // Bind globals safely so imported modules execute against this active window/document instance
     global.fetch = fetchFromPublicDirectory;
     global.window = windowInstance;
@@ -261,6 +272,10 @@ export async function setupTestDOM(customSessionStorage = {}) {
     windowInstance.deleteConfig = deleteConfig;
     windowInstance.applyStoredDisplay = applyStoredDisplay;
     windowInstance.registerServiceWorker = registerServiceWorker;
+    windowInstance.exportAllDataAndConfig = exportAllDataAndConfig;
+    windowInstance.updateLastBackupDisplay = updateLastBackupDisplay;
+    windowInstance.formatBackupDate = formatBackupDate;
+    windowInstance.getDatabase = getDatabase;
 
     resetAppInitialized();
     await initApp();

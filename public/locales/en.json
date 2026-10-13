@@ -130,6 +130,8 @@
   "data": {
     "title": "Data Management & Backups",
     "heading": "Export & Import Data",
+    "lastBackup": "Last backup: {date}",
+    "noBackupYet": "No backup yet",
     "backupButton": "Backup Data & Settings",
     "importButton": "Import Backup File",
     "importModalTitle": "Import Data",

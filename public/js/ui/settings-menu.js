@@ -9,6 +9,7 @@ import { updateHoldActionAriaLabels, setIsHoldDelayEnabled } from './hold-action
 import { startNewCheckIn, renderCurrentQuestion } from '../checkin.js';
 import { safeRAF } from '../utils.js';
 import { setLanguage, populateLanguageOptions, loadManifest } from '../localization.js';
+import { updateLastBackupDisplay } from '../data-io.js';
 import { STATE } from '../state.js';
 
 /**
@@ -169,6 +170,7 @@ export function setupSettingsAndMenu() {
         languageSelect.addEventListener('change', async (event) => {
             const selectedLanguage = event.target.value;
             await setLanguage(selectedLanguage);
+            void updateLastBackupDisplay();
             if (STATE.activeQuestions && STATE.activeQuestions.length > 0) {
                 renderCurrentQuestion();
             }
