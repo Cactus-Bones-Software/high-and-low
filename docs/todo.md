@@ -102,7 +102,7 @@
     hotlines are country-specific.
   - Record the outcome in `docs/decisions.md` (it constrains future work and passes the admission test).
 
-- [ ] **Task 2.17: Selective Backup — Data Layer & Scope Model**
+- [x] **Task 2.17: Selective Backup — Data Layer & Scope Model**
   - Today the only export is `exportAllDataAndConfig()`, which dumps everything. There is no way to back up settings
     without history, or history without settings. Add a scope-aware export in `public/js/data-io.js`, e.g.
     `exportBackup({ includeHistory, includeSettings })`, with at least one scope required. Keep the existing full

@@ -67,7 +67,11 @@ Entry format: **Rule.** Why. *(Enforced in: ...)* — omit the last part if noth
 
 ## Backup & restore
 
-- **Export dumps everything:** `config`, `questions` (including archived), and `entries`. Never a partial export.
+- **Complete export is default; partial exports are explicitly chosen and labelled.** The primary one-tap export dumps
+  everything (allowlisted config, all questions, and entries). Partial exports (history-only, settings-only) are
+  permitted only when intentionally selected, must be labelled in the JSON `scope` array and filename suffix (`-full`,
+  `-history-only`, `-settings-only`), and are never presented as a full backup. History-only exports must include all
+  questions referenced by those entries. Device-specific keys (`seedVersion`, `lastBackupAt`) are never exported.
 - **Merge rules:** entries dedupe on exact timestamp; questions with the same id resolve to newest `updatedAt`,
   except the `originalText` collision rule above. Wipe & Replace and Smart Merge are separate, explicit modes.
 - **Breaking any backup format is a MAJOR change** and needs a migration path (see `docs/versioning.md`).

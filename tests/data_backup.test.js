@@ -77,7 +77,7 @@ describe('Task 2.15: Last-Backup Indicator in the Data View Tests', () => {
         expect(backupIndicator.textContent.trim()).toBe(`Last backup: ${expectedDate}`);
     });
 
-    it('6. Export File Content: backup data includes lastBackupAt in config store array', async () => {
+    it('6. Export File Content: excludes device-specific keys (lastBackupAt, seedVersion) from config', async () => {
         let exportedBlob = null;
         const originalWindowCreateObjectURL = windowInstance.URL.createObjectURL;
         const originalGlobalCreateObjectURL = global.URL ? global.URL.createObjectURL : undefined;
@@ -101,10 +101,11 @@ describe('Task 2.15: Last-Backup Indicator in the Data View Tests', () => {
             expect(exportedPayload.exportVersion).toBe('2.0');
             expect(exportedPayload.exportTimestamp).toBeDefined();
 
-            // Config array must contain lastBackupAt
+            // Config array must NOT contain lastBackupAt or seedVersion per Task 2.17 allowlist
             const lastBackupConfigItem = exportedPayload.config.find(item => item.key === 'lastBackupAt');
-            expect(lastBackupConfigItem).toBeDefined();
-            expect(lastBackupConfigItem.value).toBe(exportedPayload.exportTimestamp);
+            expect(lastBackupConfigItem).toBeUndefined();
+            const seedVersionConfigItem = exportedPayload.config.find(item => item.key === 'seedVersion');
+            expect(seedVersionConfigItem).toBeUndefined();
         } finally {
             windowInstance.URL.createObjectURL = originalWindowCreateObjectURL;
             if (global.URL && originalGlobalCreateObjectURL) {

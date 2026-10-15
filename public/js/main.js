@@ -23,7 +23,13 @@ import { DEFAULT_QUESTIONS,
 // Load the code for check-ins
 import { startNewCheckIn, renderCurrentQuestion, clearQuestionTransitions, finalizeCheckin } from './checkin.js';
 // Prepare to export data if necessary
-import { exportAllDataAndConfig, updateLastBackupDisplay, formatBackupDate } from './data-io.js';
+import {
+    exportAllDataAndConfig,
+    exportBackup,
+    updateLastBackupDisplay,
+    formatBackupDate,
+    EXPORTABLE_CONFIG_KEYS
+} from './data-io.js';
 // Load the navigation drawer
 import { navigateTo } from './ui/navigation.js';
 // Set up the hold-to-actuate buttons
@@ -343,8 +349,10 @@ export function initApp() {
                 window.deleteConfig = deleteConfig;
                 window.applyStoredDisplay = applyStoredDisplay;
                 window.exportAllDataAndConfig = exportAllDataAndConfig;
+                window.exportBackup = exportBackup;
                 window.updateLastBackupDisplay = updateLastBackupDisplay;
                 window.formatBackupDate = formatBackupDate;
+                window.EXPORTABLE_CONFIG_KEYS = EXPORTABLE_CONFIG_KEYS;
             }
 
             safeRAF(() => {

@@ -89,6 +89,38 @@ Current Version: `3`
   * `BOOLEAN_YES_SCORE = 5`: Mapped score persisted for "Yes" answers on boolean questions.
   * Allows graph pipelines, grid lines, and score aggregations to handle boolean questions without schema divergence.
 
+### Backup File Format & Scopes (`public/js/data-io.js`)
+
+#### JSON File Structure
+```json
+{
+  "exportVersion": "2.0",
+  "exportTimestamp": "2026-10-15T13:30:00.000Z",
+  "scope": ["history", "settings"],
+  "config": [],
+  "questions": [],
+  "entries": []
+}
+```
+
+#### Export Scopes
+* **`history`**:
+  * Exports all check-in records from the `entries` store.
+  * Exports every question record (active and archived) referenced by any entry in `entries`. Question records must be
+    present so entries never have orphaned questions when imported to a fresh device.
+  * Updates `lastBackupAt` in `config` upon completion.
+* **`settings`**:
+  * Exports all questions in the question catalog (active, catalog, and archived).
+  * Exports allowlisted configuration keys: `activeQuestionSet`, `theme`, `contrast`, `handedness`, `holdDelay`, and
+    `language`.
+  * Excludes device-specific keys: `seedVersion` and `lastBackupAt` are never exported.
+  * Does NOT update `lastBackupAt`.
+
+#### Filename Convention
+* Full backup (`history` + `settings`): `high-and-low-backup-<YYYY-MM-DD>-full.json`
+* History only: `high-and-low-backup-<YYYY-MM-DD>-history-only.json`
+* Settings only: `high-and-low-backup-<YYYY-MM-DD>-settings-only.json`
+
 ---
 
 ## 3. Session & In-Memory State
@@ -189,6 +221,7 @@ export const STATE = {
     ├── questions.test.js
     ├── questions-view.test.js
     ├── removed_questions.test.js
+    ├── selective_backup.test.js
     ├── service_worker.test.js
     ├── transitions.test.js
     └── synthetic-dataset.json

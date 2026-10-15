@@ -51,66 +51,126 @@ export async function updateLastBackupDisplay() {
     }
 }
 
+export const EXPORTABLE_CONFIG_KEYS = [
+    'activeQuestionSet',
+    'theme',
+    'contrast',
+    'handedness',
+    'holdDelay',
+    'language'
+];
+
 /**
- * Serializes the entire IndexedDB database ('config', 'questions', and 'entries' stores)
- * into a JSON backup file and triggers a browser download.
- * Produces a full schema 2.0 export containing all records, including archived questions.
- * Writes `lastBackupAt` to the config store after a successful export and updates UI.
- * @returns {Promise<void>} Resolves when export serialization and storage updates complete.
+ * Serializes database records into a scope-aware JSON backup file and triggers a browser download.
+ * Scopes supported:
+ * - 'history': entries store records + all questions referenced by those entries. Updates lastBackupAt.
+ * - 'settings': all questions in catalog + allowlisted config keys. Does not update lastBackupAt.
+ *
+ * @param {Object} [options={}] - Export configuration options.
+ * @param {boolean} [options.includeHistory=true] - Whether to include check-in entries and referenced questions.
+ * @param {boolean} [options.includeSettings=true] - Whether to include question catalog and allowlisted settings.
+ * @returns {Promise<{ backupData: Object, filename: string }>} Resolves with export metadata and file content.
  */
-export function exportAllDataAndConfig() {
+export function exportBackup(options = {}) {
+    const includeHistory = options.includeHistory !== undefined ? Boolean(options.includeHistory) : true;
+    const includeSettings = options.includeSettings !== undefined ? Boolean(options.includeSettings) : true;
+
+    if (!includeHistory && !includeSettings) {
+        return Promise.reject(new Error('At least one export scope must be selected ("history" or "settings").'));
+    }
+
     const database = getDatabase();
     if (!database) {
         console.error('Database not initialized for export.');
-        return Promise.resolve();
+        return Promise.reject(new Error('Database not initialized for export.'));
     }
 
     const exportTimestamp = new Date().toISOString();
-    const backupData = {
-        exportVersion: "2.0",
-        exportTimestamp,
-        config: [],
-        questions: [],
-        entries: []
-    };
+    const scope = [];
+    if (includeHistory) scope.push('history');
+    if (includeSettings) scope.push('settings');
+
+    let scopeSuffix = 'full';
+    if (includeHistory && !includeSettings) {
+        scopeSuffix = 'history-only';
+    } else if (!includeHistory && includeSettings) {
+        scopeSuffix = 'settings-only';
+    }
+
+    const filename = `high-and-low-backup-${exportTimestamp.split('T')[0]}-${scopeSuffix}.json`;
+
+    const rawConfig = [];
+    const rawQuestions = [];
+    const rawEntries = [];
+
     const transaction = database.transaction(['config', 'questions', 'entries'], 'readonly');
 
     transaction.objectStore('config').openCursor().onsuccess = (event) => {
         const cursor = event.target.result;
         if (cursor) {
-            backupData.config.push(cursor.value);
+            rawConfig.push(cursor.value);
             cursor.continue();
         }
     };
     transaction.objectStore('questions').openCursor().onsuccess = (event) => {
         const cursor = event.target.result;
         if (cursor) {
-            backupData.questions.push(cursor.value);
+            rawQuestions.push(cursor.value);
             cursor.continue();
         }
     };
     transaction.objectStore('entries').openCursor().onsuccess = (event) => {
         const cursor = event.target.result;
         if (cursor) {
-            backupData.entries.push(cursor.value);
+            rawEntries.push(cursor.value);
             cursor.continue();
         }
     };
-    return new Promise((resolve) => {
+
+    return new Promise((resolve, reject) => {
+        transaction.onerror = () => reject(transaction.error);
         transaction.oncomplete = async () => {
-            const existingConfigIndex = backupData.config.findIndex(item => item.key === 'lastBackupAt');
-            if (existingConfigIndex >= 0) {
-                backupData.config[existingConfigIndex] = { key: 'lastBackupAt', value: exportTimestamp };
-            } else {
-                backupData.config.push({ key: 'lastBackupAt', value: exportTimestamp });
+            const exportedEntries = includeHistory ? rawEntries : [];
+
+            let exportedQuestions = [];
+            if (includeSettings) {
+                exportedQuestions = rawQuestions;
+            } else if (includeHistory) {
+                const referencedQuestionIds = new Set();
+                for (const entry of exportedEntries) {
+                    if (Array.isArray(entry.answers)) {
+                        for (const answer of entry.answers) {
+                            if (answer && answer.questionId) {
+                                referencedQuestionIds.add(answer.questionId);
+                            }
+                        }
+                    }
+                }
+                exportedQuestions = rawQuestions.filter(question => referencedQuestionIds.has(question.id));
             }
+
+            let exportedConfig = [];
+            if (includeSettings) {
+                exportedConfig = rawConfig.filter(item =>
+                    item && typeof item.key === 'string' && EXPORTABLE_CONFIG_KEYS.includes(item.key)
+                );
+            }
+
+            const backupData = {
+                exportVersion: "2.0",
+                exportTimestamp,
+                scope,
+                config: exportedConfig,
+                questions: exportedQuestions,
+                entries: exportedEntries
+            };
 
             const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
             if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
                 const url = URL.createObjectURL(blob);
                 const anchorLink = document.createElement('a');
                 anchorLink.href = url;
-                anchorLink.download = `high-and-low-backup-${exportTimestamp.split('T')[0]}.json`;
+                anchorLink.download = filename;
                 document.body.appendChild(anchorLink);
                 anchorLink.click();
                 document.body.removeChild(anchorLink);
@@ -119,15 +179,27 @@ export function exportAllDataAndConfig() {
                 }
             }
 
-            try {
-                await setConfig('lastBackupAt', exportTimestamp);
-                await updateLastBackupDisplay();
-            } catch (error) {
-                console.error('Failed to record lastBackupAt after export:', error);
+            if (includeHistory) {
+                try {
+                    await setConfig('lastBackupAt', exportTimestamp);
+                    await updateLastBackupDisplay();
+                } catch (error) {
+                    console.error('Failed to record lastBackupAt after export:', error);
+                }
             }
-            resolve();
+
+            resolve({ backupData, filename });
         };
     });
+}
+
+/**
+ * Serializes the entire IndexedDB database ('config', 'questions', and 'entries' stores)
+ * into a full JSON backup file and triggers a browser download. Preserves one-tap contract.
+ * @returns {Promise<{ backupData: Object, filename: string }>}
+ */
+export function exportAllDataAndConfig() {
+    return exportBackup({ includeHistory: true, includeSettings: true });
 }
 
 /**

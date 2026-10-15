@@ -64,7 +64,13 @@ import {
     getStoredActiveView
 } from '../public/js/storage/session.js';
 import { applyStoredDisplay } from '../public/js/ui/settings-menu.js';
-import { exportAllDataAndConfig, updateLastBackupDisplay, formatBackupDate } from '../public/js/data-io.js';
+import {
+    exportAllDataAndConfig,
+    exportBackup,
+    updateLastBackupDisplay,
+    formatBackupDate,
+    EXPORTABLE_CONFIG_KEYS
+} from '../public/js/data-io.js';
 import { escapeHTML, html, rawHTML } from '../public/js/utils.js';
 
 const PUBLIC_DIRECTORY = resolve(__dirname, '../public');
@@ -273,9 +279,11 @@ export async function setupTestDOM(customSessionStorage = {}) {
     windowInstance.applyStoredDisplay = applyStoredDisplay;
     windowInstance.registerServiceWorker = registerServiceWorker;
     windowInstance.exportAllDataAndConfig = exportAllDataAndConfig;
+    windowInstance.exportBackup = exportBackup;
     windowInstance.updateLastBackupDisplay = updateLastBackupDisplay;
     windowInstance.formatBackupDate = formatBackupDate;
     windowInstance.getDatabase = getDatabase;
+    windowInstance.EXPORTABLE_CONFIG_KEYS = EXPORTABLE_CONFIG_KEYS;
 
     resetAppInitialized();
     await initApp();
