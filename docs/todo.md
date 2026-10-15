@@ -74,7 +74,7 @@
   - Add a "Restart Check-In" / "Start Over" action within the navigation side drawer to allow users to reset their in-progress check-in back to Question 1 without cluttering the main tracker canvas.
   - Clear active check-in storage, reset the state to Question 1, update the tracker view, and close the drawer cleanly.
 
-- [ ] **Task 2.14: About, Licence & Thank-You Screen**
+- [x] **Task 2.14: About, Licence & Thank-You Screen**
   - The README promises an "about section of the app", but no such view exists. Add a dedicated `#about-canvas` view
     reachable from the drawer, following the same navigation, transition, and focus-management pattern as the
     Settings and Data views. This is a high-energy-path view; do not add anything to the tracker canvas.
@@ -83,7 +83,7 @@
     (GitHub Sponsors, Ko-fi), and the Thank-You list (real-world names only, per the README's donation terms).
   - All copy must use the Check-In / Entry terminology and be written so it can be extracted by Task 8.3.
 
-- [ ] **Task 2.15: Last-Backup Indicator in the Data View**
+- [x] **Task 2.15: Last-Backup Indicator in the Data View**
   - Data lives only on the device and browsers can evict or clear it, so users need to know how stale their backup
     is. Add a `lastBackupAt` config key (ISO-8601 string or `null`), written after a successful export.
   - Show "Last backup: <date>" (or "No backup yet") in the Data view only. Do not add reminders, banners, or badges
