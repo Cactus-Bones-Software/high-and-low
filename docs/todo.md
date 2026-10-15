@@ -91,7 +91,7 @@
   - Decide whether `lastBackupAt` belongs in the export; it must not break import or merge of older backups.
   - This is an additive config key: update `docs/state.md` and check `docs/versioning.md` for the bump.
 
-- [ ] **Task 2.16: Decide on Safety / Crisis Resources (Developer Decision Required)**
+- [x] **Task 2.16: Decide on Safety / Crisis Resources (Developer Decision Required)**
   - This is a decision task. **Stop and ask the developer before implementing anything.** The app is used by people
     in severe lows, and the README already plans a licensed-psychologist review, so the answer may belong to that
     review.

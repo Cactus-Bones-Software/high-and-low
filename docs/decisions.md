@@ -39,6 +39,12 @@ Entry format: **Rule.** Why. *(Enforced in: ...)* — omit the last part if noth
   against accidental reloads and mobile memory reclamation without resuming a stale check-in.
 - **User-facing terminology:** "Check-In" is the act; "Entry" is the stored record. Never use "Session", "Quiz",
   "Test", or "Log" in UI copy.
+- **No in-app crisis resources, pending therapeutic review.** The app abstains from offering in-app crisis or safety
+  resources until consultation with a qualified mental health professional can take place. If crisis information is
+  introduced in the future, it must live exclusively in the high-energy path (e.g. drawer or About view), never be
+  dynamically triggered or hidden based on user scores or notes, and be region-aware via the localization system. Why:
+  untested, ill-conceived, or jurisdiction-mismatched crisis interventions can break trust or cause unintended harm to
+  vulnerable users in severe mental fatigue or acute low states.
 
 ## Data model invariants
 
