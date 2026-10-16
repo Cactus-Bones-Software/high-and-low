@@ -245,8 +245,10 @@
                     No backup yet
                 </p>
                 <div class="button-grid">
-                    <button type="button" id="button-export-all" class="utility-button"
-                            data-i18n="data.backupButton">Backup Data &amp; Settings</button>
+                    <button type="button" id="button-export-all" class="utility-button utility-button-primary"
+                            data-i18n="data.backupButton">Back Up Everything</button>
+                    <button type="button" id="button-export-choose" class="utility-button"
+                            data-i18n="data.chooseExportButton">Choose What to Export…</button>
                 </div>
                 <div class="file-import-zone">
                     <button class="utility-button" type="button" id="button-import"
@@ -521,6 +523,61 @@
                     <button type="button" id="button-import-cancel" class="control-button hold-action modal-button" aria-label="Cancel import (Press or Hold)">
                         <span class="hold-indicator" aria-hidden="true"></span>
                         <span class="button-label">Cancel</span>
+                    </button>
+                </footer>
+            </div>
+        </div>
+
+        <!-- Pop-in Selective Export Modal Dialog -->
+        <div id="export-dialog-overlay" class="modal-overlay" inert>
+            <div id="export-dialog" class="modal-dialog" role="dialog" aria-modal="true"
+                 aria-labelledby="export-dialog-title" aria-describedby="export-dialog-subtitle">
+                <header class="modal-header">
+                    <h2 id="export-dialog-title" class="modal-title" data-i18n="data.exportModalTitle">Export Data</h2>
+                    <p id="export-dialog-subtitle" class="modal-subtitle" data-i18n="data.exportModalSubtitle">
+                        Choose what to include in your backup file.
+                    </p>
+                </header>
+                <div class="modal-body">
+                    <div class="export-scope-option">
+                        <label class="export-scope-label-wrapper" for="export-scope-history">
+                            <input type="checkbox" id="export-scope-history" class="export-scope-checkbox" checked
+                                   aria-describedby="export-scope-history-hint">
+                            <span class="export-scope-title" data-i18n="data.scopeHistoryLabel">Check-In history</span>
+                        </label>
+                        <p id="export-scope-history-hint" class="export-scope-hint" data-i18n="data.scopeHistoryHint">
+                            Includes all recorded Check-Ins and the questions they refer to.
+                        </p>
+                    </div>
+
+                    <div class="export-scope-option">
+                        <label class="export-scope-label-wrapper" for="export-scope-settings">
+                            <input type="checkbox" id="export-scope-settings" class="export-scope-checkbox" checked
+                                   aria-describedby="export-scope-settings-hint">
+                            <span class="export-scope-title" data-i18n="data.scopeSettingsLabel">
+                                Settings &amp; questions
+                            </span>
+                        </label>
+                        <p id="export-scope-settings-hint" class="export-scope-hint" data-i18n="data.scopeSettingsHint">
+                            Includes your full question catalog, active tracker set, and display preferences.
+                        </p>
+                    </div>
+
+                    <div id="export-summary-container" class="export-summary-container">
+                        <p id="export-summary-text" class="export-summary-text" aria-live="polite">
+                            Everything — 0 Entries &amp; 0 questions
+                        </p>
+                    </div>
+                </div>
+                <footer class="modal-footer">
+                    <button type="button" id="button-export-cancel" class="control-button modal-button"
+                            aria-label="Cancel export" data-i18n="common.cancel">
+                        Cancel
+                    </button>
+                    <button type="button" id="button-export-submit"
+                            class="control-button modal-button modal-button-primary"
+                            aria-label="Export backup" data-i18n="data.exportButton">
+                        Export
                     </button>
                 </footer>
             </div>

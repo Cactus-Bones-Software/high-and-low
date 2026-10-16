@@ -126,7 +126,7 @@
     does not.
   - Additive schema and file-format change: update `docs/state.md` and check `docs/versioning.md` for the bump.
 
-- [ ] **Task 2.18: Export Dialog with Scope Checkboxes**
+- [x] **Task 2.18: Export Dialog with Scope Checkboxes**
   - In the Data view, keep a prominent one-tap **Back Up Everything** button as the primary action. Add a secondary
     **Choose What to Export…** button that opens an accessible modal (same overlay, focus-trap, Escape-to-close, and
     focus-return pattern as the other dialogs) containing two checkboxes, both checked by default:

@@ -152,3 +152,19 @@ export function deleteConfig(key) {
         transaction.onerror = () => reject(transaction.error);
     });
 }
+
+/**
+ * Counts the total number of records in the specified object store.
+ * @param {string} storeName - Name of the object store ('config', 'entries', 'questions').
+ * @returns {Promise<number>} Resolves with the count of records.
+ */
+export function count(storeName) {
+    return new Promise((resolve, reject) => {
+        if (!databaseInstance) return resolve(0);
+        const transaction = databaseInstance.transaction([storeName], 'readonly');
+        const request = transaction.objectStore(storeName).count();
+        request.onsuccess = () => resolve(request.result || 0);
+        request.onerror = () => reject(request.error);
+    });
+}
+

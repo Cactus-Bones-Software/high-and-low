@@ -4,13 +4,15 @@
  */
 
 import { STATE } from '../state.js';
-import { handleFileImport } from '../data-io.js';
+import { handleFileImport, exportBackup } from '../data-io.js';
 import { saveActiveCheckin } from '../storage/session.js';
 import { resetHold, updateHoldActionAriaLabels } from './hold-actions.js';
 import { t } from '../localization.js';
+import { count } from '../storage/db.js';
 
 let noticeReturnFocusElement = null;
 let pendingImportFile = null;
+let exportReturnFocusElement = null;
 
 /**
  * Displays a notice or feedback modal dialog with custom title and subtitle.
@@ -278,4 +280,215 @@ export function updateNotesButtonLabel() {
         labelSpan.textContent = STATE.checkinNote ? t('tracker.noteAttached') : t('tracker.addNote');
     }
     updateHoldActionAriaLabels();
+}
+
+/**
+ * Updates the export summary text and the enabled state of the modal Export button
+ * based on the currently checked scope checkboxes and live database record counts.
+ * @returns {Promise<{ entriesCount: number, questionsCount: number, summaryText: string, isExportDisabled: boolean }>}
+ */
+export async function updateExportSummary() {
+    const historyCheckbox = document.getElementById('export-scope-history');
+    const settingsCheckbox = document.getElementById('export-scope-settings');
+    const summaryTextElement = document.getElementById('export-summary-text');
+    const exportSubmitButton = document.getElementById('button-export-submit');
+
+    const includeHistory = Boolean(historyCheckbox?.checked);
+    const includeSettings = Boolean(settingsCheckbox?.checked);
+
+    let entriesCount = 0;
+    let questionsCount = 0;
+
+    try {
+        entriesCount = await count('entries');
+        questionsCount = await count('questions');
+    } catch (countError) {
+        console.warn('Failed to query record counts for export dialog:', countError);
+    }
+
+    const entriesLabel = entriesCount === 1
+        ? (t('data.entrySingular') || 'Entry')
+        : (t('data.entryPlural') || 'Entries');
+
+    let summaryText = '';
+    const isExportDisabled = !includeHistory && !includeSettings;
+
+    if (includeHistory && includeSettings) {
+        summaryText = t('data.summaryBoth', { entriesCount, entriesLabel, questionsCount });
+    } else if (includeHistory) {
+        summaryText = t('data.summaryHistoryOnly', { entriesCount, entriesLabel });
+    } else if (includeSettings) {
+        summaryText = t('data.summarySettingsOnly', { questionsCount });
+    } else {
+        summaryText = t('data.summaryNone');
+    }
+
+    if (summaryTextElement) {
+        summaryTextElement.textContent = summaryText;
+        if (isExportDisabled) {
+            summaryTextElement.classList.add('is-empty');
+        } else {
+            summaryTextElement.classList.remove('is-empty');
+        }
+    }
+
+    if (exportSubmitButton) {
+        exportSubmitButton.disabled = isExportDisabled;
+        if (isExportDisabled) {
+            exportSubmitButton.setAttribute('aria-describedby', 'export-summary-text');
+        } else {
+            exportSubmitButton.removeAttribute('aria-describedby');
+        }
+    }
+
+    return { entriesCount, questionsCount, summaryText, isExportDisabled };
+}
+
+/**
+ * Opens the selective export dialog modal, resets scope checkboxes to checked by default,
+ * updates summary counts, and sets initial focus on the first checkbox.
+ * @param {HTMLElement | string | null} [returnFocusTarget=null] - Trigger element to return focus to on dismiss.
+ * @returns {void}
+ */
+export function openExportDialog(returnFocusTarget = null) {
+    const overlay = document.getElementById('export-dialog-overlay');
+    if (!overlay) return;
+
+    exportReturnFocusElement = returnFocusTarget || document.getElementById('button-export-choose') || null;
+
+    const historyCheckbox = document.getElementById('export-scope-history');
+    const settingsCheckbox = document.getElementById('export-scope-settings');
+
+    if (historyCheckbox) historyCheckbox.checked = true;
+    if (settingsCheckbox) settingsCheckbox.checked = true;
+
+    void updateExportSummary();
+
+    overlay.removeAttribute('inert');
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.classList.add('is-open');
+
+    if (historyCheckbox) {
+        setTimeout(() => historyCheckbox.focus(), 60);
+    }
+}
+
+/**
+ * Closes the selective export modal dialog, re-applies inert, and returns focus to the opener.
+ * @returns {void}
+ */
+export function closeExportDialog() {
+    const overlay = document.getElementById('export-dialog-overlay');
+    if (!overlay) return;
+
+    overlay.classList.remove('is-open');
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.setAttribute('inert', '');
+
+    if (exportReturnFocusElement) {
+        const targetElement = typeof exportReturnFocusElement === 'string'
+            ? document.getElementById(exportReturnFocusElement)
+            : exportReturnFocusElement;
+        if (targetElement && typeof targetElement.focus === 'function') {
+            targetElement.focus({ preventScroll: true });
+        }
+        exportReturnFocusElement = null;
+    }
+}
+
+/**
+ * Attaches event listeners for the selective export dialog modal:
+ * - Checkbox toggles re-calculate summary and enable/disable the Export button.
+ * - Escape closes the dialog.
+ * - Tab traps keyboard focus within the modal.
+ * - Cancel button and backdrop clicks dismiss the modal.
+ * - Export button triggers exportBackup with selected scopes without hold barrier.
+ * @returns {void}
+ */
+export function setupExportDialog() {
+    const overlay = document.getElementById('export-dialog-overlay');
+    const dialog = document.getElementById('export-dialog');
+    const historyCheckbox = document.getElementById('export-scope-history');
+    const settingsCheckbox = document.getElementById('export-scope-settings');
+    const exportCancelButton = document.getElementById('button-export-cancel');
+    const exportSubmitButton = document.getElementById('button-export-submit');
+
+    if (!overlay || !dialog) return;
+
+    const onCheckboxChange = () => {
+        void updateExportSummary();
+    };
+
+    if (historyCheckbox) {
+        historyCheckbox.addEventListener('change', onCheckboxChange);
+    }
+    if (settingsCheckbox) {
+        settingsCheckbox.addEventListener('change', onCheckboxChange);
+    }
+
+    if (exportCancelButton) {
+        exportCancelButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            closeExportDialog();
+        });
+    }
+
+    if (exportSubmitButton) {
+        exportSubmitButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            const includeHistory = Boolean(historyCheckbox?.checked);
+            const includeSettings = Boolean(settingsCheckbox?.checked);
+            if (!includeHistory && !includeSettings) return;
+
+            closeExportDialog();
+            const doExport = (typeof window !== 'undefined' && typeof window.exportBackup === 'function')
+                ? window.exportBackup
+                : exportBackup;
+            void doExport({ includeHistory, includeSettings }).catch((exportError) => {
+                console.error('Selective export failed:', exportError);
+            });
+        });
+    }
+
+    overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) {
+            closeExportDialog();
+        }
+    });
+
+    overlay.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closeExportDialog();
+            return;
+        }
+
+        if (event.key === 'Tab') {
+            const focusableElements = Array.from(
+                dialog.querySelectorAll(
+                    'input:not([disabled]):not([type="hidden"]), ' +
+                    'button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+                )
+            ).filter((focusableElement) => {
+                return !focusableElement.hidden && focusableElement.style.display !== 'none';
+            });
+
+            if (focusableElements.length === 0) return;
+
+            const firstElement = focusableElements[0];
+            const lastElement = focusableElements[focusableElements.length - 1];
+
+            if (event.shiftKey) {
+                if (document.activeElement === firstElement || !dialog.contains(document.activeElement)) {
+                    event.preventDefault();
+                    lastElement.focus();
+                }
+            } else {
+                if (document.activeElement === lastElement || !dialog.contains(document.activeElement)) {
+                    event.preventDefault();
+                    firstElement.focus();
+                }
+            }
+        }
+    });
 }

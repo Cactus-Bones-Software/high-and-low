@@ -55,7 +55,16 @@ import {
     commitGraphGestureZoom
 } from '../public/js/ui/history-graph.js';
 import { navigateTo, setCurrentViewId } from '../public/js/ui/navigation.js';
-import { get, getAll, put, getConfig, setConfig, deleteConfig, getDatabase } from '../public/js/storage/db.js';
+import {
+    get,
+    getAll,
+    put,
+    getConfig,
+    setConfig,
+    deleteConfig,
+    count,
+    getDatabase
+} from '../public/js/storage/db.js';
 import {
     saveActiveCheckin,
     clearActiveCheckin,
@@ -64,6 +73,11 @@ import {
     getStoredActiveView
 } from '../public/js/storage/session.js';
 import { applyStoredDisplay } from '../public/js/ui/settings-menu.js';
+import {
+    openExportDialog,
+    closeExportDialog,
+    updateExportSummary
+} from '../public/js/ui/dialogs.js';
 import {
     exportAllDataAndConfig,
     exportBackup,
@@ -283,7 +297,11 @@ export async function setupTestDOM(customSessionStorage = {}) {
     windowInstance.updateLastBackupDisplay = updateLastBackupDisplay;
     windowInstance.formatBackupDate = formatBackupDate;
     windowInstance.getDatabase = getDatabase;
+    windowInstance.count = count;
     windowInstance.EXPORTABLE_CONFIG_KEYS = EXPORTABLE_CONFIG_KEYS;
+    windowInstance.openExportDialog = openExportDialog;
+    windowInstance.closeExportDialog = closeExportDialog;
+    windowInstance.updateExportSummary = updateExportSummary;
 
     resetAppInitialized();
     await initApp();

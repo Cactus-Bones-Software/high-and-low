@@ -196,7 +196,7 @@ export const STATE = {
 │       └── ui/
 │           ├── navigation.js  # View switching with 220ms orthogonal slide transitions
 │           ├── settings-menu.js # Side drawer, theme, contrast, handedness, and language controllers
-│           ├── dialogs.js     # Accessible modal notice, import, and note-taking dialogs
+│           ├── dialogs.js     # Accessible modal notice, selective export, import, and note dialogs
 │           ├── history-graph.js # SVG mood timeline, gesture zoom, live CSS transform & counter-scaling, legend
 │           ├── hold-actions.js # 1.5s touch hold-to-confirm barrier engine
 │           ├── keyboard-navigation.js # 1-5 keys, arrows, Enter/Space keyboard bindings
@@ -210,6 +210,7 @@ export const STATE = {
     ├── checkin_persistence.test.js
     ├── data_backup.test.js
     ├── drawer.test.js
+    ├── export_dialog.test.js
     ├── graph.test.js
     ├── graph_gestures.test.js
     ├── handedness.test.js

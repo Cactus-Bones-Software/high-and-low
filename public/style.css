@@ -986,6 +986,10 @@ select, .utility-button, .form-input {
     text-align: center;
 }
 
+.utility-button-primary {
+    font-weight: 700;
+}
+
 .canvas-back-button {
     display: inline-flex;
     align-items: center;
@@ -2880,6 +2884,82 @@ body[data-contrast="high"] .modal-button-danger {
 
 body[data-contrast="high"] .modal-info-badge {
     border: 1px solid var(--text-bright);
+}
+
+.modal-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Export Scope Selection & Summary (Task 2.18) */
+.export-scope-option {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background-color: var(--button-default);
+}
+
+.export-scope-label-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.export-scope-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    flex-shrink: 0;
+    accent-color: #007aff;
+}
+
+.export-scope-title {
+    font-size: 0.98rem;
+    font-weight: 600;
+    color: var(--text-bright);
+}
+
+.export-scope-hint {
+    margin: 0 0 0 30px;
+    font-size: 0.86rem;
+    color: var(--text-muted);
+    line-height: 1.35;
+}
+
+.export-summary-container {
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background-color: var(--button-default);
+}
+
+.export-summary-text {
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text-bright);
+    line-height: 1.35;
+}
+
+.export-summary-text.is-empty {
+    color: #ef4444;
+    font-weight: 500;
+}
+
+body[data-contrast="high"] .export-scope-option,
+body[data-contrast="high"] .export-summary-container {
+    border: 1px solid var(--text-bright);
+}
+
+body[data-contrast="high"] .export-summary-text.is-empty {
+    color: #ff6b6b;
 }
 
 /* Screen reader only utility */

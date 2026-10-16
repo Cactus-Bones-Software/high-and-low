@@ -35,7 +35,18 @@ import { navigateTo } from './ui/navigation.js';
 // Set up the hold-to-actuate buttons
 import { setupHoldActions } from './ui/hold-actions.js';
 // Load modal dialogs
-import { setupNoticeDialog, showNoticeDialog, openImportDialog, setupImportDialog, setupNotesDialog, updateNotesButtonLabel } from './ui/dialogs.js';
+import {
+    setupNoticeDialog,
+    showNoticeDialog,
+    openImportDialog,
+    setupImportDialog,
+    setupNotesDialog,
+    updateNotesButtonLabel,
+    openExportDialog,
+    closeExportDialog,
+    setupExportDialog,
+    updateExportSummary
+} from './ui/dialogs.js';
 // Load settings and settings UI
 import { setupSettingsAndMenu, setupCanvasBackButtons, applyStoredDisplay } from './ui/settings-menu.js';
 // Load history UI
@@ -209,6 +220,7 @@ export function initApp() {
     setupHoldActions();
     setupNotesDialog();
     setupImportDialog();
+    setupExportDialog();
     setupNoticeDialog();
     setupSettingsAndMenu();
     setupQuestionAuthoring();
@@ -230,6 +242,13 @@ export function initApp() {
     const exportButton = document.getElementById('button-export-all');
     if (exportButton) {
         exportButton.addEventListener('click', exportAllDataAndConfig);
+    }
+
+    const chooseExportButton = document.getElementById('button-export-choose');
+    if (chooseExportButton) {
+        chooseExportButton.addEventListener('click', () => {
+            openExportDialog('button-export-choose');
+        });
     }
 
     const importFileInput = document.getElementById('file-import');
@@ -353,6 +372,9 @@ export function initApp() {
                 window.updateLastBackupDisplay = updateLastBackupDisplay;
                 window.formatBackupDate = formatBackupDate;
                 window.EXPORTABLE_CONFIG_KEYS = EXPORTABLE_CONFIG_KEYS;
+                window.openExportDialog = openExportDialog;
+                window.closeExportDialog = closeExportDialog;
+                window.updateExportSummary = updateExportSummary;
             }
 
             safeRAF(() => {
@@ -393,10 +415,14 @@ if (typeof window !== 'undefined') {
     window.setupServiceWorkerLifecycle = setupServiceWorkerLifecycle;
     window.reloadActiveTab = reloadActiveTab;
     window.STATE = STATE;
+    window.openExportDialog = openExportDialog;
+    window.closeExportDialog = closeExportDialog;
+    window.updateExportSummary = updateExportSummary;
 }
 
 if (typeof document !== 'undefined') {
-    const isVitestTestRunner = typeof process !== 'undefined' && (Boolean(process.env?.VITEST) || process.env?.NODE_ENV === 'test');
+    const isVitestTestRunner = typeof process !== 'undefined' &&
+        (Boolean(process.env?.VITEST) || process.env?.NODE_ENV === 'test');
     if (!isVitestTestRunner) {
         if (document.readyState === "loading") {
             document.addEventListener("DOMContentLoaded", () => {
