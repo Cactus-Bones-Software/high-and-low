@@ -64,6 +64,16 @@ Entry format: **Rule.** Why. *(Enforced in: ...)* — omit the last part if noth
 - **New built-in questions reach existing users via `seedVersion`, and never alter their active set.** Any change to
   built-in defaults requires a `SEED_VERSION` bump. Why: users' tracker configuration is theirs.
 - **`middle-is-best` is a supported curve** (deep blue → emerald → fire orange, with `midLabel` on score 3).
+- **Default questions are starter content, not a vetted or comparable baseline.** Users may edit them in place
+  like any question. The app never locks a question or badges it as "official", and never takes provenance or
+  authority from a backup file: whether a question is an unedited default is derived (`id` is in
+  `DEFAULT_QUESTIONS` and `text === originalText`), never stored or imported. The seeder never overwrites a user's
+  edits. Why: a question that looks vetted or immutable implies clinical authority the app cannot back, shared
+  files can forge it, and locking forces people in low states to discover a workaround for a typo fix.
+- **Wording changes are never silent.** An in-place edit keeps the question's `id`, so its history stays on one
+  line; every change to `text` is therefore recorded in `textHistory` (new wording and time) and the history graph
+  marks where it happened. Why: old and new answers that look like the same question can mislead the person and
+  any clinician reading the graph, and a visible marker leaves that judgment to them instead of making it for them.
 
 ## Backup & restore
 

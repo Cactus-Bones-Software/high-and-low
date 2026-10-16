@@ -149,6 +149,7 @@
   - Show what the file contains in the import dialog ("This file contains: Settings only") before the user
     chooses a mode, and word the Wipe & Replace description to match.
   - On import, ignore `seedVersion` and `lastBackupAt` even if an older file contains them.
+  - Do not add `builtIn` handling here; Task 5.12.2 retires that field and owns what the importer does with it.
   - Tests: full backup round-trip, history-only into a populated device, settings-only into a populated device,
     replace-mode scoping, malformed and empty-array files, and orphan prevention (history-only import brings its
     questions).
@@ -248,6 +249,18 @@ Patients and psychiatrists need a way to actually read the collected data back, 
     list of notes (escaped via `escapeHTML()`) beneath the graph.
   - Ensure line differentiation does not rely on colour alone in print (the dash patterns from Task 3.5 must
     survive), since printers are often greyscale.
+
+- [ ] **Task 3.14: Wording-Change Marker on the Graph**
+  - Depends on Task 5.12.1. A question edited in place keeps one continuous line, so the graph must show where its
+    wording changed; otherwise old and new answers look like the same question.
+  - For every `textHistory` entry whose `changedAt` falls inside the rendered time range, draw a marker on that
+    question's line at that time. Make it visually distinct from the notes marker (Task 3.9) and do not rely on
+    colour alone.
+  - Revealing a marker shows "Wording changed", the date, and the previous and new text, all escaped via
+    `escapeHTML()`. Give it an `aria-label` and keyboard access matching the notes marker, and keep it correct
+    under live gesture zoom (Tasks 9.8 and 9.9).
+  - Tests: marker appears at the correct x position, respects the legend toggle and isolate state for its
+    question, is absent for unedited questions, and is escaped.
 
 ---
 
@@ -366,13 +379,10 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - Change "Archive Question" button to say "Remove Question".
   - Ensure search only shows removed questions if the removed question section is being shown.
 
-- [x] **Task 5.9: Built In Question Copying
-  - Change the edit button for a built-in question to be a 'Copy' button that opens a pre-filled dialog with all the same information as the built-in question.
-  - If the user attempts to save the question without making important changes, like to the text of the question, ensure that the save fails, and the reason is clear to the user.
-    - Save button should wiggle
-    - A short, informative message should display explaining what needs to be changed.
-    - Fields that should be changed should have a red outline.
-    - The form should scroll to the first field that needs changed.
+- [x] **Task 5.9: Built-In Question Copying** *(superseded by Task 5.12.1; see git history for the original
+  spec)*
+  - Built-in questions were non-editable; the card's "Edit" action became "Copy", which opened a pre-filled
+    authoring dialog that refused to save until the copy differed from the original.
 
 - [x] **Task 5.10.1: Yes/No Question Type — Schema Field**
   - In `public/js/questions.js`, add a `responseType` field to the question schema (`"scale" | "boolean"`).
@@ -434,6 +444,40 @@ just native `<script type="module">`, staying within the vanilla-only constraint
     the point belongs to a `responseType: "boolean"` question, so a psychiatrist reading a tooltip never sees a raw
     `1`/`5` for a question that was never actually a 5-point scale.
   - Scale-question tooltips keep their current `Score X/5` wording unchanged.
+
+- [ ] **Task 5.12.1: Wording History & In-Place Editing of Default Questions**
+  - Default questions are starter content, not a shared clinical baseline. Let users edit them in place under the
+    same rules as custom questions (`id` and `originalText` stay frozen). Remove the built-in edit lock in
+    `updateCustomQuestion`, and replace the "Copy" action on default cards with "Edit" (Task 5.9 is superseded).
+  - Add an optional `textHistory: [{ text, changedAt }]` field to question records. Every edit that changes the
+    normalized `text` appends an entry (new wording and ISO-8601 time); edits that leave the normalized text
+    unchanged append nothing. Records without the field are treated as having an empty history.
+  - Edits to `curve` and endpoint labels also change what a score means (Task 5.7 allows them). **Ask the
+    developer** whether those are recorded in the history too, and confirm `responseType` cannot be changed after
+    creation (lock it if it can).
+  - Fix the seeder: `seedDefaults` currently overwrites `shortLabel` on any stored default that differs from the
+    shipped one, which would silently undo a user's edit on the next load. Records the user has edited must be
+    exempt from that overwrite. Pick a reliable "edited" signal and keep `SEED_VERSION` behavior for new defaults.
+  - Save-time wording in the edit dialog: "Past answers keep their place on the graph; the graph will mark where
+    the wording changed."
+  - Docs, in the same edit: `docs/state.md` (new field), and a `docs/decisions.md` entry that wording changes are
+    never silent (reversing it would quietly corrupt history). Version bump: MINOR (additive field).
+  - Tests: editing a default records history; a typo-free no-op edit records nothing; a reload preserves the
+    edit; records without `textHistory` still load; the seeder leaves edited records alone.
+
+- [ ] **Task 5.12.2: Retire `builtIn` and the Built-In Badge**
+  - Remove the stored `builtIn` field and the Built-In/Custom badges. "Unedited default" is derived: the `id` is
+    in `DEFAULT_QUESTIONS` and `text === originalText`. Replace every `question.builtIn` check (notably
+    `localization.js` and `ui/question-view.js`) with that derived check or with the new editing rules, and
+    delete the badge locale strings and CSS.
+  - Stop writing `builtIn` in `seedDefaults` and stop exporting it. Stored records may keep a stale value until
+    next written; nothing may read it.
+  - Importer (`data-io.js`, both `replace` and `merge`): drop any incoming `builtIn` value so a forged or legacy
+    flag has no effect. Files from older versions that contain the field must still import unchanged.
+  - Update `docs/state.md` (schema and localization invariant), `docs/dataset-guidelines.md`, and
+    `tests/synthetic-dataset.json`; update tests that assert the flag, the badges, or the edit lock.
+  - Tests: legacy backup with `builtIn` imports cleanly in both modes; forged `builtIn: true` on a `c_` record has
+    no effect; localization still resolves unedited defaults and shows stored text for edited ones.
 ---
 
 
@@ -509,6 +553,9 @@ just native `<script type="module">`, staying within the vanilla-only constraint
     untranslated. Decide what happens when a user has edited a built-in's copy, what backups contain, and whether
     `SEED_VERSION` needs a bump.
   - Record the outcome in `docs/decisions.md` and the schema impact in `docs/state.md`.
+  - The "user has edited a built-in's copy" question is settled by Tasks 5.12.1 and 5.12.2: an edited default
+    shows its stored text untranslated, and an unedited one resolves from the locale dictionary by `id`. Record
+    that here once those tasks land.
 
 - [ ] **Task 8.3.2: Locale-Aware Dates and Document Language**
   - `formatEntryDateTime`, `formatTickDate`, and related helpers in `ui/history-graph.js` use no `Intl` APIs. Route
@@ -581,7 +628,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
     - `docs/state.md` documents `contrast` as `'standard'` or `'high'`, but `index.html` uses `data-contrast="low"`.
       Determine which is correct, and fix the docs or file a bug in Phase 7.
     - `biome.json` uses `lineWidth: 100`; `AGENTS.md` specifies a 120-column limit. Align them.
-    - `docs/todo.md`: Task 5.9 has broken bold markup; Phase 8 appears before Phase 9; Task 8.4 references a
+    - `docs/todo.md`: Phase 8 appears before Phase 9; Task 8.4 references a
       nonexistent `session_persistence.test.js`; several older tasks still mention `app.js` and `logs` where the code
       now uses modules and `entries`.
   - Docs-only change; no version bump.
