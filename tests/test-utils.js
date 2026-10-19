@@ -76,14 +76,24 @@ import { applyStoredDisplay } from '../public/js/ui/settings-menu.js';
 import {
     openExportDialog,
     closeExportDialog,
-    updateExportSummary
+    updateExportSummary,
+    openImportDialog,
+    closeImportDialog,
+    confirmImport,
+    applyImportScopeToDialog
 } from '../public/js/ui/dialogs.js';
 import {
     exportAllDataAndConfig,
     exportBackup,
     updateLastBackupDisplay,
     formatBackupDate,
-    EXPORTABLE_CONFIG_KEYS
+    EXPORTABLE_CONFIG_KEYS,
+    RECOGNISED_EXPORT_VERSIONS,
+    validateBackupPayload,
+    detectBackupScopes,
+    executeBackupImport,
+    handleFileImport,
+    handleFileImportReaderLoad
 } from '../public/js/data-io.js';
 import { escapeHTML, html, rawHTML } from '../public/js/utils.js';
 
@@ -302,6 +312,16 @@ export async function setupTestDOM(customSessionStorage = {}) {
     windowInstance.openExportDialog = openExportDialog;
     windowInstance.closeExportDialog = closeExportDialog;
     windowInstance.updateExportSummary = updateExportSummary;
+    windowInstance.openImportDialog = openImportDialog;
+    windowInstance.closeImportDialog = closeImportDialog;
+    windowInstance.confirmImport = confirmImport;
+    windowInstance.applyImportScopeToDialog = applyImportScopeToDialog;
+    windowInstance.validateBackupPayload = validateBackupPayload;
+    windowInstance.detectBackupScopes = detectBackupScopes;
+    windowInstance.executeBackupImport = executeBackupImport;
+    windowInstance.handleFileImport = handleFileImport;
+    windowInstance.handleFileImportReaderLoad = handleFileImportReaderLoad;
+    windowInstance.RECOGNISED_EXPORT_VERSIONS = RECOGNISED_EXPORT_VERSIONS;
 
     resetAppInitialized();
     await initApp();

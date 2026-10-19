@@ -969,6 +969,12 @@ select, .utility-button, .form-input {
     margin-top: 4px;
 }
 
+.utility-button {
+    flex: 1;
+    cursor: pointer;
+    text-align: center;
+}
+
 .file-import-zone.drag-over .utility-button {
     outline: 2px dashed #6b8afd;
     outline-offset: 2px;
@@ -978,12 +984,6 @@ select, .utility-button, .form-input {
 .utility-button:disabled {
     opacity: 0.4;
     cursor: not-allowed;
-}
-
-.utility-button {
-    flex: 1;
-    cursor: pointer;
-    text-align: center;
 }
 
 .utility-button-primary {
@@ -2844,6 +2844,11 @@ body:not([data-theme="dark"]) .modal-overlay {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.modal-info-badge .badge-value.import-scope-badge-value {
+    font-family: inherit;
+    font-weight: 600;
 }
 
 .modal-info-text {

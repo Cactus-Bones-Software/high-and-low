@@ -503,12 +503,23 @@
                 </header>
                 <div class="modal-body">
                     <div id="import-file-badge" class="modal-info-badge">
-                        <span class="badge-label">Selected file:</span>
+                        <span class="badge-label" data-i18n="data.selectedFileLabel">Selected file:</span>
                         <span id="import-file-name" class="badge-value">backup.json</span>
                     </div>
+                    <div id="import-contents-badge" class="modal-info-badge">
+                        <span class="badge-label" data-i18n="data.fileContainsLabel">This file contains:</span>
+                        <span id="import-file-contents"
+                              class="badge-value import-scope-badge-value">History &amp; settings</span>
+                    </div>
                     <div class="modal-info-text">
-                        <p><strong>Smart Merge</strong> combines backup records with your current history without erasing data.</p>
-                        <p><strong>Wipe &amp; Replace</strong> clears all local records and replaces them entirely with this backup.</p>
+                        <p id="import-merge-description">
+                            <strong data-i18n="data.smartMergeButton">Smart Merge</strong>
+                            <span id="import-merge-text" data-i18n="data.smartMergeDescription"> combines backup records with your current history without erasing data.</span>
+                        </p>
+                        <p id="import-replace-description">
+                            <strong data-i18n="data.wipeReplaceButton">Wipe &amp; Replace</strong>
+                            <span id="import-replace-text" data-i18n="data.wipeReplaceDescription"> clears all local records and replaces them entirely with this backup.</span>
+                        </p>
                     </div>
                 </div>
                 <footer class="modal-footer modal-footer-stacked">

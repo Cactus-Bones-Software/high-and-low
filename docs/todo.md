@@ -138,7 +138,7 @@
   - The CSV export (Task 3.12) stays a separate button; it serves a different purpose (reading, not restoring).
   - All copy uses Check-In / Entry terminology and is written for extraction by Task 8.3.
 
-- [ ] **Task 2.19: Import Partial Backups Safely**
+- [x] **Task 2.19: Import Partial Backups Safely**
   - `handleFileImportReaderLoad()` currently rejects any file missing `entries` or `config`, so the files from Task
     2.17 would be refused. Relax validation to: valid JSON, a recognised `exportVersion`, and at least one of
     `entries`, `questions`, or `config` present as an array. Full 2.0 backups must keep importing unchanged.

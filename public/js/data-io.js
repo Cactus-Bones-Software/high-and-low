@@ -6,6 +6,7 @@
 import { getDatabase, getConfig, setConfig } from './storage/db.js';
 import { showNoticeDialog } from "./ui/dialogs.js";
 import { t } from './localization.js';
+import { SEED_VERSION } from './questions.js';
 
 /**
  * Formats an ISO-8601 string into a localized date string for backup display.
@@ -140,7 +141,7 @@ export function exportBackup(options = {}) {
                 for (const entry of exportedEntries) {
                     if (Array.isArray(entry.answers)) {
                         for (const answer of entry.answers) {
-                            if (answer && answer.questionId) {
+                            if (answer?.questionId) {
                                 referencedQuestionIds.add(answer.questionId);
                             }
                         }
@@ -216,89 +217,240 @@ export function handleFileImport(file, mode) {
 }
 
 /**
+ * Recognised backup export versions supported by the import system.
+ */
+export const RECOGNISED_EXPORT_VERSIONS = ['1.0', '2.0'];
+
+/**
+ * Validates the parsed backup payload against recognized export versions and required store arrays.
+ * Accepts full backups as well as partial backups that contain at least one store array.
+ * @param {any} backupData - Parsed JSON object to validate.
+ * @returns {{ isValid: boolean, errorType: 'malformed' | 'invalid_structure' | null, reason: string | null }}
+ */
+export function validateBackupPayload(backupData) {
+    if (!backupData || typeof backupData !== 'object' || Array.isArray(backupData)) {
+        return { isValid: false, errorType: 'invalid_structure', reason: 'Payload must be a JSON object' };
+    }
+
+    const versionString = typeof backupData.exportVersion === 'string'
+        ? backupData.exportVersion.trim()
+        : String(backupData.exportVersion || '').trim();
+
+    if (!RECOGNISED_EXPORT_VERSIONS.includes(versionString)) {
+        return {
+            isValid: false,
+            errorType: 'invalid_structure',
+            reason: `Unrecognised exportVersion: ${versionString}`
+        };
+    }
+
+    const hasEntriesArray = Array.isArray(backupData.entries);
+    const hasQuestionsArray = Array.isArray(backupData.questions);
+    const hasConfigArray = Array.isArray(backupData.config);
+
+    if (!hasEntriesArray && !hasQuestionsArray && !hasConfigArray) {
+        return {
+            isValid: false,
+            errorType: 'invalid_structure',
+            reason: 'Backup must contain at least one of entries, questions, or config as an array'
+        };
+    }
+
+    return { isValid: true, errorType: null, reason: null };
+}
+
+/**
+ * Detects whether an imported backup payload contains history, settings, or both.
+ * @param {Object} backupData - Validated backup payload.
+ * @returns {{ containsHistory: boolean, containsSettings: boolean }}
+ */
+export function detectBackupScopes(backupData) {
+    if (!backupData || typeof backupData !== 'object') {
+        return { containsHistory: false, containsSettings: false };
+    }
+
+    // Explicit scope array (Task 2.17 standard)
+    if (Array.isArray(backupData.scope)) {
+        const containsHistory = backupData.scope.includes('history') && Array.isArray(backupData.entries);
+        const containsSettings = backupData.scope.includes('settings') &&
+            (Array.isArray(backupData.config) || Array.isArray(backupData.questions));
+        return { containsHistory, containsSettings };
+    }
+
+    // Infer from presence of arrays
+    const hasEntriesArray = Array.isArray(backupData.entries);
+    const hasConfigArray = Array.isArray(backupData.config);
+    const hasQuestionsArray = Array.isArray(backupData.questions);
+
+    // If both entries and config arrays exist (standard full backup e.g. v1.0 or legacy v2.0)
+    if (hasEntriesArray && hasConfigArray) {
+        return { containsHistory: true, containsSettings: true };
+    }
+
+    // History-only: entries array present without config array
+    if (hasEntriesArray && !hasConfigArray) {
+        return { containsHistory: true, containsSettings: false };
+    }
+
+    // Settings-only: config or questions present without entries array
+    if ((hasConfigArray || hasQuestionsArray) && !hasEntriesArray) {
+        return { containsHistory: false, containsSettings: true };
+    }
+
+    return {
+        containsHistory: hasEntriesArray,
+        containsSettings: hasConfigArray || hasQuestionsArray
+    };
+}
+
+/**
+ * Writes validated backup records into IndexedDB according to the specified mode ('replace' or 'merge').
+ * In 'replace' mode, wipes only the stores whose data the backup actually contains.
+ * Ignores device-specific keys ('seedVersion', 'lastBackupAt') from incoming backup files.
+ * @param {Object} importedData - Parsed and validated backup payload.
+ * @param {'replace' | 'merge'} mode - Import strategy ('replace' or 'merge').
+ * @returns {Promise<{ containsHistory: boolean, containsSettings: boolean }>} Resolves on transaction complete.
+ */
+export async function executeBackupImport(importedData, mode) {
+    const validation = validateBackupPayload(importedData);
+    if (!validation.isValid) {
+        throw new Error(validation.reason || 'Invalid backup payload');
+    }
+
+    const database = getDatabase();
+    if (!database) {
+        throw new Error('Database not initialized for import.');
+    }
+
+    const { containsHistory, containsSettings } = detectBackupScopes(importedData);
+
+    const importedQuestions = Array.isArray(importedData.questions) ? importedData.questions : [];
+    const importedEntries = Array.isArray(importedData.entries) ? importedData.entries : [];
+
+    // Filter out device-specific keys: seedVersion and lastBackupAt must never be imported from a backup file
+    const IGNORED_CONFIG_KEYS = new Set(['seedVersion', 'lastBackupAt']);
+    const filteredConfig = Array.isArray(importedData.config)
+        ? importedData.config.filter((item) =>
+            item && typeof item.key === 'string' && !IGNORED_CONFIG_KEYS.has(item.key)
+        )
+        : [];
+
+    let currentDeviceLastBackup = null;
+    try {
+        currentDeviceLastBackup = await getConfig('lastBackupAt');
+    } catch {
+        // Safe to ignore if not configured
+    }
+
+    return new Promise((resolve, reject) => {
+        const transaction = database.transaction(['config', 'questions', 'entries'], 'readwrite');
+        const configStore = transaction.objectStore('config');
+        const questionStore = transaction.objectStore('questions');
+        const entryStore = transaction.objectStore('entries');
+
+        transaction.onerror = () => reject(transaction.error);
+        transaction.oncomplete = () => resolve({ containsHistory, containsSettings });
+
+        if (mode === 'replace') {
+            // Wipe & Replace must only clear the stores whose data the file actually contains.
+            if (containsHistory) {
+                entryStore.clear();
+                for (const entryItem of importedEntries) {
+                    entryStore.add(entryItem);
+                }
+            }
+
+            if (containsSettings) {
+                configStore.clear();
+                // Preserve device-level seedVersion and previous lastBackupAt
+                configStore.add({ key: 'seedVersion', value: SEED_VERSION });
+                if (currentDeviceLastBackup) {
+                    configStore.add({ key: 'lastBackupAt', value: currentDeviceLastBackup });
+                }
+                for (const configItem of filteredConfig) {
+                    configStore.put(configItem);
+                }
+
+                questionStore.clear();
+                for (const questionItem of importedQuestions) {
+                    questionStore.add(questionItem);
+                }
+            } else if (containsHistory && importedQuestions.length > 0) {
+                // Orphan prevention: history-only import brings questions referenced by its entries.
+                // Because settings are NOT being replaced, merge these questions without clearing questionStore.
+                for (const questionItem of importedQuestions) {
+                    mergeQuestionWithConflictCheck(questionStore, questionItem);
+                }
+            }
+        } else {
+            // Smart Merge retains non-destructive merge behavior across all present data
+            for (const configItem of filteredConfig) {
+                configStore.put(configItem);
+            }
+            for (const questionItem of importedQuestions) {
+                mergeQuestionWithConflictCheck(questionStore, questionItem);
+            }
+            for (const entryItem of importedEntries) {
+                safelyAddEntryWithCollisionCheck(entryStore, entryItem);
+            }
+        }
+    });
+}
+
+/**
  * Handles FileReader load event, validates backup JSON structure, and executes database writes.
  * Reloads the browser tab on successful completion to re-initialize application state.
  * @param {'replace' | 'merge'} mode - Import strategy ('replace' or 'merge').
  * @param {ProgressEvent<FileReader>} event - FileReader load event containing the raw file text.
  * @returns {void}
  */
-function handleFileImportReaderLoad(mode, event) {
-    const result = event.target.result;
+export function handleFileImportReaderLoad(mode, event) {
+    const result = event.target?.result;
     if (typeof result !== 'string') {
         console.error("Invalid file format read. Expected text.");
         return;
     }
+
+    let importedData;
     try {
-        const importedData = JSON.parse(result);
-        if (!importedData.entries || !importedData.config) {
-            if (typeof showNoticeDialog === 'function') {
-                showNoticeDialog(
-                    t('data.invalidBackupTitle'),
-                    t('data.invalidBackupMessage'),
-                    'file-import'
-                );
-            } else if (typeof window !== 'undefined' && typeof window.showNoticeDialog === 'function') {
-                window.showNoticeDialog(
-                    t('data.invalidBackupTitle'),
-                    t('data.invalidBackupMessage'),
-                    'file-import'
-                );
-            }
-            return;
+        importedData = JSON.parse(result);
+    } catch (parseError) {
+        console.error('File import JSON parse failed:', parseError);
+        const triggerNotice = (typeof window !== 'undefined' && typeof window.showNoticeDialog === 'function')
+            ? window.showNoticeDialog
+            : showNoticeDialog;
+        if (typeof triggerNotice === 'function') {
+            triggerNotice(t('data.corruptedTitle'), t('data.corruptedMessage'), 'file-import');
         }
-        const importedQuestions = Array.isArray(importedData.questions) ? importedData.questions : [];
-
-        const database = getDatabase();
-        if (!database) {
-            console.error('Database not initialized for import.');
-            return;
-        }
-        const transaction = database.transaction(['config', 'questions', 'entries'], 'readwrite');
-        const configStore = transaction.objectStore('config');
-        const questionStore = transaction.objectStore('questions');
-        const entryStore = transaction.objectStore('entries');
-
-        if (mode === 'replace') {
-            configStore.clear();
-            questionStore.clear();
-            entryStore.clear();
-            for (const configItem of importedData.config) {
-                configStore.add(configItem);
-            }
-            for (const questionItem of importedQuestions) {
-                questionStore.add(questionItem);
-            }
-            for (const entryItem of importedData.entries) {
-                entryStore.add(entryItem);
-            }
-        } else {
-            for (const configItem of importedData.config) {
-                configStore.put(configItem);
-            }
-            for (const questionItem of importedQuestions) {
-                mergeQuestionWithConflictCheck(questionStore, questionItem);
-            }
-            for (const entryItem of importedData.entries) {
-                safelyAddEntryWithCollisionCheck(entryStore, entryItem);
-            }
-        }
-        transaction.oncomplete = () => window.location.reload();
-    } catch (error) {
-        console.error('File import failed:', error);
-        if (typeof showNoticeDialog === 'function') {
-            showNoticeDialog(
-                t('data.corruptedTitle'),
-                t('data.corruptedMessage'),
-                'file-import'
-            );
-        } else if (typeof window !== 'undefined' && typeof window.showNoticeDialog === 'function') {
-            window.showNoticeDialog(
-                t('data.corruptedTitle'),
-                t('data.corruptedMessage'),
-                'file-import'
-            );
-        }
+        return;
     }
+
+    const validation = validateBackupPayload(importedData);
+    if (!validation.isValid) {
+        const triggerNotice = (typeof window !== 'undefined' && typeof window.showNoticeDialog === 'function')
+            ? window.showNoticeDialog
+            : showNoticeDialog;
+        if (typeof triggerNotice === 'function') {
+            triggerNotice(t('data.invalidBackupTitle'), t('data.invalidBackupMessage'), 'file-import');
+        }
+        return;
+    }
+
+    executeBackupImport(importedData, mode)
+        .then(() => {
+            if (typeof window !== 'undefined' && window.location && typeof window.location.reload === 'function') {
+                window.location.reload();
+            }
+        })
+        .catch((error) => {
+            console.error('File import execution failed:', error);
+            const triggerNotice = (typeof window !== 'undefined' && typeof window.showNoticeDialog === 'function')
+                ? window.showNoticeDialog
+                : showNoticeDialog;
+            if (typeof triggerNotice === 'function') {
+                triggerNotice(t('data.corruptedTitle'), t('data.corruptedMessage'), 'file-import');
+            }
+        });
 }
 
 /**

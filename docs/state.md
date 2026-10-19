@@ -121,6 +121,23 @@ Current Version: `3`
 * History only: `high-and-low-backup-<YYYY-MM-DD>-history-only.json`
 * Settings only: `high-and-low-backup-<YYYY-MM-DD>-settings-only.json`
 
+#### Partial Backup Import & Scoped Restore (`public/js/data-io.js`, Task 2.19)
+* **Validation**:
+  * Accepts valid JSON with recognized `exportVersion` (`1.0` or `2.0`).
+  * Requires at least one of `entries`, `questions`, or `config` to be present as an array.
+  * Empty store arrays (e.g., `entries: []`) are valid.
+  * Rejects missing/unrecognized `exportVersion` or files lacking all store arrays.
+* **Scope Scoping (Wipe & Replace)**:
+  * Only wipes the IndexedDB stores whose data the backup actually contains:
+    * History scope: clears `entries` store; merges referenced questions into `questions` store (orphan prevention).
+    * Settings scope: clears `config` and `questions` stores, retaining local `seedVersion`.
+    * Settings-only replace never wipes or alters check-in history in `entries`.
+    * History-only replace never resets settings or questions in `config` or `questions`.
+* **Smart Merge**:
+  * Non-destructive merge across all present stores (dedupes entries on timestamp, resolves questions by `updatedAt`).
+* **Device Keys Ignored**:
+  * Incoming `seedVersion` and `lastBackupAt` keys are ignored and never overwrite device values.
+
 ---
 
 ## 3. Session & In-Memory State
@@ -216,6 +233,7 @@ export const STATE = {
     ├── handedness.test.js
     ├── hold_actions.test.js
     ├── localization.test.js
+    ├── partial_import.test.js
     ├── question_copying.test.js
     ├── question_editing.test.js
     ├── question_response_type.test.js

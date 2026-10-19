@@ -4,7 +4,13 @@
  */
 
 import { STATE } from '../state.js';
-import { handleFileImport, exportBackup } from '../data-io.js';
+import {
+    handleFileImport,
+    exportBackup,
+    validateBackupPayload,
+    detectBackupScopes,
+    executeBackupImport
+} from '../data-io.js';
 import { saveActiveCheckin } from '../storage/session.js';
 import { resetHold, updateHoldActionAriaLabels } from './hold-actions.js';
 import { t } from '../localization.js';
@@ -12,6 +18,8 @@ import { count } from '../storage/db.js';
 
 let noticeReturnFocusElement = null;
 let pendingImportFile = null;
+let pendingImportData = null;
+let importReturnFocusElement = null;
 let exportReturnFocusElement = null;
 
 /**
@@ -111,20 +119,70 @@ export function setupNoticeDialog() {
 }
 
 /**
- * Opens the file import modal with mode choices (Smart Merge vs Wipe & Replace) for a staged JSON file.
- * @param {File} file - Selected backup file.
+ * Updates the import dialog's scope badge and the Wipe & Replace description text
+ * based on the detected scopes in the backup payload.
+ * @param {Object} backupData - Parsed and validated backup payload.
  * @returns {void}
  */
-export function openImportDialog(file) {
+export function applyImportScopeToDialog(backupData) {
+    const contentsElement = document.getElementById('import-file-contents');
+    const replaceTextElement = document.getElementById('import-replace-text');
+    if (!backupData) return;
+
+    const { containsHistory, containsSettings } = detectBackupScopes(backupData);
+
+    let scopeLabel = t('data.containsBoth') || 'History & settings';
+    let replaceDescription = t('data.wipeReplaceDescription') ||
+        'clears all local records and replaces them entirely with this backup.';
+
+    if (containsHistory && !containsSettings) {
+        scopeLabel = t('data.containsHistoryOnly') || 'History only';
+        replaceDescription = t('data.wipeReplaceHistoryOnly') ||
+            'clears all local Check-In records and replaces them with this backup. Your settings are kept.';
+    } else if (!containsHistory && containsSettings) {
+        scopeLabel = t('data.containsSettingsOnly') || 'Settings only';
+        replaceDescription = t('data.wipeReplaceSettingsOnly') ||
+            'clears all local settings and replaces them with this backup. Your Check-In history is kept.';
+    }
+
+    if (contentsElement) {
+        contentsElement.textContent = scopeLabel;
+    }
+    if (replaceTextElement) {
+        replaceTextElement.textContent = ' ' + replaceDescription;
+    }
+}
+
+/**
+ * Opens the file import modal with mode choices (Smart Merge vs Wipe & Replace) for a staged JSON file.
+ * Inspects file contents to display the detected scope and dynamically words the Wipe & Replace description.
+ * @param {File} file - Selected backup file.
+ * @param {HTMLElement | string | null} [returnFocusTarget=null] - Trigger element to return focus to on dismiss.
+ * @returns {void}
+ */
+export function openImportDialog(file, returnFocusTarget = null) {
     if (!file) return;
     pendingImportFile = file;
+    pendingImportData = null;
+    importReturnFocusElement = returnFocusTarget || 'button-import';
 
     const overlay = document.getElementById('import-dialog-overlay');
     const nameElement = document.getElementById('import-file-name');
+    const contentsElement = document.getElementById('import-file-contents');
+    const replaceTextElement = document.getElementById('import-replace-text');
     if (!overlay) return;
 
     if (nameElement) {
         nameElement.textContent = file.name || 'backup.json';
+    }
+
+    // Default placeholder scope while reading
+    if (contentsElement) {
+        contentsElement.textContent = t('data.containsBoth') || 'History & settings';
+    }
+    if (replaceTextElement) {
+        replaceTextElement.textContent = ' ' + (t('data.wipeReplaceDescription') ||
+            'clears all local records and replaces them entirely with this backup.');
     }
 
     overlay.removeAttribute('inert');
@@ -133,6 +191,35 @@ export function openImportDialog(file) {
 
     const mergeButton = document.getElementById('button-import-merge');
     if (mergeButton) setTimeout(() => mergeButton.focus(), 60);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        const text = event.target?.result;
+        if (typeof text !== 'string') return;
+        try {
+            const parsedData = JSON.parse(text);
+            const validation = validateBackupPayload(parsedData);
+            if (!validation.isValid) {
+                closeImportDialog();
+                showNoticeDialog(
+                    t('data.invalidBackupTitle'),
+                    t('data.invalidBackupMessage'),
+                    importReturnFocusElement
+                );
+                return;
+            }
+            pendingImportData = parsedData;
+            applyImportScopeToDialog(parsedData);
+        } catch (parseError) {
+            closeImportDialog();
+            showNoticeDialog(
+                t('data.corruptedTitle'),
+                t('data.corruptedMessage'),
+                importReturnFocusElement
+            );
+        }
+    };
+    reader.readAsText(file);
 }
 
 /**
@@ -144,6 +231,7 @@ export function closeImportDialog() {
     const fileInput = document.getElementById('file-import');
     if (fileInput) fileInput.value = '';
     pendingImportFile = null;
+    pendingImportData = null;
 
     if (!overlay) return;
     overlay.classList.remove('is-open');
@@ -152,6 +240,16 @@ export function closeImportDialog() {
 
     for (const button of document.querySelectorAll('#import-dialog .hold-action')) {
         resetHold(button);
+    }
+
+    if (importReturnFocusElement) {
+        const targetElement = typeof importReturnFocusElement === 'string'
+            ? document.getElementById(importReturnFocusElement)
+            : importReturnFocusElement;
+        if (targetElement && typeof targetElement.focus === 'function') {
+            targetElement.focus({ preventScroll: true });
+        }
+        importReturnFocusElement = null;
     }
 }
 
@@ -162,24 +260,80 @@ export function closeImportDialog() {
  */
 export function confirmImport(mode) {
     const file = pendingImportFile;
+    const data = pendingImportData;
     closeImportDialog();
-    if (file) {
+
+    if (data) {
+        executeBackupImport(data, mode)
+            .then(() => {
+                if (typeof window !== 'undefined' && window.location && typeof window.location.reload === 'function') {
+                    window.location.reload();
+                }
+            })
+            .catch((error) => {
+                console.error('File import execution failed:', error);
+                showNoticeDialog(t('data.corruptedTitle'), t('data.corruptedMessage'), 'file-import');
+            });
+    } else if (file) {
         handleFileImport(file, mode);
     }
 }
 
 /**
- * Binds Escape key listener on the file import dialog overlay.
+ * Binds Escape key, Tab focus trap, backdrop dismissal, and Cancel button listeners on the import modal.
  * @returns {void}
  */
 export function setupImportDialog() {
     const overlay = document.getElementById('import-dialog-overlay');
-    if (!overlay) return;
+    const dialog = document.getElementById('import-dialog');
+    const cancelButton = document.getElementById('button-import-cancel');
+    if (!overlay || !dialog) return;
+
+    if (cancelButton) {
+        cancelButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            closeImportDialog();
+        });
+    }
+
+    overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) {
+            closeImportDialog();
+        }
+    });
 
     overlay.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
             event.preventDefault();
             closeImportDialog();
+            return;
+        }
+
+        if (event.key === 'Tab') {
+            const focusableElements = Array.from(
+                dialog.querySelectorAll(
+                    'button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+                )
+            ).filter((focusableElement) => {
+                return !focusableElement.hidden && focusableElement.style.display !== 'none';
+            });
+
+            if (focusableElements.length === 0) return;
+
+            const firstElement = focusableElements[0];
+            const lastElement = focusableElements[focusableElements.length - 1];
+
+            if (event.shiftKey) {
+                if (document.activeElement === firstElement || !dialog.contains(document.activeElement)) {
+                    event.preventDefault();
+                    lastElement.focus();
+                }
+            } else {
+                if (document.activeElement === lastElement || !dialog.contains(document.activeElement)) {
+                    event.preventDefault();
+                    firstElement.focus();
+                }
+            }
         }
     });
 }
