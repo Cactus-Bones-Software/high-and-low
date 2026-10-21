@@ -738,3 +738,120 @@ and zoom operate on consistently, and add continuous gesture-driven zoom on top 
   - The legend, timeframe/zoom toolbars, guide key, and note-marker listeners must remain untouched (not
     rebuilt, not rebound) for the entire gesture lifecycle — only the graph/point/text elements are touched, and
     only once per full gesture, not per frame.
+
+
+### Phase 10: Test Suite Health & Maintainability
+
+Advisory review (Oct 2026) found the suite is not full of redundant tests, but it is expensive to run and to maintain:
+every test boots the full app via `setupTestDOM()`, `tests/test-utils.js` re-exports ~100 functions onto `window.*`,
+~7 s of real `sleep()` calls are spread across the suite, `tests/graph.test.js` repeats inline entry literals, and three
+files (`graph.test.js`, `graph_gestures.test.js`, `question_response_type.test.js`) hold ~40% of all test code,
+organized by roadmap task number rather than by behavior.
+
+Rules for every task in this phase:
+- **Test-only.** Do not edit anything under `public/`. If a task seems to require it, stop and ask. No version bump and
+  no `docs/state.md` change unless the task says so.
+- **Do not lose coverage.** The test count (`npm test` summary) must be identical before and after, except in Task 10.8,
+  which must itemize every removal. Never loosen or delete an assertion to make a refactor pass.
+- **Report numbers.** In the hand-off message, state the passing test count and the `npm test` duration before and
+  after the change.
+- **Keep doc references valid.** `docs/decisions.md` cites `tests/questions.test.js` and `tests/localization.test.js`
+  as enforcement points. Do not rename or move those files without updating those references in the same edit.
+- Recommended order is numeric; Task 10.3 depends on Task 10.2.
+
+- [ ] **Task 10.1: Document Test Conventions in `AGENTS.md`**
+  - Add a short "Test Conventions" section to `AGENTS.md` (120-column limit) stating that, for new and touched tests:
+    - `describe`/`it` titles name the behavior or module under test, never a roadmap task number, and carry no
+      numeric prefixes (`1.`, `2.`).
+    - Tests import functions directly from `public/js/...` instead of reading them off `window.*`.
+    - Waiting on timers uses `vi.useFakeTimers()` or `waitFor`, not `sleep()`, unless the test asserts real elapsed
+      time and says so in a comment.
+    - Entry and question fixtures come from helpers in `tests/test-utils.js`, not inline literals.
+    - Pure functions (layout math, gesture math) are tested without calling `setupTestDOM()`.
+  - Docs-only change. Do not touch any test file in this task.
+
+- [ ] **Task 10.2: Remove the `window.*` Test Shim — Part 1 (All Suites Except the Three Large Ones)**
+  - In every `tests/*.test.js` file **except** `graph.test.js`, `graph_gestures.test.js`, and
+    `question_response_type.test.js`, replace `windowInstance.someFunction(...)` / `window.someFunction(...)` calls
+    with direct named imports from the owning module in `public/js/` (the import list at the top of
+    `tests/test-utils.js` shows where each function lives).
+  - Leave `setupTestDOM()` and its `windowInstance.* = ...` assignments untouched in this task; the large suites
+    still need them.
+  - Before converting, confirm that nothing in `public/index.html` or the app code reads those names off `window`
+    (grep for each); anything that does must keep its shim assignment. Functions used only by tests can be converted.
+  - Imported functions resolve `document`/`window` through the globals that `setupTestDOM()` sets, so import at the
+    top of the file but only *call* after setup. If a module reads `document` at import time and breaks, stop and
+    report rather than changing `public/`.
+
+- [ ] **Task 10.3: Remove the `window.*` Test Shim — Part 2 (Large Suites, Then Delete the Shim)**
+  - Apply the Task 10.2 conversion to `graph.test.js`, `graph_gestures.test.js`, and `question_response_type.test.js`.
+  - Then delete every `windowInstance.<name> = <name>` assignment from `setupTestDOM()` in `tests/test-utils.js`, plus
+    the imports that become unused. Keep everything else: JSDOM construction, polyfills, `global.*` bindings, `STATE`
+    reset, `initApp()`, and the readiness wait. Keep `windowInstance.STATE` only if a test still reads it from there;
+    otherwise import `STATE` directly.
+  - Done when `npm test` passes and `test-utils.js` no longer imports app functions it does not itself call.
+
+- [ ] **Task 10.4: Move Pure-Logic Tests Out of the Full-App Boot**
+  - Extract tests that only call pure functions with plain values into a new `tests/graph-math.test.js` that never
+    calls `setupTestDOM()`. Candidates: `calculatePinchDistance`, `calculatePinchMidpoint`,
+    `calculateWheelZoomDeltaMultiplier`, `calculateGestureTransform`, `calculateSettledGestureScrollLeft`
+    (`graph_gestures.test.js`); the `computeGraphLayout` describe block, `calculateTimeframePresetZoomScale`,
+    `calculateZoomPivotScrollLeft`, `calculateNowScrollLeft` (`graph.test.js`); and the layout-only
+    `computeGraphLayout` tagging tests in `question_response_type.test.js`.
+  - Prefer `// @vitest-environment node`. If `history-graph.js` cannot be imported in Node (it touches DOM globals at
+    import time), use `// @vitest-environment jsdom` with a plain import and no app boot. Do not edit `public/` to
+    make Node work; report it instead.
+  - Tests that need a DOM element (e.g. `applyGraphGestureTransform`) or the rendered app stay where they are.
+  - Move, do not rewrite: assertions must be unchanged. Test count must be identical before and after.
+
+- [ ] **Task 10.5: Replace Real `sleep()` Waits — Graph Suites**
+  - In `graph.test.js` (14 calls) and `graph_gestures.test.js` (4 calls), replace `await sleep(...)` with
+    `vi.useFakeTimers()` + `vi.advanceTimersByTime(...)`, or with `waitFor(...)` when waiting on an observable DOM or
+    state change. The wheel-gesture debounce and long-press (450 ms) tests are the main targets.
+  - `fake-indexeddb` schedules work with `setImmediate`/`setTimeout`. Fake only what each test needs
+    (e.g. `vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })`), and always restore with
+    `vi.useRealTimers()` in `afterEach`, so IndexedDB-backed setup cannot hang.
+  - Keep the same assertions and the same intent. A test that asserts real elapsed time must keep a real wait and a
+    one-line comment saying why.
+
+- [ ] **Task 10.6: Replace Real `sleep()` Waits — Remaining Suites**
+  - Apply the Task 10.5 approach to `erase_data.test.js` (6 calls, including the 1600 ms hold-to-confirm waits),
+    `transitions.test.js` (5), `checkin_persistence.test.js` (2), and `hold_actions.test.js` (1).
+  - Tests in `transitions.test.js` that verify real animation timing (<250 ms is a project constraint) may keep a
+    real wait, with a one-line comment explaining why.
+  - Remove the `sleep` helper from `tests/test-utils.js` if no test uses it afterward.
+
+- [ ] **Task 10.7: Entry Fixture Helpers for `graph.test.js`**
+  - `graph.test.js` contains ~35 inline `{ timestamp: new Date(now - N * 86400000).toISOString(), answers: [...] }`
+    literals. Add a small helper to `tests/test-utils.js` (e.g. `createSampleEntry({ daysAgo, answers, note })`),
+    reuse the existing `createSampleFourteenDayEntries` / `createSampleTwoDayLogs` helpers where they already match,
+    and convert the inline literals.
+  - Do not change any timestamp offset, score, or note value. Rendered output must be identical.
+  - Check the other suites for the same pattern and convert any found.
+
+- [ ] **Task 10.8: Audit and Trim Layered Duplicate Tests**
+  - Review pairs where the same behavior is tested at two layers: the "unit" test of `computeGraphLayout` /
+    `renderGraphSVG` followed by an "Integration: renderLineGraph ..." test in `question_response_type.test.js`
+    (boolean step paths, Yes/No tooltips), and the zoom/preset button tests in `graph.test.js` versus
+    `graph_gestures.test.js`.
+  - Remove a test only if every assertion in it is already made by another test that would fail for the same
+    regression. If in doubt, keep it.
+  - In the hand-off message, list each removed test with the name of the test that still covers it. This is the only
+    task in the phase allowed to change the test count.
+
+- [ ] **Task 10.9: Behavior-Based Test Names**
+  - Rename every `describe`/`it` title that carries a roadmap reference (`(Task 3.5)`, `Task 5.10.1:`, `Task 9.7`) or a
+    numeric prefix (`1.`, `2.`) so it describes behavior. Cover all 23 `tests/*.test.js` files
+    (`graph.test.js` has 18 offenders, `question_response_type.test.js` 7, `graph_gestures.test.js` 4).
+  - Titles only: do not move tests between files, reorder them, or change any code. Names must stay unique within
+    their file.
+
+- [ ] **Task 10.10: Split the Three Large Suites by Module and Behavior**
+  - Split `graph.test.js`, `graph_gestures.test.js`, and `question_response_type.test.js` into files of roughly
+    400 lines or fewer, organized by what is under test. Suggested seams: graph rendering and gaps, legend and
+    isolation controls, timeframe/zoom/NOW controls, layout math (already `graph-math.test.js` after Task 10.4),
+    gesture input, gesture commit; question response type schema, authoring dialog, tracker input deck.
+  - Helpers shared by more than one new file move to `tests/test-utils.js`; helpers used by one file stay in it.
+  - Keep `tests/questions.test.js` and `tests/localization.test.js` where they are (see phase rules). If
+    `docs/state.md` lists individual test files, update it in the same edit.
+  - Move only: assertions and test count must be identical before and after.
