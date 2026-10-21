@@ -9,7 +9,8 @@ import {
     exportBackup,
     validateBackupPayload,
     detectBackupScopes,
-    executeBackupImport
+    executeBackupImport,
+    eraseAllData
 } from '../data-io.js';
 import { saveActiveCheckin } from '../storage/session.js';
 import { resetHold, updateHoldActionAriaLabels } from './hold-actions.js';
@@ -21,6 +22,7 @@ let pendingImportFile = null;
 let pendingImportData = null;
 let importReturnFocusElement = null;
 let exportReturnFocusElement = null;
+let eraseReturnFocusElement = null;
 
 /**
  * Displays a notice or feedback modal dialog with custom title and subtitle.
@@ -614,6 +616,157 @@ export function setupExportDialog() {
         if (event.key === 'Escape') {
             event.preventDefault();
             closeExportDialog();
+            return;
+        }
+
+        if (event.key === 'Tab') {
+            const focusableElements = Array.from(
+                dialog.querySelectorAll(
+                    'input:not([disabled]):not([type="hidden"]), ' +
+                    'button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+                )
+            ).filter((focusableElement) => {
+                return !focusableElement.hidden && focusableElement.style.display !== 'none';
+            });
+
+            if (focusableElements.length === 0) return;
+
+            const firstElement = focusableElements[0];
+            const lastElement = focusableElements[focusableElements.length - 1];
+
+            if (event.shiftKey) {
+                if (document.activeElement === firstElement || !dialog.contains(document.activeElement)) {
+                    event.preventDefault();
+                    lastElement.focus();
+                }
+            } else {
+                if (document.activeElement === lastElement || !dialog.contains(document.activeElement)) {
+                    event.preventDefault();
+                    firstElement.focus();
+                }
+            }
+        }
+    });
+}
+
+/**
+ * Opens the Erase All Data confirmation dialog modal.
+ * States plainly what will be erased, and offers "Back Up First" as the first, default-focused option.
+ * @param {HTMLElement | string | null} [returnFocusTarget=null] - Trigger element to return focus to on dismiss.
+ * @returns {void}
+ */
+export function openEraseDialog(returnFocusTarget = null) {
+    const overlay = document.getElementById('erase-dialog-overlay');
+    if (!overlay) return;
+
+    eraseReturnFocusElement = returnFocusTarget || document.getElementById('button-erase-data') || null;
+
+    overlay.removeAttribute('inert');
+    overlay.setAttribute('aria-hidden', 'false');
+    overlay.classList.add('is-open');
+
+    const backupFirstButton = document.getElementById('button-erase-backup');
+    if (backupFirstButton) {
+        setTimeout(() => backupFirstButton.focus(), 60);
+    }
+}
+
+/**
+ * Closes the Erase All Data confirmation modal dialog, restores inert, and returns focus to opener.
+ * @returns {void}
+ */
+export function closeEraseDialog() {
+    const overlay = document.getElementById('erase-dialog-overlay');
+    if (!overlay) return;
+
+    overlay.classList.remove('is-open');
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.setAttribute('inert', '');
+
+    if (eraseReturnFocusElement) {
+        const targetElement = typeof eraseReturnFocusElement === 'string'
+            ? document.getElementById(eraseReturnFocusElement)
+            : eraseReturnFocusElement;
+        if (targetElement && typeof targetElement.focus === 'function') {
+            targetElement.focus({ preventScroll: true });
+        }
+        eraseReturnFocusElement = null;
+    }
+}
+
+/**
+ * Attaches event listeners for the Erase All Data confirmation modal:
+ * - "Back Up First" button triggers a full backup export without closing the modal.
+ * - Cancel button and backdrop clicks dismiss the modal.
+ * - "Erase Everything" button confirms irreversible erasure, closes modal, and invokes eraseAllData.
+ * - On erase failure, shows a notice dialog and leaves data intact.
+ * - Escape closes the dialog.
+ * - Tab traps keyboard focus within the modal.
+ * @returns {void}
+ */
+export function setupEraseDialog() {
+    const overlay = document.getElementById('erase-dialog-overlay');
+    const dialog = document.getElementById('erase-dialog');
+    const backupFirstButton = document.getElementById('button-erase-backup');
+    const eraseCancelButton = document.getElementById('button-erase-cancel');
+    const eraseConfirmButton = document.getElementById('button-erase-confirm');
+
+    if (!overlay || !dialog) return;
+
+    if (backupFirstButton) {
+        backupFirstButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            const doExport = (typeof window !== 'undefined' && typeof window.exportBackup === 'function')
+                ? window.exportBackup
+                : exportBackup;
+            void doExport({ includeHistory: true, includeSettings: true }).catch((exportError) => {
+                console.error('Backup first before erase failed:', exportError);
+            });
+        });
+    }
+
+    if (eraseCancelButton) {
+        eraseCancelButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            closeEraseDialog();
+        });
+    }
+
+    if (eraseConfirmButton) {
+        eraseConfirmButton.addEventListener('click', async (event) => {
+            event.preventDefault();
+            closeEraseDialog();
+            const doErase = (typeof window !== 'undefined' && typeof window.eraseAllData === 'function')
+                ? window.eraseAllData
+                : eraseAllData;
+            try {
+                await doErase();
+            } catch (error) {
+                console.error('Erase all data transaction failed:', error);
+                const triggerNotice = (typeof window !== 'undefined' && typeof window.showNoticeDialog === 'function')
+                    ? window.showNoticeDialog
+                    : showNoticeDialog;
+                if (typeof triggerNotice === 'function') {
+                    triggerNotice(
+                        t('data.eraseFailedTitle') || 'Erase Failed',
+                        t('data.eraseFailedMessage') || 'Could not erase data. Your records were left intact.',
+                        'button-erase-data'
+                    );
+                }
+            }
+        });
+    }
+
+    overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) {
+            closeEraseDialog();
+        }
+    });
+
+    overlay.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closeEraseDialog();
             return;
         }
 

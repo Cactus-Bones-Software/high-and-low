@@ -80,11 +80,14 @@ import {
     openImportDialog,
     closeImportDialog,
     confirmImport,
-    applyImportScopeToDialog
+    applyImportScopeToDialog,
+    openEraseDialog,
+    closeEraseDialog
 } from '../public/js/ui/dialogs.js';
 import {
     exportAllDataAndConfig,
     exportBackup,
+    eraseAllData,
     updateLastBackupDisplay,
     formatBackupDate,
     EXPORTABLE_CONFIG_KEYS,
@@ -322,6 +325,9 @@ export async function setupTestDOM(customSessionStorage = {}) {
     windowInstance.handleFileImport = handleFileImport;
     windowInstance.handleFileImportReaderLoad = handleFileImportReaderLoad;
     windowInstance.RECOGNISED_EXPORT_VERSIONS = RECOGNISED_EXPORT_VERSIONS;
+    windowInstance.eraseAllData = eraseAllData;
+    windowInstance.openEraseDialog = openEraseDialog;
+    windowInstance.closeEraseDialog = closeEraseDialog;
 
     resetAppInitialized();
     await initApp();

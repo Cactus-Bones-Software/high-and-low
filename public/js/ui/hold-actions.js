@@ -11,7 +11,8 @@ import {
     saveNotesFromDialog,
     closeImportDialog,
     confirmImport,
-    closeNoticeDialog
+    closeNoticeDialog,
+    openEraseDialog
 } from './dialogs.js';
 import { cancelQuestionAuthoring, saveQuestionFromAuthoring } from './question-view.js';
 
@@ -35,8 +36,11 @@ export function setIsHoldDelayEnabled(enabled) {
  */
 export function setupHoldActions() {
     document.querySelectorAll('.hold-action').forEach(button => {
+        const isAlwaysHoldButton = (button.id === 'button-erase-data');
+
         const startHold = () => {
-            if (!isHoldDelayEnabled || button.disabled) return;
+            const shouldHold = isHoldDelayEnabled || isAlwaysHoldButton;
+            if (!shouldHold || button.disabled) return;
             button.classList.add('is-holding');
             clearTimeout(holdTimer);
             holdTimer = setTimeout(() => {
@@ -46,7 +50,8 @@ export function setupHoldActions() {
         };
 
         const cancelHold = () => {
-            if (!isHoldDelayEnabled) return;
+            const shouldHold = isHoldDelayEnabled || isAlwaysHoldButton;
+            if (!shouldHold) return;
             clearTimeout(holdTimer);
             button.classList.remove('is-holding');
         };
@@ -66,7 +71,8 @@ export function setupHoldActions() {
                         console.warn('Failed to set pointer capture on hold action button:', error);
                     }
                 }
-                if (isHoldDelayEnabled) startHold();
+                const shouldHold = isHoldDelayEnabled || isAlwaysHoldButton;
+                if (shouldHold) startHold();
             });
             button.addEventListener('pointerup', (event) => {
                 if (typeof button.releasePointerCapture === 'function') {
@@ -78,7 +84,8 @@ export function setupHoldActions() {
                         console.warn('Failed to release pointer capture on pointerup:', error);
                     }
                 }
-                if (isHoldDelayEnabled) cancelHold();
+                const shouldHold = isHoldDelayEnabled || isAlwaysHoldButton;
+                if (shouldHold) cancelHold();
             });
             button.addEventListener('pointercancel', (event) => {
                 if (typeof button.releasePointerCapture === 'function') {
@@ -90,38 +97,49 @@ export function setupHoldActions() {
                         console.warn('Failed to release pointer capture on pointercancel:', error);
                     }
                 }
-                if (isHoldDelayEnabled) cancelHold();
+                const shouldHold = isHoldDelayEnabled || isAlwaysHoldButton;
+                if (shouldHold) cancelHold();
             });
             button.addEventListener('pointerleave', () => {
-                if (isHoldDelayEnabled) cancelHold();
+                const shouldHold = isHoldDelayEnabled || isAlwaysHoldButton;
+                if (shouldHold) cancelHold();
             });
         } else {
             button.addEventListener('touchstart', () => {
-                if (isHoldDelayEnabled) startHold();
+                const shouldHold = isHoldDelayEnabled || isAlwaysHoldButton;
+                if (shouldHold) startHold();
             });
             button.addEventListener('touchend', () => {
-                if (isHoldDelayEnabled) cancelHold();
+                const shouldHold = isHoldDelayEnabled || isAlwaysHoldButton;
+                if (shouldHold) cancelHold();
             });
             button.addEventListener('touchcancel', () => {
-                if (isHoldDelayEnabled) cancelHold();
+                const shouldHold = isHoldDelayEnabled || isAlwaysHoldButton;
+                if (shouldHold) cancelHold();
             });
             button.addEventListener('mousedown', (event) => {
                 if (event.button !== undefined && event.button !== 0) return;
-                if (isHoldDelayEnabled) startHold();
+                const shouldHold = isHoldDelayEnabled || isAlwaysHoldButton;
+                if (shouldHold) startHold();
             });
             button.addEventListener('mouseup', () => {
-                if (isHoldDelayEnabled) cancelHold();
+                const shouldHold = isHoldDelayEnabled || isAlwaysHoldButton;
+                if (shouldHold) cancelHold();
             });
             button.addEventListener('mouseleave', () => {
-                if (isHoldDelayEnabled) cancelHold();
+                const shouldHold = isHoldDelayEnabled || isAlwaysHoldButton;
+                if (shouldHold) cancelHold();
             });
         }
 
         // Standard click handler:
         // - When hold delay is enabled: short clicks/taps are ignored because a 1.5s hold is required (except informational notice dismissals).
-        // - When hold delay is disabled: executes immediately on regular click/tap.
+        // - When hold delay is disabled: executes immediately on regular click/tap, EXCEPT for irreversible actions like Erase All Data.
         button.addEventListener('click', (event) => {
             event.preventDefault();
+            if (isAlwaysHoldButton) {
+                return;
+            }
             if (isHoldDelayEnabled && button.id !== 'button-notice-ok' && button.id !== 'button-question-feedback-ok') {
                 return;
             }
@@ -229,6 +247,12 @@ export function executeHoldAction(id) {
         } else if (typeof window !== 'undefined' && typeof window.archiveQuestionFromAuthoring === 'function') {
             void window.archiveQuestionFromAuthoring();
         }
+    } else if (id === 'button-erase-data') {
+        if (typeof openEraseDialog === 'function') {
+            openEraseDialog('button-erase-data');
+        } else if (typeof window !== 'undefined' && typeof window.openEraseDialog === 'function') {
+            window.openEraseDialog('button-erase-data');
+        }
     }
 }
 
@@ -249,5 +273,9 @@ export function updateHoldActionAriaLabels() {
     const archiveButton = document.getElementById('button-archive-question');
     if (archiveButton) {
         archiveButton.setAttribute('aria-label', isHoldDelayEnabled ? 'Remove question (Hold to confirm)' : 'Remove question');
+    }
+    const eraseButton = document.getElementById('button-erase-data');
+    if (eraseButton) {
+        eraseButton.setAttribute('aria-label', 'Erase All Data (Hold to confirm)');
     }
 }

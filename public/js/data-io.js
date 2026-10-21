@@ -6,7 +6,9 @@
 import { getDatabase, getConfig, setConfig } from './storage/db.js';
 import { showNoticeDialog } from "./ui/dialogs.js";
 import { t } from './localization.js';
-import { SEED_VERSION } from './questions.js';
+import { SEED_VERSION, seedDefaults, loadActiveQuestions } from './questions.js';
+import { clearActiveCheckin, VIEW_STORAGE_KEY } from './storage/session.js';
+import { STATE } from './state.js';
 
 /**
  * Formats an ISO-8601 string into a localized date string for backup display.
@@ -529,4 +531,87 @@ export function areEntryAnswersIdentical(answersA, answersB) {
         answerItem.score === sortedAnswersB[index].score &&
         answerItem.status === sortedAnswersB[index].status
     );
+}
+
+/**
+ * Completely erases all user data from the device:
+ * - Clears 'entries', 'questions', and 'config' IndexedDB stores in a single atomic transaction.
+ * - Clears in-progress Check-In and active view from sessionStorage.
+ * - Clears display setting caches from localStorage (handedness, holdDelay, and legacy menuSide).
+ * - Re-seeds built-in questions and default active set in IndexedDB.
+ * - Does NOT alter service worker registration or runtime asset caches.
+ * - Reloads the application into a clean first-run state upon successful completion.
+ *
+ * @returns {Promise<void>} Resolves when IndexedDB clears, storage resets, and re-seed succeed.
+ */
+export async function eraseAllData() {
+    const database = getDatabase();
+    if (!database) {
+        throw new Error('Database not initialized for data erasure.');
+    }
+
+    // 1. Perform all IndexedDB store clears in ONE single transaction.
+    // Never leave a half-erased state: if transaction fails, all data remains intact.
+    await new Promise((resolve, reject) => {
+        const transaction = database.transaction(['entries', 'questions', 'config'], 'readwrite');
+        transaction.onabort = () => {
+            reject(transaction.error || new Error('IndexedDB clear transaction was aborted.'));
+        };
+        transaction.onerror = () => {
+            reject(transaction.error || new Error('IndexedDB clear transaction failed.'));
+        };
+        transaction.oncomplete = () => {
+            resolve();
+        };
+
+        const entriesStore = transaction.objectStore('entries');
+        const questionsStore = transaction.objectStore('questions');
+        const configStore = transaction.objectStore('config');
+
+        entriesStore.clear();
+        questionsStore.clear();
+        configStore.clear();
+    });
+
+    // 2. Clear sessionStorage items (in-progress Check-In and view).
+    clearActiveCheckin();
+    try {
+        sessionStorage.removeItem(VIEW_STORAGE_KEY);
+    } catch (sessionError) {
+        console.warn('Failed to clear active view from sessionStorage:', sessionError);
+    }
+
+    // 3. Clear localStorage display caches (handedness, holdDelay, legacy menuSide).
+    try {
+        localStorage.removeItem('handedness');
+        localStorage.removeItem('holdDelay');
+        localStorage.removeItem('menuSide');
+        localStorage.removeItem('debug-bounds');
+    } catch (storageError) {
+        console.warn('Failed to clear display caches from localStorage:', storageError);
+    }
+
+    // 4. Re-seed built-in questions and default active set.
+    await seedDefaults();
+
+    // 5. Reset global in-memory state.
+    STATE.currentQuestionIndex = 0;
+    STATE.checkinAnswers = [];
+    STATE.checkinNote = null;
+    try {
+        await loadActiveQuestions();
+    } catch (loadError) {
+        console.warn('Failed to reload active questions after re-seeding:', loadError);
+    }
+
+    void updateLastBackupDisplay();
+
+    // 6. Reload into clean first-run state.
+    if (typeof window !== 'undefined' && window.location && typeof window.location.reload === 'function') {
+        try {
+            window.location.reload();
+        } catch {
+            // In test environments (e.g. jsdom), location.reload triggers a navigation error
+        }
+    }
 }

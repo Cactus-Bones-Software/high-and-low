@@ -138,6 +138,23 @@ Current Version: `3`
 * **Device Keys Ignored**:
   * Incoming `seedVersion` and `lastBackupAt` keys are ignored and never overwrite device values.
 
+#### Erase All Data Operation (`public/js/data-io.js`, Task 2.20)
+* **Location & Interaction**:
+  * Located in its own clearly separated danger section at the bottom of the Data view (`#section-erase-data`).
+  * Initiated via `#button-erase-data`, protected by a 1.5-second hold barrier enforced even when `holdDelay` is disabled.
+* **Confirmation Modal (`#erase-dialog-overlay`)**:
+  * Plainly lists all categories of data that will be permanently removed.
+  * Offers "Back Up First" (`#button-erase-backup`) as the primary, default-focused option to trigger a full backup export.
+  * Standard dialog buttons for "Cancel" and "Erase Everything" without hold delay.
+* **Atomic Erasure & First-Run Reset**:
+  * Performs IndexedDB `clear()` on `entries`, `questions`, and `config` stores in a single atomic readwrite transaction.
+  * If the transaction aborts or errors, all stores and storage caches remain intact and an error notice is shown.
+  * On transaction completion, clears `sessionStorage` (`high_and_low_active_checkin`, `high_and_low_active_view`)
+    and `localStorage` display caches (`handedness`, `holdDelay`, `menuSide`, `debug-bounds`).
+  * Re-seeds built-in questions and default active set via `seedDefaults()`, resets in-memory `STATE`, and reloads into
+    a clean first-run state.
+  * Does not touch service worker registration or runtime asset caches.
+
 ---
 
 ## 3. Session & In-Memory State
@@ -227,6 +244,7 @@ export const STATE = {
     ├── checkin_persistence.test.js
     ├── data_backup.test.js
     ├── drawer.test.js
+    ├── erase_data.test.js
     ├── export_dialog.test.js
     ├── graph.test.js
     ├── graph_gestures.test.js

@@ -26,6 +26,7 @@ import { startNewCheckIn, renderCurrentQuestion, clearQuestionTransitions, final
 import {
     exportAllDataAndConfig,
     exportBackup,
+    eraseAllData,
     updateLastBackupDisplay,
     formatBackupDate,
     EXPORTABLE_CONFIG_KEYS
@@ -45,7 +46,10 @@ import {
     openExportDialog,
     closeExportDialog,
     setupExportDialog,
-    updateExportSummary
+    updateExportSummary,
+    openEraseDialog,
+    closeEraseDialog,
+    setupEraseDialog
 } from './ui/dialogs.js';
 // Load settings and settings UI
 import { setupSettingsAndMenu, setupCanvasBackButtons, applyStoredDisplay } from './ui/settings-menu.js';
@@ -221,6 +225,7 @@ export function initApp() {
     setupNotesDialog();
     setupImportDialog();
     setupExportDialog();
+    setupEraseDialog();
     setupNoticeDialog();
     setupSettingsAndMenu();
     setupQuestionAuthoring();
@@ -375,6 +380,9 @@ export function initApp() {
                 window.openExportDialog = openExportDialog;
                 window.closeExportDialog = closeExportDialog;
                 window.updateExportSummary = updateExportSummary;
+                window.eraseAllData = eraseAllData;
+                window.openEraseDialog = openEraseDialog;
+                window.closeEraseDialog = closeEraseDialog;
             }
 
             safeRAF(() => {
@@ -418,6 +426,9 @@ if (typeof window !== 'undefined') {
     window.openExportDialog = openExportDialog;
     window.closeExportDialog = closeExportDialog;
     window.updateExportSummary = updateExportSummary;
+    window.eraseAllData = eraseAllData;
+    window.openEraseDialog = openEraseDialog;
+    window.closeEraseDialog = closeEraseDialog;
 }
 
 if (typeof document !== 'undefined') {

@@ -256,6 +256,21 @@
                     <input type="file" id="file-import" accept=".json" style="display: none;"
                            tabindex="-1" aria-hidden="true">
                 </div>
+
+                <div class="data-danger-section" id="section-erase-data">
+                    <hr class="data-danger-divider" aria-hidden="true">
+                    <h3 class="danger-heading" data-i18n="data.eraseHeading">Erase All Data</h3>
+                    <p class="data-danger-description" data-i18n="data.eraseDescription">
+                        Permanently remove all recorded check-ins, custom questions, and settings from this device.
+                    </p>
+                    <button type="button" id="button-erase-data"
+                            class="control-button hold-action utility-button utility-button-danger modal-button-danger"
+                            data-i18n="data.eraseButton"
+                            aria-label="Erase All Data (Hold to confirm)">
+                        <span class="hold-indicator" aria-hidden="true"></span>
+                        <span class="button-label" data-i18n="data.eraseButton">Erase All Data</span>
+                    </button>
+                </div>
             </section>
         </section>
 
@@ -589,6 +604,45 @@
                             class="control-button modal-button modal-button-primary"
                             aria-label="Export backup" data-i18n="data.exportButton">
                         Export
+                    </button>
+                </footer>
+            </div>
+        </div>
+
+        <!-- Pop-in Erase All Data Confirmation Modal Dialog -->
+        <div id="erase-dialog-overlay" class="modal-overlay" inert>
+            <div id="erase-dialog" class="modal-dialog" role="dialog" aria-modal="true"
+                 aria-labelledby="erase-dialog-title" aria-describedby="erase-dialog-subtitle">
+                <header class="modal-header">
+                    <h2 id="erase-dialog-title" class="modal-title" data-i18n="data.eraseModalTitle">Erase All Data</h2>
+                    <p id="erase-dialog-subtitle" class="modal-subtitle" data-i18n="data.eraseModalSubtitle">
+                        This permanently erases all Check-In entries, questions, and settings on this device. This action cannot be undone.
+                    </p>
+                </header>
+                <div class="modal-body">
+                    <div class="modal-info-text">
+                        <p><strong data-i18n="data.eraseWhatLost">What will be erased:</strong></p>
+                        <ul class="erase-loss-list">
+                            <li data-i18n="data.eraseLostHistory">All recorded Check-In entries and notes</li>
+                            <li data-i18n="data.eraseLostQuestions">All custom questions and catalog arrangements</li>
+                            <li data-i18n="data.eraseLostSettings">All preferences, theme, and display settings</li>
+                        </ul>
+                    </div>
+                </div>
+                <footer class="modal-footer modal-footer-stacked">
+                    <button type="button" id="button-erase-backup"
+                            class="control-button modal-button modal-button-primary"
+                            aria-label="Back Up First" data-i18n="data.backUpFirstButton">
+                        Back Up First
+                    </button>
+                    <button type="button" id="button-erase-cancel" class="control-button modal-button"
+                            aria-label="Cancel erase" data-i18n="common.cancel">
+                        Cancel
+                    </button>
+                    <button type="button" id="button-erase-confirm"
+                            class="control-button modal-button modal-button-danger"
+                            aria-label="Permanently erase all data" data-i18n="data.eraseConfirmButton">
+                        Erase Everything
                     </button>
                 </footer>
             </div>

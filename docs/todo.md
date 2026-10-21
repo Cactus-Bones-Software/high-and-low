@@ -154,7 +154,7 @@
     replace-mode scoping, malformed and empty-array files, and orphan prevention (history-only import brings its
     questions).
 
-- [ ] **Task 2.20: Erase All Data from Inside the App**
+- [x] **Task 2.20: Erase All Data from Inside the App**
   - Task 2.6 lists "Reset Data" for the Data view, but no such control exists; the only way to clear data today is
     to import a file in Wipe & Replace mode, or to clear browser storage by hand. Add an **Erase All Data** action
     in its own clearly separated section at the bottom of the Data view, away from the export and import buttons.

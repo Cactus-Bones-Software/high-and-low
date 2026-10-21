@@ -171,7 +171,20 @@
     "invalidBackupTitle": "Invalid Backup File",
     "invalidBackupMessage": "The selected file is not a valid backup (requires exportVersion and at least one data store).",
     "corruptedTitle": "Corrupted File",
-    "corruptedMessage": "The selected file could not be parsed or contains corrupted data."
+    "corruptedMessage": "The selected file could not be parsed or contains corrupted data.",
+    "eraseHeading": "Erase All Data",
+    "eraseDescription": "Permanently remove all recorded check-ins, custom questions, and settings from this device.",
+    "eraseButton": "Erase All Data",
+    "eraseModalTitle": "Erase All Data",
+    "eraseModalSubtitle": "This permanently erases all Check-In entries, questions, and settings on this device. This action cannot be undone.",
+    "eraseWhatLost": "What will be erased:",
+    "eraseLostHistory": "All recorded Check-In entries and notes",
+    "eraseLostQuestions": "All custom questions and catalog arrangements",
+    "eraseLostSettings": "All preferences, theme, and display settings",
+    "backUpFirstButton": "Back Up First",
+    "eraseConfirmButton": "Erase Everything",
+    "eraseFailedTitle": "Erase Failed",
+    "eraseFailedMessage": "Could not erase data. Your records were left intact."
   },
   "history": {
     "title": "History",
@@ -238,7 +251,7 @@
     "sponsorGitHub": "GitHub Sponsors",
     "sponsorKofi": "Ko-fi",
     "thankYouHeading": "Thank You",
-    "thankYouText": "With gratitude to supporters and contributors."
+    "thankYouText": "With gratitude to supporters and contributors. Real-world names are recognized per our terms."
   },
   "notes": {
     "modalTitle": "Check-In Note",
