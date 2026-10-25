@@ -87,6 +87,9 @@ import {
 import {
     exportAllDataAndConfig,
     exportBackup,
+    exportHistoryCSV,
+    generateHistoryCSV,
+    formatCSVCell,
     eraseAllData,
     updateLastBackupDisplay,
     formatBackupDate,
@@ -328,6 +331,9 @@ export async function setupTestDOM(customSessionStorage = {}) {
     windowInstance.eraseAllData = eraseAllData;
     windowInstance.openEraseDialog = openEraseDialog;
     windowInstance.closeEraseDialog = closeEraseDialog;
+    windowInstance.exportHistoryCSV = exportHistoryCSV;
+    windowInstance.generateHistoryCSV = generateHistoryCSV;
+    windowInstance.formatCSVCell = formatCSVCell;
 
     resetAppInitialized();
     await initApp();

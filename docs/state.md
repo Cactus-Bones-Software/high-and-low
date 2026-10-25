@@ -155,6 +155,23 @@ Current Version: `3`
     a clean first-run state.
   * Does not touch service worker registration or runtime asset caches.
 
+#### CSV Export for Care Providers (`public/js/data-io.js`, Task 3.12)
+* **Location & Interaction**:
+  * Located in its own dedicated Sharing section in the Data view (`#section-share-data`) above the danger zone.
+  * Initiated via `#button-export-csv` ("Share with Doctor or Therapist (CSV)"), generating an unencrypted `.csv` file.
+  * Does not update `lastBackupAt` (reading export, not a backup archive).
+* **Data Formatting & Neutralization**:
+  * One row per Entry, sorted chronologically ascending.
+  * Columns: `Timestamp`, `Date`, `Note`, followed by each question's `shortLabel` (including archived questions
+    that contain historical answers).
+  * Boolean questions render as `"Yes"` (score 5) and `"No"` (score 1) using `questions.js` constants.
+  * Scale questions render as numeric scores (`1`–`5`). Never writes `0` or `-1`.
+  * Skipped answers and unasked questions render as empty cells (`""`).
+  * RFC 4180 standard escaping for double-quotes, commas, and newlines in notes.
+  * Formula injection neutralization: values beginning with `=`, `+`, `-`, or `@` are safely prefixed with `'`.
+* **Zero-Data State**:
+  * When no entries exist, shows accessible notice dialog (`#notice-dialog-overlay`) without downloading empty files.
+
 ---
 
 ## 3. Session & In-Memory State
@@ -242,6 +259,7 @@ export const STATE = {
     ├── active_tracker_cards.test.js
     ├── catalog_cards.test.js
     ├── checkin_persistence.test.js
+    ├── csv_export.test.js
     ├── data_backup.test.js
     ├── drawer.test.js
     ├── erase_data.test.js

@@ -26,6 +26,9 @@ import { startNewCheckIn, renderCurrentQuestion, clearQuestionTransitions, final
 import {
     exportAllDataAndConfig,
     exportBackup,
+    exportHistoryCSV,
+    generateHistoryCSV,
+    formatCSVCell,
     eraseAllData,
     updateLastBackupDisplay,
     formatBackupDate,
@@ -256,6 +259,15 @@ export function initApp() {
         });
     }
 
+    const exportCsvButton = document.getElementById('button-export-csv');
+    if (exportCsvButton) {
+        exportCsvButton.addEventListener('click', () => {
+            exportHistoryCSV().catch(error => {
+                console.error('Failed to export CSV history:', error);
+            });
+        });
+    }
+
     const importFileInput = document.getElementById('file-import');
     if (importFileInput) {
         importFileInput.addEventListener('change', (event) => {
@@ -429,6 +441,9 @@ if (typeof window !== 'undefined') {
     window.eraseAllData = eraseAllData;
     window.openEraseDialog = openEraseDialog;
     window.closeEraseDialog = closeEraseDialog;
+    window.exportHistoryCSV = exportHistoryCSV;
+    window.generateHistoryCSV = generateHistoryCSV;
+    window.formatCSVCell = formatCSVCell;
 }
 
 if (typeof document !== 'undefined') {

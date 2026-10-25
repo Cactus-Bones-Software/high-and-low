@@ -2982,6 +2982,30 @@ body[data-contrast="high"] .export-summary-text.is-empty {
     border: 0;
 }
 
+/* Sharing Section for Care Providers (Task 3.12) */
+.data-share-section {
+    margin-top: 24px;
+    padding-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.data-section-divider {
+    border: 0;
+    height: 1px;
+    background-color: var(--border-color);
+    margin: 0 0 16px 0;
+    width: 100%;
+}
+
+.data-section-description {
+    margin: 0 0 8px 0;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+}
+
 /* Erase All Data Danger Section (Task 2.20) */
 .data-danger-section {
     margin-top: 28px;
@@ -3036,6 +3060,7 @@ body[data-contrast="high"] .export-summary-text.is-empty {
     line-height: 1.4;
 }
 
+body[data-contrast="high"] .data-section-divider,
 body[data-contrast="high"] .data-danger-divider {
     background-color: var(--text-bright);
 }

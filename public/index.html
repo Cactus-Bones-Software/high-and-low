@@ -241,6 +241,10 @@
 
             <section class="canvas-box view-content-box menu-box" id="panel-data">
                 <h3 data-i18n="data.heading">Export &amp; Import Data</h3>
+                <p class="data-section-description" data-i18n="data.backupDescription">
+                    Your data stays on this device. Save your backup file to a separate location (such as cloud
+                    storage, an external drive, or another device) so you can restore your records if needed.
+                </p>
                 <p id="last-backup-display" class="last-backup-indicator" data-i18n="data.noBackupYet">
                     No backup yet
                 </p>
@@ -255,6 +259,17 @@
                             aria-label="Import Backup File" data-i18n="data.importButton">Import Backup File</button>
                     <input type="file" id="file-import" accept=".json" style="display: none;"
                            tabindex="-1" aria-hidden="true">
+                </div>
+
+                <div class="data-share-section" id="section-share-data">
+                    <hr class="data-section-divider" aria-hidden="true">
+                    <h3 data-i18n="data.sharingHeading">Share with Care Providers</h3>
+                    <p class="data-section-description" data-i18n="data.sharingDescription">
+                        Export your check-in history as a spreadsheet to print or share with your doctor, therapist,
+                        or psychiatrist.
+                    </p>
+                    <button type="button" id="button-export-csv" class="utility-button"
+                            data-i18n="data.shareCsvButton">Share with Doctor or Therapist (CSV)</button>
                 </div>
 
                 <div class="data-danger-section" id="section-erase-data">

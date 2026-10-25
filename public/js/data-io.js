@@ -3,10 +3,16 @@
  * Backup serialization, JSON file export, and conflict-checked database restore operations.
  */
 
-import { getDatabase, getConfig, setConfig } from './storage/db.js';
+import { getDatabase, getConfig, setConfig, getAll } from './storage/db.js';
 import { showNoticeDialog } from "./ui/dialogs.js";
 import { t } from './localization.js';
-import { SEED_VERSION, seedDefaults, loadActiveQuestions } from './questions.js';
+import {
+    SEED_VERSION,
+    seedDefaults,
+    loadActiveQuestions,
+    BOOLEAN_NO_SCORE,
+    BOOLEAN_YES_SCORE
+} from './questions.js';
 import { clearActiveCheckin, VIEW_STORAGE_KEY } from './storage/session.js';
 import { STATE } from './state.js';
 
@@ -614,4 +620,225 @@ export async function eraseAllData() {
             // In test environments (e.g. jsdom), location.reload triggers a navigation error
         }
     }
+}
+
+/**
+ * Formats a value for RFC 4180 CSV output, sanitizing spreadsheet formula injection triggers (=, +, -, @).
+ * @param {any} value - The raw cell value.
+ * @returns {string} Escaped and sanitized CSV cell string.
+ */
+export function formatCSVCell(value) {
+    if (value === null || value === undefined) {
+        return '';
+    }
+
+    let stringValue = String(value);
+    if (stringValue.length === 0) {
+        return '';
+    }
+
+    // Neutralize spreadsheet formula injection for values starting with =, +, -, or @
+    if (/^[=+\-@]/.test(stringValue)) {
+        stringValue = "'" + stringValue;
+    }
+
+    // Quote and escape if containing comma, double quote, newline, or leading single-quote
+    if (/[",\r\n]/.test(stringValue) || stringValue.startsWith("'")) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+    }
+
+    return stringValue;
+}
+
+/**
+ * Generates an RFC 4180 CSV string from entries and questions for clinician review.
+ * @param {Array<Object>} [entries=[]] - Array of Entry objects.
+ * @param {Array<Object>} [questions=[]] - Array of Question objects.
+ * @param {Array<string>} [activeQuestionSet=[]] - Ordered array of active question IDs.
+ * @returns {string} Formatted CSV file contents.
+ */
+export function generateHistoryCSV(entries = [], questions = [], activeQuestionSet = []) {
+    const questionMap = new Map();
+    if (Array.isArray(questions)) {
+        for (const question of questions) {
+            if (question && question.id) {
+                questionMap.set(question.id, question);
+            }
+        }
+    }
+
+    // Collect all question IDs referenced in historical entries
+    const historicalQuestionIds = new Set();
+    if (Array.isArray(entries)) {
+        for (const entry of entries) {
+            if (Array.isArray(entry?.answers)) {
+                for (const answer of entry.answers) {
+                    if (answer?.questionId) {
+                        historicalQuestionIds.add(answer.questionId);
+                    }
+                }
+            }
+        }
+    }
+
+    // Determine ordered list of questions:
+    // 1. Active questions in their configured sequence
+    // 2. Other non-archived questions from catalog
+    // 3. Archived questions that have answers in historical entries
+    // 4. Any leftover question IDs referenced in entries that were not found in questions store
+    const orderedQuestionList = [];
+    const addedQuestionIds = new Set();
+
+    if (Array.isArray(activeQuestionSet)) {
+        for (const questionId of activeQuestionSet) {
+            if (questionMap.has(questionId) && !addedQuestionIds.has(questionId)) {
+                orderedQuestionList.push(questionMap.get(questionId));
+                addedQuestionIds.add(questionId);
+            }
+        }
+    }
+
+    if (Array.isArray(questions)) {
+        for (const question of questions) {
+            if (question && question.id && !addedQuestionIds.has(question.id)) {
+                if (!question.archived || historicalQuestionIds.has(question.id)) {
+                    orderedQuestionList.push(question);
+                    addedQuestionIds.add(question.id);
+                }
+            }
+        }
+    }
+
+    for (const questionId of historicalQuestionIds) {
+        if (!addedQuestionIds.has(questionId)) {
+            const fallbackQuestion = {
+                id: questionId,
+                shortLabel: questionId,
+                text: questionId,
+                responseType: 'scale'
+            };
+            orderedQuestionList.push(fallbackQuestion);
+            addedQuestionIds.add(questionId);
+        }
+    }
+
+    // Build header row: Timestamp, Date, Note, <Question ShortLabels...>
+    const headerRowCells = ['Timestamp', 'Date', 'Note'];
+    for (const question of orderedQuestionList) {
+        const columnHeader = question.shortLabel || question.text || question.id;
+        headerRowCells.push(formatCSVCell(columnHeader));
+    }
+
+    // Sort entries chronologically ascending
+    const sortedEntries = (Array.isArray(entries) ? [...entries] : []).sort((firstEntry, secondEntry) => {
+        const firstTime = firstEntry?.timestamp ? new Date(firstEntry.timestamp).getTime() : 0;
+        const secondTime = secondEntry?.timestamp ? new Date(secondEntry.timestamp).getTime() : 0;
+        return firstTime - secondTime;
+    });
+
+    const rows = [headerRowCells.join(',')];
+
+    for (const entry of sortedEntries) {
+        if (!entry) continue;
+
+        const timestampCell = formatCSVCell(entry.timestamp || '');
+        const dateCell = formatCSVCell(entry.dateString || (entry.timestamp ? entry.timestamp.split('T')[0] : ''));
+        const noteCell = formatCSVCell(entry.note || '');
+
+        const entryRowCells = [timestampCell, dateCell, noteCell];
+
+        const answerMap = new Map();
+        if (Array.isArray(entry.answers)) {
+            for (const answer of entry.answers) {
+                if (answer?.questionId) {
+                    answerMap.set(answer.questionId, answer);
+                }
+            }
+        }
+
+        for (const question of orderedQuestionList) {
+            const answer = answerMap.get(question.id);
+
+            // Not asked (no record in entry.answers)
+            if (!answer) {
+                entryRowCells.push('');
+                continue;
+            }
+
+            // Skipped answer (explicitly skipped or score is null/undefined)
+            if (answer.status === 'skipped' || answer.score === null || answer.score === undefined) {
+                entryRowCells.push('');
+                continue;
+            }
+
+            // Answered: format based on responseType
+            if (question.responseType === 'boolean') {
+                if (answer.score === BOOLEAN_YES_SCORE) {
+                    entryRowCells.push(formatCSVCell('Yes'));
+                } else if (answer.score === BOOLEAN_NO_SCORE) {
+                    entryRowCells.push(formatCSVCell('No'));
+                } else {
+                    entryRowCells.push(formatCSVCell(answer.score));
+                }
+            } else {
+                entryRowCells.push(formatCSVCell(answer.score));
+            }
+        }
+
+        rows.push(entryRowCells.join(','));
+    }
+
+    return rows.join('\r\n');
+}
+
+/**
+ * Reads all entries and questions from IndexedDB, formats an RFC 4180 CSV history file,
+ * and initiates a browser file download for clinician sharing.
+ * @returns {Promise<{ csvContent: string, filename: string, rowCount: number } | null>}
+ */
+export async function exportHistoryCSV() {
+    const database = getDatabase();
+    if (!database) {
+        console.error('Database not initialized for CSV export.');
+        return null;
+    }
+
+    let entries = [];
+    let questions = [];
+    let activeQuestionSet = [];
+
+    try {
+        entries = await getAll('entries');
+        questions = await getAll('questions');
+        activeQuestionSet = await getConfig('activeQuestionSet') || [];
+    } catch (error) {
+        console.error('Failed to load records for CSV export:', error);
+        showNoticeDialog(t('data.corruptedTitle'), t('data.corruptedMessage'));
+        return null;
+    }
+
+    if (!entries || entries.length === 0) {
+        showNoticeDialog(t('data.noEntriesToExportTitle'), t('data.noEntriesToExportMessage'));
+        return null;
+    }
+
+    const csvContent = generateHistoryCSV(entries, questions, activeQuestionSet);
+    const exportDate = new Date().toISOString().split('T')[0];
+    const filename = `high-and-low-history-${exportDate}.csv`;
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+        const url = URL.createObjectURL(blob);
+        const anchorLink = document.createElement('a');
+        anchorLink.href = url;
+        anchorLink.download = filename;
+        document.body.appendChild(anchorLink);
+        anchorLink.click();
+        document.body.removeChild(anchorLink);
+        if (typeof URL.revokeObjectURL === 'function') {
+            URL.revokeObjectURL(url);
+        }
+    }
+
+    return { csvContent, filename, rowCount: entries.length };
 }

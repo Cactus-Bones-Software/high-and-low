@@ -34,9 +34,14 @@ High & Low was created to remove those obstacles. By focusing on quick one-tap a
 controls, a skip button for bad days, and complete privacy, High & Low helps you keep track of your well-being even on
 your hardest days.
 
-It is also private by default, removing anxiety about theft and leaks of data. You can share with your psychologist or other carers, but you do not have to. 
+It is also private by default, removing anxiety about theft and leaks of data. You can share with your psychologist
+or other carers, but you do not have to.
 
----
+### Sharing with Care Providers (CSV Export)
+You can export your Check-In history as a spreadsheet (`.csv`) from the Data view to share with your doctor,
+psychologist, or therapist. In exported spreadsheets, each row represents one Check-In, boolean questions are
+displayed as `Yes`/`No`, and unanswered questions (both skipped questions and questions not in your active tracker set
+at that time) appear as empty cells. Neutralization is applied to protect against formula injection.
 
 ## Donations and Funding
 
