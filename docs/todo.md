@@ -230,7 +230,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
   - Preserve the user's current horizontal scroll anchor when zooming.
   - Use large, keyboard-reachable buttons with clear aria-labels.
 
-- [ ] **Task 3.12: CSV Export for Sharing with a Clinician**
+- [x] **Task 3.12: CSV Export for Sharing with a Clinician**
   - The README says users can share data with a psychologist, but the only output today is the raw JSON backup,
     which is unreadable for a clinician. Add an "Export as CSV" action to the Data view, kept separate from the
     full JSON backup (which must remain a complete export, per `docs/decisions.md`).
