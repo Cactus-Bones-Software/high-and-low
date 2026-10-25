@@ -242,15 +242,7 @@ Patients and psychiatrists need a way to actually read the collected data back, 
     `=`, `+`, `-`, or `@`). The file is generated entirely on the device; no network requests.
   - Add tests for quoting, newlines in notes, formula-prefixed notes, skipped vs. not-asked, and boolean output.
 
-- [ ] **Task 3.13: Print-Friendly History View**
-  - Add an `@media print` stylesheet for the History view so a user can print or "Save as PDF" the graph for an
-    appointment: hide the drawer, toolbars, and floating buttons; show the full graph unclipped and the legend.
-  - Notes are currently revealed by tapping a marker, which is invisible on paper. In print output, render a dated
-    list of notes (escaped via `escapeHTML()`) beneath the graph.
-  - Ensure line differentiation does not rely on colour alone in print (the dash patterns from Task 3.5 must
-    survive), since printers are often greyscale.
-
-- [ ] **Task 3.14: Wording-Change Marker on the Graph**
+- [ ] **Task 3.13: Wording-Change Marker on the Graph**
   - Depends on Task 5.12.1. A question edited in place keeps one continuous line, so the graph must show where its
     wording changed; otherwise old and new answers look like the same question.
   - For every `textHistory` entry whose `changedAt` falls inside the rendered time range, draw a marker on that
