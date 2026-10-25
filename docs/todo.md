@@ -751,7 +751,7 @@ Rules for every task in this phase:
   as enforcement points. Do not rename or move those files without updating those references in the same edit.
 - Recommended order is numeric; Task 10.3 depends on Task 10.2.
 
-- [ ] **Task 10.1: Document Test Conventions in `AGENTS.md`**
+- [x] **Task 10.1: Document Test Conventions in `AGENTS.md`**
   - Add a short "Test Conventions" section to `AGENTS.md` (120-column limit) stating that, for new and touched tests:
     - `describe`/`it` titles name the behavior or module under test, never a roadmap task number, and carry no
       numeric prefixes (`1.`, `2.`).

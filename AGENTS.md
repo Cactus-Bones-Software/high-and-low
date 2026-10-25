@@ -41,5 +41,18 @@
   - Always prefer clear, fully spelled out descriptive variable and parameter names (e.g. `menuButton`,
     `targetElement`, `progressElement`, `event`, `callback`, `options`).
 - **Relative Path Convention (Sub-Path & IDE Preview Compatibility)**:
-  - All asset references in all files MUST use relative paths (e.g., `style.css`, `pwa-192x192.png`, `sw.js`, `./index.html`) rather than
-    absolute domain-root slashes (`/style.css`, `/pwa-192x192.png`, `/sw.js`).
+  - All asset references in all files MUST use relative paths (e.g., `style.css`, `pwa-192x192.png`, `sw.js`,
+    `./index.html`) rather than absolute domain-root slashes (`/style.css`, `/pwa-192x192.png`, `/sw.js`).
+
+## Test Conventions
+For all new and touched test suites:
+- **Behavior-Driven Titles**: `describe` and `it` titles must describe the behavior or module under test. Never
+  include roadmap task numbers (e.g. `Task 5.1`) or numeric prefixes (`1.`, `2.`).
+- **Direct Imports (No `window.*` Shim)**: Import functions and constants directly from their owning module in
+  `public/js/...` rather than accessing them via `window.*` or `windowInstance.*`.
+- **Timer & Async Discipline**: Use `vi.useFakeTimers()` or `waitFor()`, never `sleep()`, unless the test asserts real
+  elapsed time (which must be justified with an inline comment).
+- **Shared Fixture Helpers**: Entry and question fixtures must come from helpers in `tests/test-utils.js` rather than
+  repetitive inline object literals.
+- **Pure Functions Outside App Boot**: Pure functions (e.g. layout math, gesture calculations) should be tested
+  directly in isolation without invoking `setupTestDOM()`.
