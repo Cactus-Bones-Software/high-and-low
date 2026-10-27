@@ -10,6 +10,18 @@ import {
     createSampleFourteenDayEntries,
     mockScrollDimensions
 } from './test-utils.js';
+import { STATE } from '../public/js/state.js';
+import {
+    computeGraphLayout,
+    renderLineGraph,
+    BASE_PIXELS_PER_HOUR,
+    calculateTimeframePresetZoomScale,
+    calculateZoomPivotScrollLeft,
+    calculateNowScrollLeft,
+    loadHistoryView
+} from '../public/js/ui/history-graph.js';
+import { finalizeCheckin } from '../public/js/checkin.js';
+import { put, setConfig } from '../public/js/storage/db.js';
 
 let windowInstance;
 let documentInstance;
@@ -18,7 +30,7 @@ function renderSampleTwoDayGraph() {
     const container = documentInstance.createElement('div');
     const questions = createSampleGraphQuestions();
     const logs = createSampleTwoDayLogs();
-    windowInstance.renderLineGraph(container, { entries: logs, questions });
+    renderLineGraph(container, { entries: logs, questions });
     return { container, questions, logs };
 }
 
@@ -114,7 +126,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
 
     it('renders empty placeholder when no logs exist', () => {
         const container = documentInstance.createElement('div');
-        windowInstance.renderLineGraph(container, { entries: [], questions: [] });
+        renderLineGraph(container, { entries: [], questions: [] });
         expect(container.textContent).toContain('No recorded mood history yet');
     });
 
@@ -126,7 +138,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             { timestamp: '2026-08-11T10:00:00.000Z', answers: [{ questionId: 'q1', score: 4, status: 'answered' }] }
         ];
 
-        windowInstance.renderLineGraph(container, { entries, questions });
+        renderLineGraph(container, { entries, questions });
         const zoomInButton = container.querySelector('#button-graph-zoom-in');
         const resetButton = container.querySelector('#button-graph-zoom-reset');
         const zoomValue = container.querySelector('.graph-zoom-value');
@@ -188,7 +200,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             }
         ];
 
-        windowInstance.renderLineGraph(container, { entries: logs, questions });
+        renderLineGraph(container, { entries: logs, questions });
 
         // 1. Check line paths:
         // For q1: answered on Day 1 (1 point) and Day 4 (1 point). Because both are isolated single-point segments, no continuous path connecting Day 1 to Day 4 across Day 2/3!
@@ -246,7 +258,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             }
         ];
 
-        windowInstance.renderLineGraph(container, { entries: logs, questions });
+        renderLineGraph(container, { entries: logs, questions });
 
         const points = Array.from(container.querySelectorAll('svg g.points circle'));
         expect(points.length).toBe(3);
@@ -270,7 +282,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
 
     it('enables recording multiple check-ins without refreshing the page', async () => {
         // Complete a check-in
-        windowInstance.finalizeCheckin();
+        finalizeCheckin();
         await sleep(50);
 
         const progressElement = documentInstance.getElementById('progress-text');
@@ -323,7 +335,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             }
         ];
 
-        windowInstance.renderLineGraph(container, { entries: logs, questions });
+        renderLineGraph(container, { entries: logs, questions });
 
         const paths = Array.from(container.querySelectorAll('svg g.lines path'));
         expect(paths.length).toBe(4);
@@ -481,7 +493,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             }
         ];
 
-        windowInstance.renderLineGraph(container, { entries: logs, questions });
+        renderLineGraph(container, { entries: logs, questions });
 
         // 1. Verify only 2 note markers are rendered (for Day 1 and Day 4)
         const noteMarkers = Array.from(container.querySelectorAll('svg g.notes .note-marker'));
@@ -566,7 +578,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             }
         ];
 
-        windowInstance.renderLineGraph(container, { entries: logs, questions });
+        renderLineGraph(container, { entries: logs, questions });
 
         // 1. Check timeframe toolbar existence and buttons
         const toolbar = container.querySelector('.graph-timeframe-toolbar');
@@ -625,7 +637,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             });
         }
 
-        windowInstance.renderLineGraph(container, { entries: logs, questions });
+        renderLineGraph(container, { entries: logs, questions });
 
         // 1. Verify scroll container is present with appropriate region role & tabindex
         const scrollContainer = container.querySelector('.graph-scroll-container');
@@ -642,7 +654,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         // With 25 entries spanning 24 days without SVG internal padding (24 days = 576h):
         // 0 (paddingLeft) + 0 (paddingRight) + 576 * 2 = 1152px
         expect(width).toBeGreaterThan(600);
-        expect(width).toBe(24 * 24 * windowInstance.BASE_PIXELS_PER_HOUR);
+        expect(width).toBe(24 * 24 * BASE_PIXELS_PER_HOUR);
     });
 
     it('includes all answered questions from entries in addition to active questions when loading history view', async () => {
@@ -658,14 +670,14 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         ];
 
         for (const question of allQuestions) {
-            await windowInstance.put('questions', question);
+            await put('questions', question);
         }
 
         // Active question set only has 4 questions
-        await windowInstance.setConfig('activeQuestionSet', ['q_energy', 'q_sadness', 'q_irritability', 'q_overall']);
+        await setConfig('activeQuestionSet', ['q_energy', 'q_sadness', 'q_irritability', 'q_overall']);
 
         // Seed entries with answers for all 7 questions
-        await windowInstance.put('entries', {
+        await put('entries', {
             id: 'entry_1',
             timestamp: new Date(Date.now() - 86400000).toISOString(),
             answers: {
@@ -678,7 +690,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
                 q_overall: 4
             }
         });
-        await windowInstance.put('entries', {
+        await put('entries', {
             id: 'entry_2',
             timestamp: new Date().toISOString(),
             answers: {
@@ -692,7 +704,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             }
         });
 
-        await windowInstance.loadHistoryView();
+        await loadHistoryView();
 
         const historyGraphContainer = documentInstance.getElementById('history-graph-container');
         expect(historyGraphContainer).toBeTruthy();
@@ -715,7 +727,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             { id: 'entry_1', timestamp: new Date(Date.now() - 86400000).toISOString(), answers: [{ questionId: 'q1', score: 3, status: 'answered' }] },
             { id: 'entry_2', timestamp: new Date().toISOString(), answers: [{ questionId: 'q1', score: 4, status: 'answered' }] }
         ];
-        windowInstance.renderLineGraph(container, { entries, questions });
+        renderLineGraph(container, { entries, questions });
 
         const scrollContainer = container.querySelector('.graph-scroll-container');
         expect(scrollContainer).toBeTruthy();
@@ -739,14 +751,14 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
 
     describe('computeGraphLayout pure layout computation (Task 4.13)', () => {
         it('returns empty layout state when no entries or questions are provided', () => {
-            const emptyEntriesLayout = windowInstance.computeGraphLayout({
+            const emptyEntriesLayout = computeGraphLayout({
                 entries: [],
                 questions: [{ id: 'q1', text: 'Mood', shortLabel: 'Mood', curve: 'more-is-better' }]
             });
             expect(emptyEntriesLayout.isEmpty).toBe(true);
             expect(emptyEntriesLayout.reason).toBe('no-entries');
 
-            const emptyQuestionsLayout = windowInstance.computeGraphLayout({
+            const emptyQuestionsLayout = computeGraphLayout({
                 entries: [{
                     timestamp: new Date().toISOString(),
                     answers: [{ questionId: 'q1', score: 3, status: 'answered' }]
@@ -782,7 +794,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             ];
 
             // Always-render-everything model (Task 9.2): full entry history is always included in the rendered/scrollable domain
-            const sevenDayLayout = windowInstance.computeGraphLayout({
+            const sevenDayLayout = computeGraphLayout({
                 entries,
                 questions,
                 timeRange: '7d'
@@ -791,7 +803,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             expect(sevenDayLayout.filteredEntries.length).toBe(4);
 
             // All-time window layout
-            const allTimeLayout = windowInstance.computeGraphLayout({
+            const allTimeLayout = computeGraphLayout({
                 entries,
                 questions,
                 timeRange: 'all'
@@ -839,7 +851,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
                 }
             ];
 
-            const layout = windowInstance.computeGraphLayout({ entries, questions });
+            const layout = computeGraphLayout({ entries, questions });
             expect(layout.series.length).toBe(1);
 
             const q1Series = layout.series[0];
@@ -887,9 +899,9 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
                 }
             ];
 
-            expect(windowInstance.BASE_PIXELS_PER_HOUR).toBe(2);
+            expect(BASE_PIXELS_PER_HOUR).toBe(2);
 
-            const layout = windowInstance.computeGraphLayout({ entries, questions, zoomScale: 1 });
+            const layout = computeGraphLayout({ entries, questions, zoomScale: 1 });
             const paddingLeft = layout.dimensions.paddingLeft;
             const points = layout.series[0].points;
             expect(points.length).toBe(4);
@@ -904,7 +916,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             expect(points[3].x).toBe(paddingLeft + 24);
 
             // Verify with zoomScale = 1.5
-            const zoomedLayout = windowInstance.computeGraphLayout({ entries, questions, zoomScale: 1.5 });
+            const zoomedLayout = computeGraphLayout({ entries, questions, zoomScale: 1.5 });
             const zoomedPoints = zoomedLayout.series[0].points;
             // Point 1 (3h): paddingLeft + 3 * (2 * 1.5) = paddingLeft + 9
             expect(zoomedPoints[1].x).toBe(paddingLeft + 9);
@@ -938,7 +950,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             ];
 
             ['7d', '14d', '30d', '90d', 'all'].forEach(timeRange => {
-                const layout = windowInstance.computeGraphLayout({ entries, questions, timeRange });
+                const layout = computeGraphLayout({ entries, questions, timeRange });
                 expect(layout.isEmpty).toBe(false);
                 expect(layout.isTimeframeEmpty).toBe(false);
                 expect(layout.filteredEntries.length).toBe(4);
@@ -951,13 +963,13 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         it('calculates preset zoom scale multipliers to span viewport width', () => {
             const viewportWidth = 600;
             // 7d: 168 hours * 2 px/h = 336 px base -> scale = 600 / 336 = 1.79
-            expect(windowInstance.calculateTimeframePresetZoomScale('7d', { viewportWidth })).toBe(1.79);
+            expect(calculateTimeframePresetZoomScale('7d', { viewportWidth })).toBe(1.79);
             // 14d: 336 hours * 2 px/h = 672 px base -> scale = 600 / 672 = 0.89
-            expect(windowInstance.calculateTimeframePresetZoomScale('14d', { viewportWidth })).toBe(0.89);
+            expect(calculateTimeframePresetZoomScale('14d', { viewportWidth })).toBe(0.89);
             // 30d: 720 hours * 2 px/h = 1440 px base -> scale = 600 / 1440 = 0.42
-            expect(windowInstance.calculateTimeframePresetZoomScale('30d', { viewportWidth })).toBe(0.42);
+            expect(calculateTimeframePresetZoomScale('30d', { viewportWidth })).toBe(0.42);
             // 90d: 2160 hours * 2 px/h = 4320 px base -> scale = 600 / 4320 = 0.14
-            expect(windowInstance.calculateTimeframePresetZoomScale('90d', { viewportWidth })).toBe(0.14);
+            expect(calculateTimeframePresetZoomScale('90d', { viewportWidth })).toBe(0.14);
 
             // 'all': entries spanning 5 days (120 hours) -> 120 * 2 = 240 px base -> scale = 600 / 240 = 2.5
             const baseTime = Date.now();
@@ -965,7 +977,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
                 { timestamp: new Date(baseTime - 5 * 24 * 3600 * 1000).toISOString() },
                 { timestamp: new Date(baseTime).toISOString() }
             ];
-            expect(windowInstance.calculateTimeframePresetZoomScale('all', { entries, viewportWidth })).toBe(2.5);
+            expect(calculateTimeframePresetZoomScale('all', { entries, viewportWidth })).toBe(2.5);
         });
 
         it('pivots horizontal scroll position around the viewport center', () => {
@@ -975,7 +987,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             // New center coordinate = 32 + (300 - 32) * 2 = 32 + 536 = 568
             // Target scroll left = 568 - 400 / 2 = 368
             // The coordinate at the viewport center (offset 200 in viewport) is 568 - 368 = 200 (exact match)
-            const targetScrollLeft = windowInstance.calculateZoomPivotScrollLeft({
+            const targetScrollLeft = calculateZoomPivotScrollLeft({
                 previousScrollLeft: 100,
                 viewportWidth: 400,
                 previousZoomScale: 1,
@@ -985,7 +997,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             expect(targetScrollLeft).toBe(368);
 
             // Clamps at 0 if target would be negative
-            const zeroClampedScroll = windowInstance.calculateZoomPivotScrollLeft({
+            const zeroClampedScroll = calculateZoomPivotScrollLeft({
                 previousScrollLeft: 0,
                 viewportWidth: 600,
                 previousZoomScale: 2,
@@ -1000,7 +1012,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             const questions = createSingleSampleQuestion();
             const entries = createSampleFourteenDayEntries();
 
-            windowInstance.renderLineGraph(container, { entries, questions });
+            renderLineGraph(container, { entries, questions });
             const scrollContainer = mockScrollDimensions(container.querySelector('.graph-scroll-container'), 600, 2000);
             scrollContainer.scrollLeft = 200;
 
@@ -1011,8 +1023,8 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             sevenDayButton.click();
             await sleep(50);
 
-            expect(windowInstance.STATE.historyZoomScale).toBe(1.79);
-            expect(windowInstance.STATE.historyTimeRange).toBe('7d');
+            expect(STATE.historyZoomScale).toBe(1.79);
+            expect(STATE.historyTimeRange).toBe('7d');
             const updatedButton = container.querySelector('.graph-timeframe-button[data-range="7d"]');
             expect(updatedButton.classList.contains('is-active')).toBe(true);
         });
@@ -1025,21 +1037,21 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             const entries = createSampleOneDayRecentEntries();
 
             // Render at scale 0.5 (which previously had zoom-out disabled)
-            windowInstance.renderLineGraph(container, { entries, questions, zoomScale: 0.5 });
+            renderLineGraph(container, { entries, questions, zoomScale: 0.5 });
             let zoomOutButton = container.querySelector('#button-graph-zoom-out');
             let zoomInButton = container.querySelector('#button-graph-zoom-in');
             expect(zoomOutButton.disabled).toBe(false);
             expect(zoomInButton.disabled).toBe(false);
 
             // Render at scale 3.0 (which previously had zoom-in disabled)
-            windowInstance.renderLineGraph(container, { entries, questions, zoomScale: 3.0 });
+            renderLineGraph(container, { entries, questions, zoomScale: 3.0 });
             zoomOutButton = container.querySelector('#button-graph-zoom-out');
             zoomInButton = container.querySelector('#button-graph-zoom-in');
             expect(zoomOutButton.disabled).toBe(false);
             expect(zoomInButton.disabled).toBe(false);
 
             // Render at extreme high scale 5.0
-            windowInstance.renderLineGraph(container, { entries, questions, zoomScale: 5.0 });
+            renderLineGraph(container, { entries, questions, zoomScale: 5.0 });
             zoomOutButton = container.querySelector('#button-graph-zoom-out');
             zoomInButton = container.querySelector('#button-graph-zoom-in');
             expect(zoomOutButton.disabled).toBe(false);
@@ -1051,12 +1063,12 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             const questions = createSingleSampleQuestion();
             const entries = createSampleOneDayRecentEntries();
 
-            windowInstance.renderLineGraph(container, { entries, questions, zoomScale: 3.0 });
+            renderLineGraph(container, { entries, questions, zoomScale: 3.0 });
             const zoomInButton = container.querySelector('#button-graph-zoom-in');
             zoomInButton.click();
             await sleep(50);
 
-            expect(windowInstance.STATE.historyZoomScale).toBe(3.25);
+            expect(STATE.historyZoomScale).toBe(3.25);
             const zoomValue = container.querySelector('.graph-zoom-value');
             expect(zoomValue.textContent).toBe('3.25×');
         });
@@ -1066,12 +1078,12 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             const questions = createSingleSampleQuestion();
             const entries = createSampleOneDayRecentEntries();
 
-            windowInstance.renderLineGraph(container, { entries, questions, zoomScale: 0.5 });
+            renderLineGraph(container, { entries, questions, zoomScale: 0.5 });
             const zoomOutButton = container.querySelector('#button-graph-zoom-out');
             zoomOutButton.click();
             await sleep(50);
 
-            expect(windowInstance.STATE.historyZoomScale).toBe(0.25);
+            expect(STATE.historyZoomScale).toBe(0.25);
             const zoomValue = container.querySelector('.graph-zoom-value');
             expect(zoomValue.textContent).toBe('0.25×');
 
@@ -1080,8 +1092,8 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             nextZoomOutButton.click();
             await sleep(50);
 
-            expect(windowInstance.STATE.historyZoomScale).toBe(0.13);
-            expect(windowInstance.STATE.historyZoomScale).toBeGreaterThan(0);
+            expect(STATE.historyZoomScale).toBe(0.13);
+            expect(STATE.historyZoomScale).toBeGreaterThan(0);
         });
 
         it('pivots scroll position around viewport center when clicking zoom buttons', async () => {
@@ -1089,7 +1101,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             const questions = createSingleSampleQuestion();
             const entries = createSampleFourteenDayEntries();
 
-            windowInstance.renderLineGraph(container, { entries, questions, zoomScale: 1.0 });
+            renderLineGraph(container, { entries, questions, zoomScale: 1.0 });
             const scrollContainer = mockScrollDimensions(container.querySelector('.graph-scroll-container'), 600, 3000);
             scrollContainer.scrollLeft = 200;
 
@@ -1102,29 +1114,29 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             // Next scale = 1.25, zoomRatio = 1.25
             // Next center coordinate = 0 + (500 - 0) * 1.25 = 625
             // Target scroll left = 625 - 600 / 2 = 325
-            expect(windowInstance.STATE.historyZoomScale).toBe(1.25);
-            expect(windowInstance.STATE.historyScrollLeft).toBeCloseTo(325, 1);
+            expect(STATE.historyZoomScale).toBe(1.25);
+            expect(STATE.historyScrollLeft).toBeCloseTo(325, 1);
         });
     });
 
     describe('NOW Return Button Tests (Task 9.5)', () => {
         it('calculates target scroll position to bring latest entries into normal position', () => {
             // Container with scrollWidth > viewportWidth
-            const scrollPosition = windowInstance.calculateNowScrollLeft({
+            const scrollPosition = calculateNowScrollLeft({
                 scrollWidth: 2400,
                 viewportWidth: 600
             });
             expect(scrollPosition).toBe(1800);
 
             // Container where content fits in viewport
-            const fittedScroll = windowInstance.calculateNowScrollLeft({
+            const fittedScroll = calculateNowScrollLeft({
                 scrollWidth: 500,
                 viewportWidth: 600
             });
             expect(fittedScroll).toBe(0);
 
             // Fallback to svgWidth when scrollWidth is 0
-            const fallbackScroll = windowInstance.calculateNowScrollLeft({
+            const fallbackScroll = calculateNowScrollLeft({
                 scrollWidth: 0,
                 svgWidth: 1500,
                 viewportWidth: 500
@@ -1132,7 +1144,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             expect(fallbackScroll).toBe(1000);
 
             // Zero / negative dimensions
-            expect(windowInstance.calculateNowScrollLeft({})).toBe(0);
+            expect(calculateNowScrollLeft({})).toBe(0);
         });
 
         it('renders NOW button in .graph-header-controls with accessible labels', () => {
@@ -1143,7 +1155,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
                 { timestamp: new Date(now).toISOString(), answers: [{ questionId: 'q1', score: 4 }] }
             ];
 
-            windowInstance.renderLineGraph(container, { entries, questions });
+            renderLineGraph(container, { entries, questions });
 
             const headerControls = container.querySelector('.graph-header-controls');
             expect(headerControls).toBeTruthy();
@@ -1160,13 +1172,13 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             const entries = createSampleFourteenDayEntries();
 
             // Render with non-default zoom scale 2.0
-            windowInstance.renderLineGraph(container, { entries, questions, zoomScale: 2.0 });
+            renderLineGraph(container, { entries, questions, zoomScale: 2.0 });
             const scrollContainer = mockScrollDimensions(container.querySelector('.graph-scroll-container'), 600, 3200);
 
             // User has panned far back in time (scrollLeft = 150)
             scrollContainer.scrollLeft = 150;
-            windowInstance.STATE.historyScrollLeft = 150;
-            windowInstance.STATE.historyZoomScale = 2.0;
+            STATE.historyScrollLeft = 150;
+            STATE.historyZoomScale = 2.0;
 
             const nowButton = container.querySelector('#button-graph-now');
             expect(nowButton).toBeTruthy();
@@ -1175,11 +1187,11 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             await sleep(50);
 
             // Zoom scale must remain unchanged
-            expect(windowInstance.STATE.historyZoomScale).toBe(2.0);
+            expect(STATE.historyZoomScale).toBe(2.0);
 
             // Scroll position must be panned to end: 3200 - 600 = 2600
             expect(scrollContainer.scrollLeft).toBe(2600);
-            expect(windowInstance.STATE.historyScrollLeft).toBe(2600);
+            expect(STATE.historyScrollLeft).toBe(2600);
         });
     });
 
@@ -1207,7 +1219,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             const container = documentInstance.createElement('div');
             const questions = [{ id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' }];
             const entries = buildDeadSpaceRegressionEntries();
-            windowInstance.renderLineGraph(container, { entries, questions, zoomScale });
+            renderLineGraph(container, { entries, questions, zoomScale });
             const svgElement = container.querySelector('svg.graph-svg');
             const declaredWidth = Number(svgElement.getAttribute('width'));
             const contentRightEdge = getSvgContentRightEdge(svgElement);
@@ -1225,7 +1237,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
                 // Ground truth for "how much right-side padding is intentional" comes straight from
                 // the layout function, not a hard-coded number, so this test tracks the real design
                 // constant instead of drifting out of sync with it.
-                const layout = windowInstance.computeGraphLayout({ entries, questions, zoomScale });
+                const layout = computeGraphLayout({ entries, questions, zoomScale });
                 const { paddingRight } = layout.dimensions;
 
                 const roundingSlack = 0.5;

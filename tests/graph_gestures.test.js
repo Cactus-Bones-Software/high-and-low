@@ -1,6 +1,21 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setupTestDOM, sleep, createSampleGraphQuestions, createSampleTwoDayLogs } from './test-utils.js';
+import { STATE } from '../public/js/state.js';
+import {
+    setupGraphGestureZoom,
+    calculatePinchDistance,
+    calculatePinchMidpoint,
+    calculateWheelZoomDeltaMultiplier,
+    calculateGestureTransform,
+    applyGraphGestureTransform,
+    resetGraphGestureTransform,
+    calculateSettledGestureScrollLeft,
+    updateGraphSVGInPlace,
+    commitGraphGestureZoom,
+    computeGraphLayout,
+    renderLineGraph
+} from '../public/js/ui/history-graph.js';
 
 let windowInstance;
 let documentInstance;
@@ -14,26 +29,26 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
 
     describe('calculatePinchDistance helper', () => {
         it('returns 0 if either pointer object is missing or non-numeric', () => {
-            expect(windowInstance.calculatePinchDistance(null, null)).toBe(0);
-            expect(windowInstance.calculatePinchDistance({ clientX: 10, clientY: 20 }, null)).toBe(0);
-            expect(windowInstance.calculatePinchDistance(null, { clientX: 10, clientY: 20 })).toBe(0);
-            expect(windowInstance.calculatePinchDistance({ clientX: NaN, clientY: 20 }, { clientX: 0, clientY: 0 }))
+            expect(calculatePinchDistance(null, null)).toBe(0);
+            expect(calculatePinchDistance({ clientX: 10, clientY: 20 }, null)).toBe(0);
+            expect(calculatePinchDistance(null, { clientX: 10, clientY: 20 })).toBe(0);
+            expect(calculatePinchDistance({ clientX: NaN, clientY: 20 }, { clientX: 0, clientY: 0 }))
                 .toBe(0);
         });
 
         it('computes exact Euclidean distance between two pointers', () => {
             const firstPointer = { clientX: 0, clientY: 0 };
             const secondPointer = { clientX: 30, clientY: 40 };
-            expect(windowInstance.calculatePinchDistance(firstPointer, secondPointer)).toBe(50);
+            expect(calculatePinchDistance(firstPointer, secondPointer)).toBe(50);
         });
 
         it('computes purely horizontal and vertical distances', () => {
-            expect(windowInstance.calculatePinchDistance(
+            expect(calculatePinchDistance(
                 { clientX: 100, clientY: 50 },
                 { clientX: 250, clientY: 50 }
             )).toBe(150);
 
-            expect(windowInstance.calculatePinchDistance(
+            expect(calculatePinchDistance(
                 { clientX: 50, clientY: 80 },
                 { clientX: 50, clientY: 200 }
             )).toBe(120);
@@ -42,41 +57,41 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
 
     describe('calculatePinchMidpoint helper', () => {
         it('returns origin coordinates if either pointer is missing', () => {
-            expect(windowInstance.calculatePinchMidpoint(null, null)).toEqual({ clientX: 0, clientY: 0 });
-            expect(windowInstance.calculatePinchMidpoint({ clientX: 50, clientY: 60 }, null))
+            expect(calculatePinchMidpoint(null, null)).toEqual({ clientX: 0, clientY: 0 });
+            expect(calculatePinchMidpoint({ clientX: 50, clientY: 60 }, null))
                 .toEqual({ clientX: 0, clientY: 0 });
         });
 
         it('calculates average midpoint between two pointer coordinates', () => {
             const firstPointer = { clientX: 100, clientY: 200 };
             const secondPointer = { clientX: 300, clientY: 400 };
-            const midpoint = windowInstance.calculatePinchMidpoint(firstPointer, secondPointer);
+            const midpoint = calculatePinchMidpoint(firstPointer, secondPointer);
             expect(midpoint).toEqual({ clientX: 200, clientY: 300 });
         });
     });
 
     describe('calculateWheelZoomDeltaMultiplier helper', () => {
         it('returns 1 for zero or non-finite deltaY', () => {
-            expect(windowInstance.calculateWheelZoomDeltaMultiplier(0)).toBe(1);
-            expect(windowInstance.calculateWheelZoomDeltaMultiplier(NaN)).toBe(1);
-            expect(windowInstance.calculateWheelZoomDeltaMultiplier(Infinity)).toBe(1);
+            expect(calculateWheelZoomDeltaMultiplier(0)).toBe(1);
+            expect(calculateWheelZoomDeltaMultiplier(NaN)).toBe(1);
+            expect(calculateWheelZoomDeltaMultiplier(Infinity)).toBe(1);
         });
 
         it('returns multiplier greater than 1 for negative delta (zoom in)', () => {
-            const multiplier = windowInstance.calculateWheelZoomDeltaMultiplier(-50);
+            const multiplier = calculateWheelZoomDeltaMultiplier(-50);
             expect(multiplier).toBeGreaterThan(1);
             expect(multiplier).toBeCloseTo(Math.exp(50 * 0.005), 4);
         });
 
         it('returns multiplier less than 1 for positive delta (zoom out)', () => {
-            const multiplier = windowInstance.calculateWheelZoomDeltaMultiplier(50);
+            const multiplier = calculateWheelZoomDeltaMultiplier(50);
             expect(multiplier).toBeLessThan(1);
             expect(multiplier).toBeCloseTo(Math.exp(-50 * 0.005), 4);
         });
 
         it('scales line delta mode by 20x compared to pixel mode', () => {
-            const pixelMultiplier = windowInstance.calculateWheelZoomDeltaMultiplier(2, 0);
-            const lineMultiplier = windowInstance.calculateWheelZoomDeltaMultiplier(2, 1);
+            const pixelMultiplier = calculateWheelZoomDeltaMultiplier(2, 0);
+            const lineMultiplier = calculateWheelZoomDeltaMultiplier(2, 1);
             expect(lineMultiplier).toBeCloseTo(Math.exp(-2 * 20 * 0.005), 4);
             expect(lineMultiplier).toBeLessThan(pixelMultiplier);
         });
@@ -92,7 +107,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
             const onGestureChange = vi.fn();
             const onGestureEnd = vi.fn();
 
-            const gestureController = windowInstance.setupGraphGestureZoom(scrollContainerElement, {
+            const gestureController = setupGraphGestureZoom(scrollContainerElement, {
                 getCurrentZoomScale: () => 1.5,
                 onGestureStart,
                 onGestureChange,
@@ -203,7 +218,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
             documentInstance.body.appendChild(scrollContainerElement);
 
             const onGestureEnd = vi.fn();
-            const gestureController = windowInstance.setupGraphGestureZoom(scrollContainerElement, {
+            const gestureController = setupGraphGestureZoom(scrollContainerElement, {
                 onGestureEnd
             });
 
@@ -250,7 +265,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
             const onGestureChange = vi.fn();
             const onGestureEnd = vi.fn();
 
-            const gestureController = windowInstance.setupGraphGestureZoom(scrollContainerElement, {
+            const gestureController = setupGraphGestureZoom(scrollContainerElement, {
                 getCurrentZoomScale: () => 1.0,
                 wheelDebounceMs: 50,
                 onGestureStart,
@@ -314,7 +329,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
             const onGestureStart = vi.fn();
             const onGestureEnd = vi.fn();
 
-            const gestureController = windowInstance.setupGraphGestureZoom(scrollContainerElement, {
+            const gestureController = setupGraphGestureZoom(scrollContainerElement, {
                 wheelDebounceMs: 40,
                 onGestureStart,
                 onGestureEnd
@@ -351,7 +366,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
             documentInstance.body.appendChild(scrollContainerElement);
 
             const onGestureStart = vi.fn();
-            const gestureController = windowInstance.setupGraphGestureZoom(scrollContainerElement, {
+            const gestureController = setupGraphGestureZoom(scrollContainerElement, {
                 onGestureStart
             });
 
@@ -381,7 +396,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
             const questions = createSampleGraphQuestions();
             const entries = createSampleTwoDayLogs();
 
-            windowInstance.renderLineGraph(container, { entries, questions });
+            renderLineGraph(container, { entries, questions });
 
             const scrollContainerElement = container.querySelector('.graph-scroll-container');
             expect(scrollContainerElement).toBeTruthy();
@@ -399,7 +414,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
             const onGestureChange = vi.fn();
             const onGestureEnd = vi.fn();
 
-            windowInstance.renderLineGraph(container, {
+            renderLineGraph(container, {
                 entries,
                 questions,
                 gestureOptions: {
@@ -454,7 +469,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
             const questions = createSampleGraphQuestions();
             const entries = createSampleTwoDayLogs();
 
-            windowInstance.renderLineGraph(container, { entries, questions });
+            renderLineGraph(container, { entries, questions });
 
             const scrollContainerElement = container.querySelector('.graph-scroll-container');
             const svgElement = container.querySelector('.graph-svg');
@@ -514,41 +529,41 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
     describe('Live Gesture Zoom — CSS Transform Rendering Pass (Task 9.8)', () => {
         it('calculateGestureTransform computes exact translateX and scaleX for pivot fixing', () => {
             // Formula: translateX = panDeltaX + pivotX * (1 - scaleFactor)
-            const result1 = windowInstance.calculateGestureTransform(2.0, 100);
+            const result1 = calculateGestureTransform(2.0, 100);
             expect(result1.scaleX).toBe(2.0);
             expect(result1.translateX).toBe(-100);
             expect(result1.transformString).toBe('translateX(-100px) scaleX(2)');
 
-            const result2 = windowInstance.calculateGestureTransform(0.5, 200);
+            const result2 = calculateGestureTransform(0.5, 200);
             expect(result2.scaleX).toBe(0.5);
             expect(result2.translateX).toBe(100);
             expect(result2.transformString).toBe('translateX(100px) scaleX(0.5)');
 
-            const result3 = windowInstance.calculateGestureTransform(1.0, 150);
+            const result3 = calculateGestureTransform(1.0, 150);
             expect(result3.scaleX).toBe(1.0);
             expect(result3.translateX).toBe(0);
             expect(result3.transformString).toBe('translateX(0px) scaleX(1)');
 
             // With pan offset (e.g. two-finger drift of +30px)
-            const resultWithPan = windowInstance.calculateGestureTransform(2.0, 100, 30);
+            const resultWithPan = calculateGestureTransform(2.0, 100, 30);
             expect(resultWithPan.scaleX).toBe(2.0);
             expect(resultWithPan.translateX).toBe(-70);
             expect(resultWithPan.transformString).toBe('translateX(-70px) scaleX(2)');
         });
 
         it('calculateGestureTransform safely handles invalid or zero scaleFactor and non-finite pivot', () => {
-            const resultInvalidScale = windowInstance.calculateGestureTransform(0, 50);
+            const resultInvalidScale = calculateGestureTransform(0, 50);
             expect(resultInvalidScale.scaleX).toBe(1);
             expect(resultInvalidScale.translateX).toBe(0);
 
-            const resultNaN = windowInstance.calculateGestureTransform(NaN, NaN);
+            const resultNaN = calculateGestureTransform(NaN, NaN);
             expect(resultNaN.scaleX).toBe(1);
             expect(resultNaN.translateX).toBe(0);
         });
 
         it('applyGraphGestureTransform sets transformOrigin to 0 0 and applies transform string', () => {
             const dummyElement = documentInstance.createElement('div');
-            const transformResult = windowInstance.applyGraphGestureTransform(dummyElement, 1.5, 120);
+            const transformResult = applyGraphGestureTransform(dummyElement, 1.5, 120);
 
             expect(transformResult).toEqual({
                 scaleX: 1.5,
@@ -560,7 +575,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
         });
 
         it('applyGraphGestureTransform returns null when given null element', () => {
-            expect(windowInstance.applyGraphGestureTransform(null, 1.5, 100)).toBeNull();
+            expect(applyGraphGestureTransform(null, 1.5, 100)).toBeNull();
         });
 
         it('resetGraphGestureTransform clears transform and transformOrigin', () => {
@@ -568,7 +583,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
             dummyElement.style.transform = 'scaleX(2)';
             dummyElement.style.transformOrigin = '0 0';
 
-            windowInstance.resetGraphGestureTransform(dummyElement);
+            resetGraphGestureTransform(dummyElement);
             expect(dummyElement.style.transform).toBe('');
             expect(dummyElement.style.transformOrigin).toBe('');
         });
@@ -578,7 +593,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
             const questions = createSampleGraphQuestions();
             const entries = createSampleTwoDayLogs();
 
-            windowInstance.renderLineGraph(container, { entries, questions });
+            renderLineGraph(container, { entries, questions });
 
             const scrollContainerElement = container.querySelector('.graph-scroll-container');
             const svgElement = container.querySelector('.graph-svg');
@@ -605,7 +620,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
             const questions = createSampleGraphQuestions();
             const entries = createSampleTwoDayLogs();
 
-            windowInstance.renderLineGraph(container, { entries, questions });
+            renderLineGraph(container, { entries, questions });
 
             const paths = container.querySelectorAll('.graph-svg path');
             expect(paths.length).toBeGreaterThan(0);
@@ -625,7 +640,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
             const questions = createSampleGraphQuestions();
             const entries = createSampleTwoDayLogs();
 
-            windowInstance.renderLineGraph(container, { entries, questions });
+            renderLineGraph(container, { entries, questions });
 
             const svgElement = container.querySelector('.graph-svg');
             const pointCircles = svgElement.querySelectorAll('.points circle');
@@ -637,7 +652,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
             expect(tickTexts.length).toBeGreaterThan(0);
 
             // Apply gesture transform with scaleFactor = 2
-            windowInstance.applyGraphGestureTransform(svgElement, 2.0, 100);
+            applyGraphGestureTransform(svgElement, 2.0, 100);
 
             // Inverse scale is 1/2 = 0.5
             pointCircles.forEach(circle => {
@@ -667,13 +682,13 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
             const questions = createSampleGraphQuestions();
             const entries = createSampleTwoDayLogs();
 
-            windowInstance.renderLineGraph(container, { entries, questions });
+            renderLineGraph(container, { entries, questions });
 
             const svgElement = container.querySelector('.graph-svg');
-            windowInstance.applyGraphGestureTransform(svgElement, 1.8, 150);
+            applyGraphGestureTransform(svgElement, 1.8, 150);
 
             // Reset gesture transform
-            windowInstance.resetGraphGestureTransform(svgElement);
+            resetGraphGestureTransform(svgElement);
 
             expect(svgElement.style.transform).toBe('');
             expect(svgElement.style.transformOrigin).toBe('');
@@ -719,7 +734,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
 
             const onGestureStart = vi.fn();
             const onGestureChange = vi.fn();
-            const gestureController = windowInstance.setupGraphGestureZoom(scrollContainerElement, {
+            const gestureController = setupGraphGestureZoom(scrollContainerElement, {
                 targetElement: svgElement,
                 onGestureStart,
                 onGestureChange
@@ -771,7 +786,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
 
             // Calculate gesture transform with pan compensation:
             // translateX = panDeltaX (50) + pivotX (500) * (1 - 2.0) = 50 - 500 = -450
-            const transformResult = windowInstance.calculateGestureTransform(2.0, 500, 50);
+            const transformResult = calculateGestureTransform(2.0, 500, 50);
             expect(transformResult.translateX).toBe(-450);
 
             // Screen position of the anchor point (x=500 in SVG):
@@ -788,8 +803,8 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
     describe('Live Gesture Zoom — Commit on Gesture End (Task 9.10)', () => {
         describe('calculateSettledGestureScrollLeft', () => {
             it('returns 0 or safe fallback for non-finite parameters', () => {
-                expect(windowInstance.calculateSettledGestureScrollLeft()).toBe(0);
-                expect(windowInstance.calculateSettledGestureScrollLeft({
+                expect(calculateSettledGestureScrollLeft()).toBe(0);
+                expect(calculateSettledGestureScrollLeft({
                     previousScrollLeft: NaN,
                     initialTargetPivotX: null,
                     scaleFactor: -5
@@ -799,7 +814,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
             it('anchors pivot point when zooming in with zero pan', () => {
                 // Point at SVG x=800 with previousScrollLeft=500 was at 300px in container.
                 // At scaleFactor=1.5, new x=1200. With newScrollLeft=900, point remains at 300px in container.
-                const settledScroll = windowInstance.calculateSettledGestureScrollLeft({
+                const settledScroll = calculateSettledGestureScrollLeft({
                     previousScrollLeft: 500,
                     initialTargetPivotX: 800,
                     scaleFactor: 1.5,
@@ -811,7 +826,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
             it('anchors pivot point when zooming out with zero pan', () => {
                 // Point at SVG x=800 with previousScrollLeft=500 was at 300px in container.
                 // At scaleFactor=0.5, new x=400. With newScrollLeft=100, point remains at 300px in container.
-                const settledScroll = windowInstance.calculateSettledGestureScrollLeft({
+                const settledScroll = calculateSettledGestureScrollLeft({
                     previousScrollLeft: 500,
                     initialTargetPivotX: 800,
                     scaleFactor: 0.5,
@@ -823,7 +838,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
             it('incorporates pan delta displacement into settled scroll', () => {
                 // Point moved right by 50px during gesture (panDeltaX=50).
                 // Expected newScrollLeft = 500 + (1200 - 800) - 50 = 850.
-                const settledScroll = windowInstance.calculateSettledGestureScrollLeft({
+                const settledScroll = calculateSettledGestureScrollLeft({
                     previousScrollLeft: 500,
                     initialTargetPivotX: 800,
                     scaleFactor: 1.5,
@@ -833,7 +848,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
             });
 
             it('clamps settled scroll between 0 and maximum scroll width', () => {
-                const settledScrollNegative = windowInstance.calculateSettledGestureScrollLeft({
+                const settledScrollNegative = calculateSettledGestureScrollLeft({
                     previousScrollLeft: 100,
                     initialTargetPivotX: 100,
                     scaleFactor: 0.2,
@@ -843,7 +858,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
                 });
                 expect(settledScrollNegative).toBe(0);
 
-                const settledScrollOverflow = windowInstance.calculateSettledGestureScrollLeft({
+                const settledScrollOverflow = calculateSettledGestureScrollLeft({
                     previousScrollLeft: 500,
                     initialTargetPivotX: 500,
                     scaleFactor: 3.0,
@@ -864,7 +879,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
                 const questions = createSampleGraphQuestions();
                 const logs = createSampleTwoDayLogs();
                 logs[0].note = 'Felt energetic and productive.';
-                windowInstance.renderLineGraph(container, { entries: logs, questions });
+                renderLineGraph(container, { entries: logs, questions });
 
                 const svgElement = container.querySelector('.graph-svg');
                 expect(svgElement).not.toBeNull();
@@ -874,7 +889,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
                 expect(existingNoteMarkers.length).toBeGreaterThan(0);
                 const firstMarkerInstance = existingNoteMarkers[0];
 
-                const updatedLayout = windowInstance.computeGraphLayout({
+                const updatedLayout = computeGraphLayout({
                     entries: logs,
                     allEntries: logs,
                     questions,
@@ -883,7 +898,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
                     zoomScale: 2.0
                 });
 
-                windowInstance.updateGraphSVGInPlace(svgElement, updatedLayout);
+                updateGraphSVGInPlace(svgElement, updatedLayout);
 
                 const newWidth = Number(svgElement.getAttribute('width'));
                 expect(newWidth).toBeGreaterThan(initialWidth);
@@ -904,7 +919,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
                 const questions = createSampleGraphQuestions();
                 const logs = createSampleTwoDayLogs();
                 logs[0].note = 'Check-in note for testing gesture commit.';
-                windowInstance.renderLineGraph(container, { entries: logs, questions });
+                renderLineGraph(container, { entries: logs, questions });
 
                 const svgElement = container.querySelector('.graph-svg');
                 const zoomValueElement = container.querySelector('.graph-zoom-value');
@@ -919,11 +934,11 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
                 });
 
                 // Simulate gesture start & active zoom transform
-                windowInstance.applyGraphGestureTransform(svgElement, 2.0, 400, 20);
+                applyGraphGestureTransform(svgElement, 2.0, 400, 20);
                 expect(svgElement.style.transform).toContain('scaleX(2)');
 
                 // Commit gesture end at 2.0x scale
-                const commitResult = windowInstance.commitGraphGestureZoom(container, {
+                const commitResult = commitGraphGestureZoom(container, {
                     gestureEventData: {
                         scaleFactor: 2.0,
                         initialZoomScale: 1.0,
@@ -947,7 +962,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
                 expect(svgElement.style.transformOrigin).toBe('');
 
                 // 2. STATE and zoom toolbar display must be updated
-                expect(windowInstance.STATE.historyZoomScale).toBe(2.0);
+                expect(STATE.historyZoomScale).toBe(2.0);
                 expect(zoomValueElement.textContent).toBe('2.0×');
                 expect(resetButton.disabled).toBe(false);
 
@@ -977,7 +992,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
 
                 const questions = createSampleGraphQuestions();
                 const logs = createSampleTwoDayLogs();
-                windowInstance.renderLineGraph(container, { entries: logs, questions });
+                renderLineGraph(container, { entries: logs, questions });
 
                 const scrollContainerElement = container.querySelector('.graph-scroll-container');
                 const svgElement = container.querySelector('.graph-svg');
@@ -1037,7 +1052,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
                 // Transform reset on commit
                 expect(svgElement.style.transform).toBe('');
                 // Settled scale committed to STATE
-                expect(windowInstance.STATE.historyZoomScale).toBe(2.0);
+                expect(STATE.historyZoomScale).toBe(2.0);
                 // SVG intrinsic width redrawn at settled scale
                 const settledWidth = Number(svgElement.getAttribute('width'));
                 expect(settledWidth).toBeGreaterThan(initialWidth);

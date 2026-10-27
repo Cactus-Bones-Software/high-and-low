@@ -762,7 +762,7 @@ Rules for every task in this phase:
     - Pure functions (layout math, gesture math) are tested without calling `setupTestDOM()`.
   - Docs-only change. Do not touch any test file in this task.
 
-- [ ] **Task 10.2: Remove the `window.*` Test Shim — Part 1 (All Suites Except the Three Large Ones)**
+- [x] **Task 10.2: Remove the `window.*` Test Shim — Part 1 (All Suites Except the Three Large Ones)**
   - In every `tests/*.test.js` file **except** `graph.test.js`, `graph_gestures.test.js`, and
     `question_response_type.test.js`, replace `windowInstance.someFunction(...)` / `window.someFunction(...)` calls
     with direct named imports from the owning module in `public/js/` (the import list at the top of
@@ -775,7 +775,7 @@ Rules for every task in this phase:
     top of the file but only *call* after setup. If a module reads `document` at import time and breaks, stop and
     report rather than changing `public/`.
 
-- [ ] **Task 10.3: Remove the `window.*` Test Shim — Part 2 (Large Suites, Then Delete the Shim)**
+- [x] **Task 10.3: Remove the `window.*` Test Shim — Part 2 (Large Suites, Then Delete the Shim)**
   - Apply the Task 10.2 conversion to `graph.test.js`, `graph_gestures.test.js`, and `question_response_type.test.js`.
   - Then delete every `windowInstance.<name> = <name>` assignment from `setupTestDOM()` in `tests/test-utils.js`, plus
     the imports that become unused. Keep everything else: JSDOM construction, polyfills, `global.*` bindings, `STATE`

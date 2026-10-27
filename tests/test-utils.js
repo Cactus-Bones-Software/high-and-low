@@ -3,105 +3,10 @@ import { resolve } from 'node:path';
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { JSDOM } from 'jsdom';
 import { STATE } from '../public/js/state.js';
-import { initApp, resetAppInitialized, registerServiceWorker } from '../public/js/main.js';
-import {
-    DEFAULT_QUESTIONS,
-    ALLOWED_RESPONSE_TYPES,
-    BOOLEAN_NO_SCORE,
-    BOOLEAN_YES_SCORE,
-    seedDefaults,
-    createCustomQuestion,
-    updateCustomQuestion,
-    archiveQuestion,
-    restoreQuestion,
-    removeQuestion,
-    removeCustomQuestion,
-    moveActiveQuestion,
-    removeQuestionFromTracker,
-    addQuestionToTracker
-} from '../public/js/questions.js';
-import {
-    loadQuestionsView,
-    buildActiveQuestionCardHTML,
-    archiveQuestionFromAuthoring,
-    removeQuestionFromAuthoring,
-    saveQuestionFromAuthoring,
-    cancelQuestionAuthoring
-} from '../public/js/ui/question-view.js';
-import {
-    startNewCheckIn,
-    finalizeCheckin,
-    renderCurrentQuestion,
-    buildScoreButtonsHTML
-} from '../public/js/checkin.js';
-import {
-    renderLineGraph,
-    loadHistoryView,
-    computeGraphLayout,
-    renderGraphSVG,
-    BASE_PIXELS_PER_HOUR,
-    calculateTimeframePresetZoomScale,
-    calculateZoomPivotScrollLeft,
-    calculateNowScrollLeft,
-    setupGraphGestureZoom,
-    calculatePinchDistance,
-    calculatePinchMidpoint,
-    calculateWheelZoomDeltaMultiplier,
-    calculateGestureTransform,
-    applyGraphGestureTransform,
-    resetGraphGestureTransform,
-    calculateSettledGestureScrollLeft,
-    updateGraphSVGInPlace,
-    commitGraphGestureZoom
-} from '../public/js/ui/history-graph.js';
+import { initApp, resetAppInitialized } from '../public/js/main.js';
+import { createCustomQuestion, removeQuestion } from '../public/js/questions.js';
+import { computeGraphLayout, renderGraphSVG } from '../public/js/ui/history-graph.js';
 import { navigateTo, setCurrentViewId } from '../public/js/ui/navigation.js';
-import {
-    get,
-    getAll,
-    put,
-    getConfig,
-    setConfig,
-    deleteConfig,
-    count,
-    getDatabase
-} from '../public/js/storage/db.js';
-import {
-    saveActiveCheckin,
-    clearActiveCheckin,
-    restoreActiveCheckin,
-    saveActiveView,
-    getStoredActiveView
-} from '../public/js/storage/session.js';
-import { applyStoredDisplay } from '../public/js/ui/settings-menu.js';
-import {
-    openExportDialog,
-    closeExportDialog,
-    updateExportSummary,
-    openImportDialog,
-    closeImportDialog,
-    confirmImport,
-    applyImportScopeToDialog,
-    openEraseDialog,
-    closeEraseDialog
-} from '../public/js/ui/dialogs.js';
-import {
-    exportAllDataAndConfig,
-    exportBackup,
-    exportHistoryCSV,
-    generateHistoryCSV,
-    formatCSVCell,
-    eraseAllData,
-    updateLastBackupDisplay,
-    formatBackupDate,
-    EXPORTABLE_CONFIG_KEYS,
-    RECOGNISED_EXPORT_VERSIONS,
-    validateBackupPayload,
-    detectBackupScopes,
-    executeBackupImport,
-    handleFileImport,
-    handleFileImportReaderLoad
-} from '../public/js/data-io.js';
-import { escapeHTML, html, rawHTML } from '../public/js/utils.js';
 
 const PUBLIC_DIRECTORY = resolve(__dirname, '../public');
 
@@ -247,101 +152,13 @@ export async function setupTestDOM(customSessionStorage = {}) {
     STATE.historyScrollLeft = 0;
     setCurrentViewId('tracker-canvas');
 
-    // Expose helpers directly on windowInstance
-    windowInstance.STATE = STATE;
-    windowInstance.startNewCheckIn = startNewCheckIn;
-    windowInstance.renderLineGraph = renderLineGraph;
-    windowInstance.computeGraphLayout = computeGraphLayout;
-    windowInstance.renderGraphSVG = renderGraphSVG;
-    windowInstance.BASE_PIXELS_PER_HOUR = BASE_PIXELS_PER_HOUR;
-    windowInstance.calculateTimeframePresetZoomScale = calculateTimeframePresetZoomScale;
-    windowInstance.calculateZoomPivotScrollLeft = calculateZoomPivotScrollLeft;
-    windowInstance.calculateNowScrollLeft = calculateNowScrollLeft;
-    windowInstance.setupGraphGestureZoom = setupGraphGestureZoom;
-    windowInstance.calculatePinchDistance = calculatePinchDistance;
-    windowInstance.calculatePinchMidpoint = calculatePinchMidpoint;
-    windowInstance.calculateWheelZoomDeltaMultiplier = calculateWheelZoomDeltaMultiplier;
-    windowInstance.calculateGestureTransform = calculateGestureTransform;
-    windowInstance.applyGraphGestureTransform = applyGraphGestureTransform;
-    windowInstance.resetGraphGestureTransform = resetGraphGestureTransform;
-    windowInstance.calculateSettledGestureScrollLeft = calculateSettledGestureScrollLeft;
-    windowInstance.updateGraphSVGInPlace = updateGraphSVGInPlace;
-    windowInstance.commitGraphGestureZoom = commitGraphGestureZoom;
-    windowInstance.loadHistoryView = loadHistoryView;
-    windowInstance.navigateTo = navigateTo;
-    windowInstance.finalizeCheckin = finalizeCheckin;
-    windowInstance.renderCurrentQuestion = renderCurrentQuestion;
-    windowInstance.buildScoreButtonsHTML = buildScoreButtonsHTML;
-    windowInstance.saveActiveCheckin = saveActiveCheckin;
-    windowInstance.clearActiveCheckin = clearActiveCheckin;
-    windowInstance.restoreActiveCheckin = restoreActiveCheckin;
-    windowInstance.saveActiveView = saveActiveView;
-    windowInstance.getStoredActiveView = getStoredActiveView;
-    windowInstance.escapeHTML = escapeHTML;
-    windowInstance.html = html;
-    windowInstance.rawHTML = rawHTML;
-    windowInstance.createCustomQuestion = createCustomQuestion;
-    windowInstance.updateCustomQuestion = updateCustomQuestion;
-    windowInstance.archiveQuestion = archiveQuestion;
-    windowInstance.restoreQuestion = restoreQuestion;
-    windowInstance.removeQuestion = removeQuestion;
-    windowInstance.removeCustomQuestion = removeCustomQuestion;
-    windowInstance.archiveQuestionFromAuthoring = archiveQuestionFromAuthoring;
-    windowInstance.removeQuestionFromAuthoring = removeQuestionFromAuthoring;
-    windowInstance.saveQuestionFromAuthoring = saveQuestionFromAuthoring;
-    windowInstance.cancelQuestionAuthoring = cancelQuestionAuthoring;
-    windowInstance.moveActiveQuestion = moveActiveQuestion;
-    windowInstance.removeQuestionFromTracker = removeQuestionFromTracker;
-    windowInstance.addQuestionToTracker = addQuestionToTracker;
-    windowInstance.loadQuestionsView = loadQuestionsView;
-    windowInstance.buildActiveQuestionCardHTML = buildActiveQuestionCardHTML;
-    windowInstance.DEFAULT_QUESTIONS = DEFAULT_QUESTIONS;
-    windowInstance.ALLOWED_RESPONSE_TYPES = ALLOWED_RESPONSE_TYPES;
-    windowInstance.BOOLEAN_NO_SCORE = BOOLEAN_NO_SCORE;
-    windowInstance.BOOLEAN_YES_SCORE = BOOLEAN_YES_SCORE;
-    windowInstance.seedDefaults = seedDefaults;
-    windowInstance.put = put;
-    windowInstance.get = get;
-    windowInstance.getAll = getAll;
-    windowInstance.getConfig = getConfig;
-    windowInstance.setConfig = setConfig;
-    windowInstance.deleteConfig = deleteConfig;
-    windowInstance.applyStoredDisplay = applyStoredDisplay;
-    windowInstance.registerServiceWorker = registerServiceWorker;
-    windowInstance.exportAllDataAndConfig = exportAllDataAndConfig;
-    windowInstance.exportBackup = exportBackup;
-    windowInstance.updateLastBackupDisplay = updateLastBackupDisplay;
-    windowInstance.formatBackupDate = formatBackupDate;
-    windowInstance.getDatabase = getDatabase;
-    windowInstance.count = count;
-    windowInstance.EXPORTABLE_CONFIG_KEYS = EXPORTABLE_CONFIG_KEYS;
-    windowInstance.openExportDialog = openExportDialog;
-    windowInstance.closeExportDialog = closeExportDialog;
-    windowInstance.updateExportSummary = updateExportSummary;
-    windowInstance.openImportDialog = openImportDialog;
-    windowInstance.closeImportDialog = closeImportDialog;
-    windowInstance.confirmImport = confirmImport;
-    windowInstance.applyImportScopeToDialog = applyImportScopeToDialog;
-    windowInstance.validateBackupPayload = validateBackupPayload;
-    windowInstance.detectBackupScopes = detectBackupScopes;
-    windowInstance.executeBackupImport = executeBackupImport;
-    windowInstance.handleFileImport = handleFileImport;
-    windowInstance.handleFileImportReaderLoad = handleFileImportReaderLoad;
-    windowInstance.RECOGNISED_EXPORT_VERSIONS = RECOGNISED_EXPORT_VERSIONS;
-    windowInstance.eraseAllData = eraseAllData;
-    windowInstance.openEraseDialog = openEraseDialog;
-    windowInstance.closeEraseDialog = closeEraseDialog;
-    windowInstance.exportHistoryCSV = exportHistoryCSV;
-    windowInstance.generateHistoryCSV = generateHistoryCSV;
-    windowInstance.formatCSVCell = formatCSVCell;
-
     resetAppInitialized();
     await initApp();
 
     // Wait deterministically for async initDatabase promise chain and initial render to complete
     await waitFor(() => Boolean(
-        windowInstance.STATE?.activeQuestions &&
-        windowInstance.STATE.activeQuestions.length > 0 &&
+        STATE?.activeQuestions &&
+        STATE.activeQuestions.length > 0 &&
         documentInstance.getElementById('progress-text') &&
         documentInstance.getElementById('progress-text').textContent !== 'Loading tracker...'
     ));
@@ -473,12 +290,12 @@ export function mockScrollDimensions(scrollContainer, clientWidth = 600, scrollW
 
 /**
  * Navigates to the questions view and waits for list rendering to complete.
- * @param {Window} windowInstance
+ * @param {Window} _windowInstance
  * @param {Document} documentInstance
  * @returns {Promise<void>}
  */
-export async function navigateToQuestionsCanvas(windowInstance, documentInstance) {
-    windowInstance.navigateTo('questions-canvas', { instant: true });
+export async function navigateToQuestionsCanvas(_windowInstance, documentInstance) {
+    navigateTo('questions-canvas', { instant: true });
     await waitFor(() => {
         const activeList = documentInstance.getElementById('questions-active-list');
         const catalogList = documentInstance.getElementById('questions-catalog-list');
@@ -560,19 +377,19 @@ export function createSampleBooleanEntries(scores = [5, 1], questionId = 'bool_q
 
 /**
  * Computes graph layout and renders SVG markup into a container div.
- * @param {Window} windowInstance
+ * @param {Window} _windowInstance
  * @param {Document} documentInstance
  * @param {Record<string, unknown>} options
  * @returns {{ layout: Record<string, unknown>, svgMarkup: string, container: HTMLElement }}
  */
-export function renderGraphToContainer(windowInstance, documentInstance, options) {
-    const layout = windowInstance.computeGraphLayout({
+export function renderGraphToContainer(_windowInstance, documentInstance, options) {
+    const layout = computeGraphLayout({
         containerWidth: 600,
         timeRange: 'all',
         zoomScale: 1,
         ...options
     });
-    const svgMarkup = windowInstance.renderGraphSVG(layout);
+    const svgMarkup = renderGraphSVG(layout);
     const container = documentInstance.createElement('div');
     container.innerHTML = svgMarkup;
     return { layout, svgMarkup, container };
@@ -580,12 +397,12 @@ export function renderGraphToContainer(windowInstance, documentInstance, options
 
 /**
  * Helper to create and immediately remove a custom question for removed question tests.
- * @param {Window} windowInstance
+ * @param {Window} _windowInstance
  * @param {Record<string, unknown>} [options={}]
  * @returns {Promise<{ id: string, outcome: any }>}
  */
-export async function createAndRemoveCustomQuestion(windowInstance, options = {}) {
-    const outcome = await windowInstance.createCustomQuestion({
+export async function createAndRemoveCustomQuestion(_windowInstance, options = {}) {
+    const outcome = await createCustomQuestion({
         text: 'Sample custom question for removal',
         shortLabel: 'Sample',
         tags: ['General'],
@@ -593,7 +410,7 @@ export async function createAndRemoveCustomQuestion(windowInstance, options = {}
         addToSet: false,
         ...options
     });
-    await windowInstance.removeQuestion(outcome.id);
+    await removeQuestion(outcome.id);
     return { id: outcome.id, outcome };
 }
 
