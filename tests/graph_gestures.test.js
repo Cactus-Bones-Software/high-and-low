@@ -4,13 +4,9 @@ import { setupTestDOM, sleep, createSampleGraphQuestions, createSampleTwoDayLogs
 import { STATE } from '../public/js/state.js';
 import {
     setupGraphGestureZoom,
-    calculatePinchDistance,
-    calculatePinchMidpoint,
-    calculateWheelZoomDeltaMultiplier,
     calculateGestureTransform,
     applyGraphGestureTransform,
     resetGraphGestureTransform,
-    calculateSettledGestureScrollLeft,
     updateGraphSVGInPlace,
     commitGraphGestureZoom,
     computeGraphLayout,
@@ -25,76 +21,6 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
         const environment = await setupTestDOM();
         windowInstance = environment.window;
         documentInstance = environment.document;
-    });
-
-    describe('calculatePinchDistance helper', () => {
-        it('returns 0 if either pointer object is missing or non-numeric', () => {
-            expect(calculatePinchDistance(null, null)).toBe(0);
-            expect(calculatePinchDistance({ clientX: 10, clientY: 20 }, null)).toBe(0);
-            expect(calculatePinchDistance(null, { clientX: 10, clientY: 20 })).toBe(0);
-            expect(calculatePinchDistance({ clientX: NaN, clientY: 20 }, { clientX: 0, clientY: 0 }))
-                .toBe(0);
-        });
-
-        it('computes exact Euclidean distance between two pointers', () => {
-            const firstPointer = { clientX: 0, clientY: 0 };
-            const secondPointer = { clientX: 30, clientY: 40 };
-            expect(calculatePinchDistance(firstPointer, secondPointer)).toBe(50);
-        });
-
-        it('computes purely horizontal and vertical distances', () => {
-            expect(calculatePinchDistance(
-                { clientX: 100, clientY: 50 },
-                { clientX: 250, clientY: 50 }
-            )).toBe(150);
-
-            expect(calculatePinchDistance(
-                { clientX: 50, clientY: 80 },
-                { clientX: 50, clientY: 200 }
-            )).toBe(120);
-        });
-    });
-
-    describe('calculatePinchMidpoint helper', () => {
-        it('returns origin coordinates if either pointer is missing', () => {
-            expect(calculatePinchMidpoint(null, null)).toEqual({ clientX: 0, clientY: 0 });
-            expect(calculatePinchMidpoint({ clientX: 50, clientY: 60 }, null))
-                .toEqual({ clientX: 0, clientY: 0 });
-        });
-
-        it('calculates average midpoint between two pointer coordinates', () => {
-            const firstPointer = { clientX: 100, clientY: 200 };
-            const secondPointer = { clientX: 300, clientY: 400 };
-            const midpoint = calculatePinchMidpoint(firstPointer, secondPointer);
-            expect(midpoint).toEqual({ clientX: 200, clientY: 300 });
-        });
-    });
-
-    describe('calculateWheelZoomDeltaMultiplier helper', () => {
-        it('returns 1 for zero or non-finite deltaY', () => {
-            expect(calculateWheelZoomDeltaMultiplier(0)).toBe(1);
-            expect(calculateWheelZoomDeltaMultiplier(NaN)).toBe(1);
-            expect(calculateWheelZoomDeltaMultiplier(Infinity)).toBe(1);
-        });
-
-        it('returns multiplier greater than 1 for negative delta (zoom in)', () => {
-            const multiplier = calculateWheelZoomDeltaMultiplier(-50);
-            expect(multiplier).toBeGreaterThan(1);
-            expect(multiplier).toBeCloseTo(Math.exp(50 * 0.005), 4);
-        });
-
-        it('returns multiplier less than 1 for positive delta (zoom out)', () => {
-            const multiplier = calculateWheelZoomDeltaMultiplier(50);
-            expect(multiplier).toBeLessThan(1);
-            expect(multiplier).toBeCloseTo(Math.exp(-50 * 0.005), 4);
-        });
-
-        it('scales line delta mode by 20x compared to pixel mode', () => {
-            const pixelMultiplier = calculateWheelZoomDeltaMultiplier(2, 0);
-            const lineMultiplier = calculateWheelZoomDeltaMultiplier(2, 1);
-            expect(lineMultiplier).toBeCloseTo(Math.exp(-2 * 20 * 0.005), 4);
-            expect(lineMultiplier).toBeLessThan(pixelMultiplier);
-        });
     });
 
     describe('Two-pointer touch pinch gesture tracking', () => {
@@ -527,40 +453,6 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
     });
 
     describe('Live Gesture Zoom — CSS Transform Rendering Pass (Task 9.8)', () => {
-        it('calculateGestureTransform computes exact translateX and scaleX for pivot fixing', () => {
-            // Formula: translateX = panDeltaX + pivotX * (1 - scaleFactor)
-            const result1 = calculateGestureTransform(2.0, 100);
-            expect(result1.scaleX).toBe(2.0);
-            expect(result1.translateX).toBe(-100);
-            expect(result1.transformString).toBe('translateX(-100px) scaleX(2)');
-
-            const result2 = calculateGestureTransform(0.5, 200);
-            expect(result2.scaleX).toBe(0.5);
-            expect(result2.translateX).toBe(100);
-            expect(result2.transformString).toBe('translateX(100px) scaleX(0.5)');
-
-            const result3 = calculateGestureTransform(1.0, 150);
-            expect(result3.scaleX).toBe(1.0);
-            expect(result3.translateX).toBe(0);
-            expect(result3.transformString).toBe('translateX(0px) scaleX(1)');
-
-            // With pan offset (e.g. two-finger drift of +30px)
-            const resultWithPan = calculateGestureTransform(2.0, 100, 30);
-            expect(resultWithPan.scaleX).toBe(2.0);
-            expect(resultWithPan.translateX).toBe(-70);
-            expect(resultWithPan.transformString).toBe('translateX(-70px) scaleX(2)');
-        });
-
-        it('calculateGestureTransform safely handles invalid or zero scaleFactor and non-finite pivot', () => {
-            const resultInvalidScale = calculateGestureTransform(0, 50);
-            expect(resultInvalidScale.scaleX).toBe(1);
-            expect(resultInvalidScale.translateX).toBe(0);
-
-            const resultNaN = calculateGestureTransform(NaN, NaN);
-            expect(resultNaN.scaleX).toBe(1);
-            expect(resultNaN.translateX).toBe(0);
-        });
-
         it('applyGraphGestureTransform sets transformOrigin to 0 0 and applies transform string', () => {
             const dummyElement = documentInstance.createElement('div');
             const transformResult = applyGraphGestureTransform(dummyElement, 1.5, 120);
@@ -801,76 +693,6 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
     });
 
     describe('Live Gesture Zoom — Commit on Gesture End (Task 9.10)', () => {
-        describe('calculateSettledGestureScrollLeft', () => {
-            it('returns 0 or safe fallback for non-finite parameters', () => {
-                expect(calculateSettledGestureScrollLeft()).toBe(0);
-                expect(calculateSettledGestureScrollLeft({
-                    previousScrollLeft: NaN,
-                    initialTargetPivotX: null,
-                    scaleFactor: -5
-                })).toBe(0);
-            });
-
-            it('anchors pivot point when zooming in with zero pan', () => {
-                // Point at SVG x=800 with previousScrollLeft=500 was at 300px in container.
-                // At scaleFactor=1.5, new x=1200. With newScrollLeft=900, point remains at 300px in container.
-                const settledScroll = calculateSettledGestureScrollLeft({
-                    previousScrollLeft: 500,
-                    initialTargetPivotX: 800,
-                    scaleFactor: 1.5,
-                    panDeltaX: 0
-                });
-                expect(settledScroll).toBe(900);
-            });
-
-            it('anchors pivot point when zooming out with zero pan', () => {
-                // Point at SVG x=800 with previousScrollLeft=500 was at 300px in container.
-                // At scaleFactor=0.5, new x=400. With newScrollLeft=100, point remains at 300px in container.
-                const settledScroll = calculateSettledGestureScrollLeft({
-                    previousScrollLeft: 500,
-                    initialTargetPivotX: 800,
-                    scaleFactor: 0.5,
-                    panDeltaX: 0
-                });
-                expect(settledScroll).toBe(100);
-            });
-
-            it('incorporates pan delta displacement into settled scroll', () => {
-                // Point moved right by 50px during gesture (panDeltaX=50).
-                // Expected newScrollLeft = 500 + (1200 - 800) - 50 = 850.
-                const settledScroll = calculateSettledGestureScrollLeft({
-                    previousScrollLeft: 500,
-                    initialTargetPivotX: 800,
-                    scaleFactor: 1.5,
-                    panDeltaX: 50
-                });
-                expect(settledScroll).toBe(850);
-            });
-
-            it('clamps settled scroll between 0 and maximum scroll width', () => {
-                const settledScrollNegative = calculateSettledGestureScrollLeft({
-                    previousScrollLeft: 100,
-                    initialTargetPivotX: 100,
-                    scaleFactor: 0.2,
-                    panDeltaX: 500,
-                    scrollWidth: 1000,
-                    viewportWidth: 400
-                });
-                expect(settledScrollNegative).toBe(0);
-
-                const settledScrollOverflow = calculateSettledGestureScrollLeft({
-                    previousScrollLeft: 500,
-                    initialTargetPivotX: 500,
-                    scaleFactor: 3.0,
-                    panDeltaX: -500,
-                    scrollWidth: 1500,
-                    viewportWidth: 500
-                });
-                // maximumScroll = 1500 - 500 = 1000
-                expect(settledScrollOverflow).toBe(1000);
-            });
-        });
-
         describe('updateGraphSVGInPlace', () => {
             it('updates SVG attributes and element groups without discarding DOM elements', () => {
                 const container = documentInstance.createElement('div');

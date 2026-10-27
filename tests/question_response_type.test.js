@@ -21,7 +21,7 @@ import {
 } from '../public/js/questions.js';
 import { buildScoreButtonsHTML, renderCurrentQuestion } from '../public/js/checkin.js';
 import { saveQuestionFromAuthoring } from '../public/js/ui/question-view.js';
-import { computeGraphLayout, renderLineGraph } from '../public/js/ui/history-graph.js';
+import { renderLineGraph } from '../public/js/ui/history-graph.js';
 import { get, getAll, put } from '../public/js/storage/db.js';
 import { STATE } from '../public/js/state.js';
 
@@ -602,34 +602,6 @@ describe('Task 5.11.3: Boolean Line Rendering — Step Interpolation', () => {
         documentInstance = setup.document;
     });
 
-    it('1. computeGraphLayout tags series items with responseType', () => {
-        const questions = [
-            { id: 'scale_q', text: 'Mood', curve: 'more-is-better', responseType: 'scale' },
-            { id: 'bool_q', text: 'Eaten', curve: 'more-is-better', responseType: 'boolean' }
-        ];
-        const entries = [
-            {
-                timestamp: '2026-08-10T10:00:00.000Z',
-                answers: [
-                    { questionId: 'scale_q', score: 3, status: 'answered' },
-                    { questionId: 'bool_q', score: 5, status: 'answered' }
-                ]
-            }
-        ];
-
-        const layout = computeGraphLayout({
-            entries,
-            questions,
-            containerWidth: 600,
-            timeRange: 'all',
-            zoomScale: 1
-        });
-
-        expect(layout.series.length).toBe(2);
-        expect(layout.series[0].responseType).toBe('scale');
-        expect(layout.series[1].responseType).toBe('boolean');
-    });
-
     it('2. renderGraphSVG produces horizontal-then-vertical step for boolean series', () => {
         const booleanQuestion = createSampleBooleanQuestion({ text: 'Eaten today?' });
         const entries = createSampleBooleanEntries([5, 1]);
@@ -742,33 +714,6 @@ describe('Task 5.11.4: Boolean Point Tooltips & Accessible Labels', () => {
         const setup = await setupTestDOM();
         windowInstance = setup.window;
         documentInstance = setup.document;
-    });
-
-    it('1. computeGraphLayout tags point items with question responseType', () => {
-        const questions = [
-            { id: 'scale_q', text: 'Energy', curve: 'more-is-better', responseType: 'scale' },
-            { id: 'bool_q', text: 'Eaten', curve: 'more-is-better', responseType: 'boolean' }
-        ];
-        const entries = [
-            {
-                timestamp: '2026-08-10T10:00:00.000Z',
-                answers: [
-                    { questionId: 'scale_q', score: 3, status: 'answered' },
-                    { questionId: 'bool_q', score: BOOLEAN_YES_SCORE, status: 'answered' }
-                ]
-            }
-        ];
-
-        const layout = computeGraphLayout({
-            entries,
-            questions,
-            containerWidth: 600,
-            timeRange: 'all',
-            zoomScale: 1
-        });
-
-        expect(layout.series[0].points[0].responseType).toBe('scale');
-        expect(layout.series[1].points[0].responseType).toBe('boolean');
     });
 
     it('2. Boolean points render "Yes" for BOOLEAN_YES_SCORE in aria-label and <title>', () => {

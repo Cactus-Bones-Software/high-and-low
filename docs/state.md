@@ -264,6 +264,7 @@ export const STATE = {
     ├── drawer.test.js
     ├── erase_data.test.js
     ├── export_dialog.test.js
+    ├── graph_math.test.js
     ├── graph.test.js
     ├── graph_gestures.test.js
     ├── handedness.test.js
@@ -274,7 +275,7 @@ export const STATE = {
     ├── question_editing.test.js
     ├── question_response_type.test.js
     ├── questions.test.js
-    ├── questions-view.test.js
+    ├── questions_view.test.js
     ├── removed_questions.test.js
     ├── selective_backup.test.js
     ├── service_worker.test.js

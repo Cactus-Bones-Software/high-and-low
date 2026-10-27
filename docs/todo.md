@@ -783,7 +783,7 @@ Rules for every task in this phase:
     otherwise import `STATE` directly.
   - Done when `npm test` passes and `test-utils.js` no longer imports app functions it does not itself call.
 
-- [ ] **Task 10.4: Move Pure-Logic Tests Out of the Full-App Boot**
+- [x] **Task 10.4: Move Pure-Logic Tests Out of the Full-App Boot**
   - Extract tests that only call pure functions with plain values into a new `tests/graph-math.test.js` that never
     calls `setupTestDOM()`. Candidates: `calculatePinchDistance`, `calculatePinchMidpoint`,
     `calculateWheelZoomDeltaMultiplier`, `calculateGestureTransform`, `calculateSettledGestureScrollLeft`
