@@ -2,11 +2,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setupTestDOM, waitFor, navigateToQuestionsCanvas, openQuestionAuthoringDialog } from './test-utils.js';
 import { getAll } from '../public/js/storage/db.js';
+import { saveQuestionFromAuthoring } from '../public/js/ui/question-view.js';
 
 let windowInstance;
 let documentInstance;
 
-describe('Task 5.9: Built-In Question Copying Workflow', () => {
+describe('Built-In Question Copying Workflow', () => {
     beforeEach(async () => {
         const environment = await setupTestDOM();
         windowInstance = environment.window;
@@ -16,7 +17,7 @@ describe('Task 5.9: Built-In Question Copying Workflow', () => {
         await navigateToQuestionsCanvas(windowInstance, documentInstance);
     });
 
-    it('1. UI: Built-in question cards render an active Copy button', async () => {
+    it('renders an active Copy button on built-in question cards', async () => {
         const activeList = documentInstance.getElementById('questions-active-list');
         const builtInCard = Array.from(activeList.children).find(card => {
             const badge = card.querySelector('.question-card-badge');
@@ -31,7 +32,7 @@ describe('Task 5.9: Built-In Question Copying Workflow', () => {
         expect(copyButton.getAttribute('data-action')).toBe('copy-question');
     });
 
-    it('2. Workflow: Clicking Copy opens authoring dialog pre-filled with built-in question details', async () => {
+    it('opens authoring dialog pre-filled with built-in question details when clicking Copy', async () => {
         const overlay = await openQuestionAuthoringDialog(documentInstance, 'q_overall', 'copy');
         expect(overlay.classList.contains('is-open')).toBe(true);
 
@@ -48,7 +49,7 @@ describe('Task 5.9: Built-In Question Copying Workflow', () => {
         expect(archiveRow.hidden).toBe(true);
     });
 
-    it('3. Validation: Saving without modifying question text fails with wiggle, red outline, and message', async () => {
+    it('fails with wiggle, red outline, and message when saving without modifying question text', async () => {
         const overlay = await openQuestionAuthoringDialog(documentInstance, 'q_overall', 'copy');
 
         const saveButton = documentInstance.getElementById('button-save-question');
@@ -59,7 +60,7 @@ describe('Task 5.9: Built-In Question Copying Workflow', () => {
         const initialCount = initialQuestions.length;
 
         // Attempt to save without changes
-        await windowInstance.saveQuestionFromAuthoring();
+        await saveQuestionFromAuthoring();
 
         // Check validation failure state
         expect(overlay.classList.contains('is-open')).toBe(true);
@@ -74,14 +75,14 @@ describe('Task 5.9: Built-In Question Copying Workflow', () => {
         expect(currentQuestions.length).toBe(initialCount);
     });
 
-    it('4. Success: Modifying question text clears error and successfully saves new custom question', async () => {
+    it('clears error and successfully saves new custom question when modifying question text', async () => {
         const overlay = await openQuestionAuthoringDialog(documentInstance, 'q_overall', 'copy');
 
         const textInput = documentInstance.getElementById('q-text');
         const errorBanner = documentInstance.getElementById('question-form-error');
 
         // Trigger validation error first
-        await windowInstance.saveQuestionFromAuthoring();
+        await saveQuestionFromAuthoring();
         expect(errorBanner.hidden).toBe(false);
         expect(textInput.classList.contains('is-invalid')).toBe(true);
 
@@ -94,7 +95,7 @@ describe('Task 5.9: Built-In Question Copying Workflow', () => {
         expect(textInput.classList.contains('is-invalid')).toBe(false);
 
         // Save
-        await windowInstance.saveQuestionFromAuthoring();
+        await saveQuestionFromAuthoring();
 
         await waitFor(() => !overlay.classList.contains('is-open'));
         expect(overlay.classList.contains('is-open')).toBe(false);

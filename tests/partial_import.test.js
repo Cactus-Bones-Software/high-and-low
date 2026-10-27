@@ -1,7 +1,16 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setupTestDOM } from './test-utils.js';
+import {
+    validateBackupPayload,
+    detectBackupScopes,
+    exportBackup,
+    executeBackupImport,
+    handleFileImportReaderLoad
+} from '../public/js/data-io.js';
+import { put, setConfig, getDatabase, getAll, get, getConfig } from '../public/js/storage/db.js';
+import { applyImportScopeToDialog } from '../public/js/ui/dialogs.js';
 
-describe('Task 2.19: Import Partial Backups Safely Tests', () => {
+describe('Import Partial Backups Safely', () => {
     let windowInstance;
     let documentInstance;
 
@@ -11,8 +20,8 @@ describe('Task 2.19: Import Partial Backups Safely Tests', () => {
         documentInstance = environment.document;
     });
 
-    it('1. Validation: accepts valid full backups and partial backups with at least one store array', () => {
-        const validate = windowInstance.validateBackupPayload;
+    it('accepts valid full backups and partial backups with at least one store array', () => {
+        const validate = validateBackupPayload;
 
         // Valid full backup
         expect(validate({ exportVersion: '2.0', config: [], questions: [], entries: [] }).isValid).toBe(true);
@@ -21,7 +30,10 @@ describe('Task 2.19: Import Partial Backups Safely Tests', () => {
         expect(validate({ exportVersion: '1.0', config: [], questions: [], entries: [] }).isValid).toBe(true);
 
         // Valid history-only backup (entries and questions, no config)
-        expect(validate({ exportVersion: '2.0', entries: [{ timestamp: '2026-10-10T10:00:00Z', answers: [] }] }).isValid).toBe(true);
+        expect(validate({
+            exportVersion: '2.0',
+            entries: [{ timestamp: '2026-10-10T10:00:00Z', answers: [] }]
+        }).isValid).toBe(true);
 
         // Valid settings-only backup (config and questions, no entries)
         expect(validate({ exportVersion: '2.0', config: [{ key: 'theme', value: 'dark' }] }).isValid).toBe(true);
@@ -33,8 +45,8 @@ describe('Task 2.19: Import Partial Backups Safely Tests', () => {
         expect(validate({ exportVersion: '2.0', questions: [] }).isValid).toBe(true);
     });
 
-    it('2. Validation Rejection: rejects unrecognized exportVersion, non-object, and missing stores', () => {
-        const validate = windowInstance.validateBackupPayload;
+    it('rejects unrecognized exportVersion, non-object, and missing stores', () => {
+        const validate = validateBackupPayload;
 
         // Unrecognized exportVersion
         expect(validate({ exportVersion: '99.0', entries: [] }).isValid).toBe(false);
@@ -53,8 +65,8 @@ describe('Task 2.19: Import Partial Backups Safely Tests', () => {
         expect(validate({ exportVersion: '2.0', entries: 'not an array' }).isValid).toBe(false);
     });
 
-    it('3. Scope Detection: accurately determines history and settings presence', () => {
-        const detect = windowInstance.detectBackupScopes;
+    it('accurately determines history and settings presence during scope detection', () => {
+        const detect = detectBackupScopes;
 
         // Explicit scope array (Task 2.17 convention)
         expect(detect({ scope: ['history', 'settings'], entries: [], config: [] })).toEqual({
@@ -85,7 +97,7 @@ describe('Task 2.19: Import Partial Backups Safely Tests', () => {
         });
     });
 
-    it('4. Full Backup Round-Trip: restores entries, questions, and settings completely', async () => {
+    it('restores entries, questions, and settings completely on full backup round-trip', async () => {
         // Populate initial check-in entry
         const entryStore = 'entries';
         const sampleEntry = {
@@ -93,7 +105,7 @@ describe('Task 2.19: Import Partial Backups Safely Tests', () => {
             answers: [{ questionId: 'q_energy', score: 4, status: 'answered' }],
             note: 'Feeling energetic'
         };
-        await windowInstance.put(entryStore, sampleEntry);
+        await put(entryStore, sampleEntry);
 
         // Customize a question
         const customizedQuestion = {
@@ -106,52 +118,52 @@ describe('Task 2.19: Import Partial Backups Safely Tests', () => {
             createdAt: '2026-10-18T09:00:00.000Z',
             updatedAt: '2026-10-18T09:00:00.000Z'
         };
-        await windowInstance.put('questions', customizedQuestion);
+        await put('questions', customizedQuestion);
 
         // Set custom config
-        await windowInstance.setConfig('theme', 'light');
+        await setConfig('theme', 'light');
 
         // Export full backup
-        const { backupData } = await windowInstance.exportBackup({ includeHistory: true, includeSettings: true });
+        const { backupData } = await exportBackup({ includeHistory: true, includeSettings: true });
 
         // Modify local state to verify restore overwrites
-        await windowInstance.setConfig('theme', 'dark');
-        const database = windowInstance.getDatabase();
+        await setConfig('theme', 'dark');
+        const database = getDatabase();
         const clearTransaction = database.transaction(['entries', 'questions'], 'readwrite');
         clearTransaction.objectStore('entries').clear();
         clearTransaction.objectStore('questions').clear();
         await new Promise(resolve => { clearTransaction.oncomplete = resolve; });
 
         // Execute Wipe & Replace with the exported backup
-        await windowInstance.executeBackupImport(backupData, 'replace');
+        await executeBackupImport(backupData, 'replace');
 
         // Verify entries restored
-        const restoredEntries = await windowInstance.getAll('entries');
+        const restoredEntries = await getAll('entries');
         expect(restoredEntries.length).toBe(1);
         expect(restoredEntries[0].timestamp).toBe(sampleEntry.timestamp);
         expect(restoredEntries[0].note).toBe('Feeling energetic');
 
         // Verify questions restored
-        const restoredCustomQuestion = await windowInstance.get('questions', 'custom_roundtrip_q');
+        const restoredCustomQuestion = await get('questions', 'custom_roundtrip_q');
         expect(restoredCustomQuestion).toBeDefined();
         expect(restoredCustomQuestion.text).toBe(customizedQuestion.text);
 
         // Verify settings restored
-        const restoredTheme = await windowInstance.getConfig('theme');
+        const restoredTheme = await getConfig('theme');
         expect(restoredTheme).toBe('light');
     });
 
-    it('5. History-Only Import into Populated Device (Replace Mode): wipes history but preserves settings', async () => {
+    it('wipes history but preserves settings on history-only import into populated device (replace mode)', async () => {
         // Device starts with existing history entry A
-        await windowInstance.put('entries', {
+        await put('entries', {
             timestamp: '2026-10-01T12:00:00.000Z',
             answers: [{ questionId: 'q_energy', score: 2, status: 'answered' }]
         });
 
         // Device has tailored activeQuestionSet and theme
         const customActiveSet = ['q_clarity', 'q_connection'];
-        await windowInstance.setConfig('activeQuestionSet', customActiveSet);
-        await windowInstance.setConfig('theme', 'light');
+        await setConfig('activeQuestionSet', customActiveSet);
+        await setConfig('theme', 'light');
 
         // Incoming history-only backup has entry B
         const historyOnlyBackup = {
@@ -175,28 +187,28 @@ describe('Task 2.19: Import Partial Backups Safely Tests', () => {
         };
 
         // Import in replace mode
-        await windowInstance.executeBackupImport(historyOnlyBackup, 'replace');
+        await executeBackupImport(historyOnlyBackup, 'replace');
 
         // History entry A must be erased, and entry B present
-        const currentEntries = await windowInstance.getAll('entries');
+        const currentEntries = await getAll('entries');
         expect(currentEntries.length).toBe(1);
         expect(currentEntries[0].timestamp).toBe('2026-10-15T15:00:00.000Z');
 
         // Settings must NOT be wiped or reset!
-        const currentActiveSet = await windowInstance.getConfig('activeQuestionSet');
+        const currentActiveSet = await getConfig('activeQuestionSet');
         expect(currentActiveSet).toEqual(customActiveSet);
-        const currentTheme = await windowInstance.getConfig('theme');
+        const currentTheme = await getConfig('theme');
         expect(currentTheme).toBe('light');
     });
 
-    it('6. Settings-Only Import into Populated Device (Replace Mode): replaces settings but never erases history', async () => {
+    it('replaces settings but never erases history on settings-only import into populated device (replace mode)', async () => {
         // Device starts with valuable check-in history
         const localEntry = {
             timestamp: '2026-10-05T08:30:00.000Z',
             answers: [{ questionId: 'q_energy', score: 3, status: 'answered' }],
             note: 'Important historical note'
         };
-        await windowInstance.put('entries', localEntry);
+        await put('entries', localEntry);
 
         // Incoming settings-only backup
         const settingsOnlyBackup = {
@@ -220,26 +232,26 @@ describe('Task 2.19: Import Partial Backups Safely Tests', () => {
         };
 
         // Import in replace mode
-        await windowInstance.executeBackupImport(settingsOnlyBackup, 'replace');
+        await executeBackupImport(settingsOnlyBackup, 'replace');
 
         // User's check-in history must be 100% intact!
-        const currentEntries = await windowInstance.getAll('entries');
+        const currentEntries = await getAll('entries');
         expect(currentEntries.length).toBe(1);
         expect(currentEntries[0].timestamp).toBe(localEntry.timestamp);
         expect(currentEntries[0].note).toBe('Important historical note');
 
         // Settings and question catalog replaced
-        const currentTheme = await windowInstance.getConfig('theme');
+        const currentTheme = await getConfig('theme');
         expect(currentTheme).toBe('light');
-        const currentActiveSet = await windowInstance.getConfig('activeQuestionSet');
+        const currentActiveSet = await getConfig('activeQuestionSet');
         expect(currentActiveSet).toEqual(['imported_custom_question']);
-        const importedQuestion = await windowInstance.get('questions', 'imported_custom_question');
+        const importedQuestion = await get('questions', 'imported_custom_question');
         expect(importedQuestion).toBeDefined();
     });
 
-    it('7. Orphan Prevention: history-only import brings referenced questions into questions store', async () => {
+    it('brings referenced questions into questions store to prevent orphans on history-only import', async () => {
         // Device does NOT have custom_clinician_q
-        const existing = await windowInstance.get('questions', 'custom_clinician_q');
+        const existing = await get('questions', 'custom_clinician_q');
         expect(existing).toBeUndefined();
 
         const historyBackupWithQuestion = {
@@ -263,25 +275,25 @@ describe('Task 2.19: Import Partial Backups Safely Tests', () => {
         };
 
         // Import in merge mode
-        await windowInstance.executeBackupImport(historyBackupWithQuestion, 'merge');
+        await executeBackupImport(historyBackupWithQuestion, 'merge');
 
         // Question must now exist in questions store
-        const importedQuestion = await windowInstance.get('questions', 'custom_clinician_q');
+        const importedQuestion = await get('questions', 'custom_clinician_q');
         expect(importedQuestion).toBeDefined();
         expect(importedQuestion.shortLabel).toBe('Clinician Q');
 
         // Answer resolves properly
-        const entries = await windowInstance.getAll('entries');
+        const entries = await getAll('entries');
         const entry = entries.find(item => item.timestamp === '2026-10-12T11:00:00.000Z');
         expect(entry).toBeDefined();
         expect(entry.answers[0].questionId).toBe(importedQuestion.id);
     });
 
-    it('8. Device-Specific Keys Ignored on Import: seedVersion and lastBackupAt are never overwritten', async () => {
-        const initialSeed = await windowInstance.getConfig('seedVersion');
+    it('ignores device-specific keys (seedVersion and lastBackupAt) on import', async () => {
+        const initialSeed = await getConfig('seedVersion');
         expect(initialSeed).toBeDefined();
 
-        await windowInstance.setConfig('lastBackupAt', '2026-10-17T00:00:00.000Z');
+        await setConfig('lastBackupAt', '2026-10-17T00:00:00.000Z');
 
         const maliciousOldBackup = {
             exportVersion: '2.0',
@@ -295,17 +307,17 @@ describe('Task 2.19: Import Partial Backups Safely Tests', () => {
             entries: []
         };
 
-        await windowInstance.executeBackupImport(maliciousOldBackup, 'replace');
+        await executeBackupImport(maliciousOldBackup, 'replace');
 
-        const finalSeed = await windowInstance.getConfig('seedVersion');
+        const finalSeed = await getConfig('seedVersion');
         expect(finalSeed).not.toBe(999);
 
-        const finalLastBackup = await windowInstance.getConfig('lastBackupAt');
+        const finalLastBackup = await getConfig('lastBackupAt');
         expect(finalLastBackup).not.toBe('2019-01-01T00:00:00.000Z');
         expect(finalLastBackup).toBe('2026-10-17T00:00:00.000Z');
     });
 
-    it('9. UI Scope Inspection in Dialog: displays detected scope and updates Wipe & Replace wording', () => {
+    it('displays detected scope and updates Wipe & Replace wording in import dialog UI', () => {
         const dialogOverlay = documentInstance.getElementById('import-dialog-overlay');
         const contentsBadge = documentInstance.getElementById('import-file-contents');
         const replaceDescription = documentInstance.getElementById('import-replace-text');
@@ -315,7 +327,7 @@ describe('Task 2.19: Import Partial Backups Safely Tests', () => {
         expect(replaceDescription).not.toBeNull();
 
         // 1. Settings only
-        windowInstance.applyImportScopeToDialog({
+        applyImportScopeToDialog({
             exportVersion: '2.0',
             scope: ['settings'],
             config: [{ key: 'theme', value: 'dark' }],
@@ -326,7 +338,7 @@ describe('Task 2.19: Import Partial Backups Safely Tests', () => {
         expect(replaceDescription.textContent.toLowerCase()).toContain('history is kept');
 
         // 2. History only
-        windowInstance.applyImportScopeToDialog({
+        applyImportScopeToDialog({
             exportVersion: '2.0',
             scope: ['history'],
             entries: [{ timestamp: '2026-10-10T00:00:00Z', answers: [] }],
@@ -337,7 +349,7 @@ describe('Task 2.19: Import Partial Backups Safely Tests', () => {
         expect(replaceDescription.textContent.toLowerCase()).toContain('settings are kept');
 
         // 3. Both (Full)
-        windowInstance.applyImportScopeToDialog({
+        applyImportScopeToDialog({
             exportVersion: '2.0',
             scope: ['history', 'settings'],
             entries: [],
@@ -347,7 +359,7 @@ describe('Task 2.19: Import Partial Backups Safely Tests', () => {
         expect(replaceDescription.textContent.toLowerCase()).toContain('all local records');
     });
 
-    it('10. Error Handling: malformed JSON and corrupted files trigger notice dialog', () => {
+    it('triggers notice dialog on malformed JSON and corrupted files', () => {
         let noticeShown = false;
         let noticeTitle = '';
         let noticeMessage = '';
@@ -359,7 +371,7 @@ describe('Task 2.19: Import Partial Backups Safely Tests', () => {
         };
 
         // Simulate malformed JSON event
-        windowInstance.handleFileImportReaderLoad('merge', {
+        handleFileImportReaderLoad('merge', {
             target: { result: '{ invalid json' }
         });
         expect(noticeShown).toBe(true);
@@ -368,7 +380,7 @@ describe('Task 2.19: Import Partial Backups Safely Tests', () => {
 
         // Simulate invalid blueprint event (no store arrays)
         noticeShown = false;
-        windowInstance.handleFileImportReaderLoad('merge', {
+        handleFileImportReaderLoad('merge', {
             target: { result: JSON.stringify({ exportVersion: '2.0' }) }
         });
         expect(noticeShown).toBe(true);

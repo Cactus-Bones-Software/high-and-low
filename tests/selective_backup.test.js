@@ -1,13 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setupTestDOM } from './test-utils.js';
+import { put, getAll, getConfig, deleteConfig } from '../public/js/storage/db.js';
+import { exportBackup, exportAllDataAndConfig, EXPORTABLE_CONFIG_KEYS } from '../public/js/data-io.js';
 
-describe('Task 2.17: Selective Backup — Data Layer & Scope Model Tests', () => {
-    let windowInstance;
+describe('Selective Backup — Data Layer & Scope Model', () => {
+    let _windowInstance;
     let _documentInstance;
 
     beforeEach(async () => {
         const environment = await setupTestDOM();
-        windowInstance = environment.window;
+        _windowInstance = environment.window;
         _documentInstance = environment.document;
 
         // Seed sample question and entry
@@ -19,11 +21,11 @@ describe('Task 2.17: Selective Backup — Data Layer & Scope Model Tests', () =>
                 { questionId: 'q_energy', score: 4, status: 'answered' }
             ]
         };
-        await windowInstance.put('entries', sampleEntry);
+        await put('entries', sampleEntry);
     });
 
-    it('1. Full Export: includes history and settings, allowlisted config, and full filename suffix', async () => {
-        const { backupData, filename } = await windowInstance.exportBackup({
+    it('includes history and settings, allowlisted config, and full filename suffix on full export', async () => {
+        const { backupData, filename } = await exportBackup({
             includeHistory: true,
             includeSettings: true
         });
@@ -36,23 +38,23 @@ describe('Task 2.17: Selective Backup — Data Layer & Scope Model Tests', () =>
         expect(backupData.entries.length).toBeGreaterThan(0);
 
         // All questions present
-        const allQuestions = await windowInstance.getAll('questions');
+        const allQuestions = await getAll('questions');
         expect(backupData.questions.length).toBe(allQuestions.length);
 
         // Config contains allowlisted keys only
         for (const configItem of backupData.config) {
-            expect(windowInstance.EXPORTABLE_CONFIG_KEYS).toContain(configItem.key);
+            expect(EXPORTABLE_CONFIG_KEYS).toContain(configItem.key);
             expect(configItem.key).not.toBe('seedVersion');
             expect(configItem.key).not.toBe('lastBackupAt');
         }
 
         // Updates lastBackupAt
-        const storedLastBackup = await windowInstance.getConfig('lastBackupAt');
+        const storedLastBackup = await getConfig('lastBackupAt');
         expect(storedLastBackup).toBeDefined();
         expect(storedLastBackup).toBe(backupData.exportTimestamp);
     });
 
-    it('2. History-Only Export: contains entries and referenced questions, empty config, and updates lastBackupAt',
+    it('contains entries and referenced questions, empty config, and updates lastBackupAt on history-only export',
         async () => {
             // Create an unreferenced custom question to verify filtering
             const unreferencedQuestion = {
@@ -70,9 +72,9 @@ describe('Task 2.17: Selective Backup — Data Layer & Scope Model Tests', () =>
                 createdAt: '2026-10-15T10:00:00.000Z',
                 updatedAt: '2026-10-15T10:00:00.000Z'
             };
-            await windowInstance.put('questions', unreferencedQuestion);
+            await put('questions', unreferencedQuestion);
 
-            const { backupData, filename } = await windowInstance.exportBackup({
+            const { backupData, filename } = await exportBackup({
                 includeHistory: true,
                 includeSettings: false
             });
@@ -93,16 +95,16 @@ describe('Task 2.17: Selective Backup — Data Layer & Scope Model Tests', () =>
             expect(backupData.config).toEqual([]);
 
             // Updates lastBackupAt
-            const storedLastBackup = await windowInstance.getConfig('lastBackupAt');
+            const storedLastBackup = await getConfig('lastBackupAt');
             expect(storedLastBackup).toBe(backupData.exportTimestamp);
         });
 
-    it('3. Settings-Only Export: contains questions and config, empty entries, and does not update lastBackupAt',
+    it('contains questions and config, empty entries, and does not update lastBackupAt on settings-only export',
         async () => {
             // Clear any previous lastBackupAt
-            await windowInstance.deleteConfig('lastBackupAt');
+            await deleteConfig('lastBackupAt');
 
-            const { backupData, filename } = await windowInstance.exportBackup({
+            const { backupData, filename } = await exportBackup({
                 includeHistory: false,
                 includeSettings: true
             });
@@ -115,38 +117,38 @@ describe('Task 2.17: Selective Backup — Data Layer & Scope Model Tests', () =>
             expect(backupData.entries).toEqual([]);
 
             // All questions in library present
-            const allQuestions = await windowInstance.getAll('questions');
+            const allQuestions = await getAll('questions');
             expect(backupData.questions.length).toBe(allQuestions.length);
 
             // Config present and filtered
             expect(backupData.config.length).toBeGreaterThan(0);
             for (const configItem of backupData.config) {
-                expect(windowInstance.EXPORTABLE_CONFIG_KEYS).toContain(configItem.key);
+                expect(EXPORTABLE_CONFIG_KEYS).toContain(configItem.key);
                 expect(configItem.key).not.toBe('seedVersion');
                 expect(configItem.key).not.toBe('lastBackupAt');
             }
 
             // Coordinate with Task 2.15: Settings-only does NOT update lastBackupAt
-            const storedLastBackup = await windowInstance.getConfig('lastBackupAt');
+            const storedLastBackup = await getConfig('lastBackupAt');
             expect(storedLastBackup).toBeUndefined();
         });
 
-    it('4. Scope Validation: rejects if neither history nor settings is selected', async () => {
+    it('rejects if neither history nor settings is selected during scope validation', async () => {
         await expect(
-            windowInstance.exportBackup({ includeHistory: false, includeSettings: false })
+            exportBackup({ includeHistory: false, includeSettings: false })
         ).rejects.toThrow(/at least one export scope must be selected/i);
     });
 
-    it('5. Default Export Invocation: exportBackup() without arguments defaults to full backup', async () => {
-        const { backupData, filename } = await windowInstance.exportBackup();
+    it('defaults to full backup when exportBackup() is called without arguments', async () => {
+        const { backupData, filename } = await exportBackup();
         expect(backupData.scope).toEqual(['history', 'settings']);
         expect(filename).toMatch(/-full\.json$/);
         expect(backupData.entries.length).toBeGreaterThan(0);
         expect(backupData.questions.length).toBeGreaterThan(0);
     });
 
-    it('6. exportAllDataAndConfig Preservation: delegates to full exportBackup', async () => {
-        const { backupData, filename } = await windowInstance.exportAllDataAndConfig();
+    it('delegates to full exportBackup in exportAllDataAndConfig preservation', async () => {
+        const { backupData, filename } = await exportAllDataAndConfig();
         expect(backupData.scope).toEqual(['history', 'settings']);
         expect(filename).toMatch(/-full\.json$/);
     });

@@ -8,8 +8,19 @@ import {
     navigateToQuestionsCanvas,
     openQuestionAuthoringDialog
 } from './test-utils.js';
+import {
+    createCustomQuestion,
+    updateCustomQuestion,
+    removeQuestion,
+    restoreQuestion
+} from '../public/js/questions.js';
+import { get, getAll, getConfig } from '../public/js/storage/db.js';
+import {
+    saveQuestionFromAuthoring,
+    removeQuestionFromAuthoring
+} from '../public/js/ui/question-view.js';
 
-describe('Task 5.7: Question Editing Workflow', () => {
+describe('Question Editing Workflow', () => {
     let windowInstance;
     let documentInstance;
 
@@ -19,11 +30,11 @@ describe('Task 5.7: Question Editing Workflow', () => {
         documentInstance = setup.document;
 
         // Wait for IndexedDB initialization and seeding
-        await waitFor(() => windowInstance.getAll && typeof windowInstance.getAll === 'function');
+        await waitFor(() => getAll && typeof getAll === 'function');
     });
 
-    it('1. updateCustomQuestion preserves immutable fields (id, originalText, builtIn, createdAt) while updating mutable fields', async () => {
-        const creationOutcome = await windowInstance.createCustomQuestion({
+    it('preserves immutable fields (id, originalText, builtIn, createdAt) while updating mutable fields', async () => {
+        const creationOutcome = await createCustomQuestion({
             text: 'How focused were you on your primary project today?',
             shortLabel: 'Focus Duration',
             tags: ['Productivity', 'Work'],
@@ -36,7 +47,7 @@ describe('Task 5.7: Question Editing Workflow', () => {
         expect(creationOutcome.status).toBe('added');
         const originalQuestion = creationOutcome.question;
 
-        const updated = await windowInstance.updateCustomQuestion(originalQuestion.id, {
+        const updated = await updateCustomQuestion(originalQuestion.id, {
             text: 'How deep was your mental concentration today?',
             shortLabel: 'Mental Focus',
             tags: ['Work', 'Cognitive', 'Clarity'],
@@ -57,19 +68,21 @@ describe('Task 5.7: Question Editing Workflow', () => {
         expect(updated.minLabel).toBe('Brain Fog');
         expect(updated.midLabel).toBe('Ideal Flow');
         expect(updated.maxLabel).toBe('Hyperfocused / Tunnel');
-        expect(new Date(updated.updatedAt).getTime()).toBeGreaterThanOrEqual(new Date(originalQuestion.createdAt).getTime());
+        expect(new Date(updated.updatedAt).getTime()).toBeGreaterThanOrEqual(
+            new Date(originalQuestion.createdAt).getTime()
+        );
 
         // Verify in IndexedDB
-        const retrieved = await windowInstance.get('questions', originalQuestion.id);
+        const retrieved = await get('questions', originalQuestion.id);
         expect(retrieved.text).toBe('How deep was your mental concentration today?');
         expect(retrieved.id).toBe(originalQuestion.id);
         expect(retrieved.originalText).toBe(originalQuestion.originalText);
     });
 
-    it('2. Built-in questions cannot be edited', async () => {
+    it('prevents editing of built-in questions', async () => {
         let rejectionError = null;
         try {
-            await windowInstance.updateCustomQuestion('q_energy', { text: 'New energy text' });
+            await updateCustomQuestion('q_energy', { text: 'New energy text' });
         } catch (error) {
             rejectionError = error;
         }
@@ -77,8 +90,8 @@ describe('Task 5.7: Question Editing Workflow', () => {
         expect(rejectionError.message).toMatch(/Built-in questions cannot be edited/);
     });
 
-    it('3. removeQuestion soft-deletes custom question and removes it from activeQuestionSet', async () => {
-        const creationOutcome = await windowInstance.createCustomQuestion({
+    it('soft-deletes custom question and removes it from activeQuestionSet on removeQuestion', async () => {
+        const creationOutcome = await createCustomQuestion({
             text: 'How hydrated did you stay today?',
             shortLabel: 'Hydration',
             tags: ['Health'],
@@ -89,24 +102,24 @@ describe('Task 5.7: Question Editing Workflow', () => {
         const questionId = creationOutcome.id;
 
         // Verify it was added to active set
-        let activeSet = await windowInstance.getConfig('activeQuestionSet');
+        let activeSet = await getConfig('activeQuestionSet');
         expect(activeSet).toContain(questionId);
 
         // Remove question
-        const removed = await windowInstance.removeQuestion(questionId);
+        const removed = await removeQuestion(questionId);
         expect(removed.archived).toBe(true);
 
         // Verify active question set no longer contains the removed question
-        activeSet = await windowInstance.getConfig('activeQuestionSet');
+        activeSet = await getConfig('activeQuestionSet');
         expect(activeSet).not.toContain(questionId);
 
         // Verify in DB
-        const inDb = await windowInstance.get('questions', questionId);
+        const inDb = await get('questions', questionId);
         expect(inDb.archived).toBe(true);
     });
 
-    it('4. restoreQuestion restores removed question and sets archived to false', async () => {
-        const creationOutcome = await windowInstance.createCustomQuestion({
+    it('restores removed question and sets archived to false on restoreQuestion', async () => {
+        const creationOutcome = await createCustomQuestion({
             text: 'Did you spend time outdoors today?',
             shortLabel: 'Outdoors',
             tags: ['Nature'],
@@ -115,20 +128,20 @@ describe('Task 5.7: Question Editing Workflow', () => {
         });
 
         const questionId = creationOutcome.id;
-        await windowInstance.removeQuestion(questionId);
-        let inDb = await windowInstance.get('questions', questionId);
+        await removeQuestion(questionId);
+        let inDb = await get('questions', questionId);
         expect(inDb.archived).toBe(true);
 
-        const restored = await windowInstance.restoreQuestion(questionId);
+        const restored = await restoreQuestion(questionId);
         expect(restored.archived).toBe(false);
 
-        inDb = await windowInstance.get('questions', questionId);
+        inDb = await get('questions', questionId);
         expect(inDb.archived).toBe(false);
     });
 
-    it('5. UI Flow: Opening edit modal populates question fields, allows saving updates, and updates view', async () => {
+    it('populates fields, saves updates, and updates view when opening edit modal in UI', async () => {
         // Create custom question
-        const customOutcome = await windowInstance.createCustomQuestion({
+        const customOutcome = await createCustomQuestion({
             text: 'How creative did you feel today?',
             shortLabel: 'Creativity',
             tags: ['Mind', 'Flow'],
@@ -166,18 +179,18 @@ describe('Task 5.7: Question Editing Workflow', () => {
         textInput.dispatchEvent(new windowInstance.Event('input'));
         shortLabelInput.dispatchEvent(new windowInstance.Event('input'));
 
-        await windowInstance.saveQuestionFromAuthoring();
+        await saveQuestionFromAuthoring();
 
         await waitFor(() => !overlay.classList.contains('is-open'));
 
         // Verify updated text in DB
-        const updatedDb = await windowInstance.get('questions', questionId);
+        const updatedDb = await get('questions', questionId);
         expect(updatedDb.text).toBe('How imaginative was your thinking today?');
         expect(updatedDb.shortLabel).toBe('Imagination');
     });
 
-    it('6. UI Flow: Removing via authoring dialog removes card from active/catalog and renders in removed questions section with restore button', async () => {
-        const customOutcome = await windowInstance.createCustomQuestion({
+    it('removes card from active/catalog and renders in removed questions section with restore button on UI remove', async () => {
+        const customOutcome = await createCustomQuestion({
             text: 'How calm was your morning routine?',
             shortLabel: 'Morning Calm',
             tags: ['Routine'],
@@ -193,7 +206,7 @@ describe('Task 5.7: Question Editing Workflow', () => {
         expect(overlay.classList.contains('is-open')).toBe(true);
 
         // Execute remove action
-        await windowInstance.removeQuestionFromAuthoring();
+        await removeQuestionFromAuthoring();
 
         await waitFor(() => !overlay.classList.contains('is-open'));
 
@@ -205,7 +218,9 @@ describe('Task 5.7: Question Editing Workflow', () => {
         const removedSection = documentInstance.getElementById('questions-archived-section');
         expect(removedSection.hidden).toBe(false);
 
-        const removedCard = documentInstance.querySelector(`#questions-archived-list [data-question-id="${questionId}"]`);
+        const removedCard = documentInstance.querySelector(
+            `#questions-archived-list [data-question-id="${questionId}"]`
+        );
         expect(removedCard).not.toBeNull();
         expect(removedCard.querySelector('.question-card-badge').textContent).toBe('Removed');
 
@@ -217,16 +232,18 @@ describe('Task 5.7: Question Editing Workflow', () => {
         restoreButton.click();
 
         await waitFor(() => {
-            const catalogCard = documentInstance.querySelector(`#questions-catalog-list [data-question-id="${questionId}"]`);
+            const catalogCard = documentInstance.querySelector(
+                `#questions-catalog-list [data-question-id="${questionId}"]`
+            );
             return Boolean(catalogCard);
         });
 
         // Verify in DB that it is no longer removed
-        const inDb = await windowInstance.get('questions', questionId);
+        const inDb = await get('questions', questionId);
         expect(inDb.archived).toBe(false);
     });
 
-    it('7. updateCustomQuestion validates input parameters', async () => {
+    it('validates input parameters in updateCustomQuestion', async () => {
         const expectRejection = async (promise, pattern) => {
             let rejectionError = null;
             try {
@@ -239,11 +256,11 @@ describe('Task 5.7: Question Editing Workflow', () => {
         };
 
         await expectRejection(
-            windowInstance.updateCustomQuestion('', { text: 'Valid' }),
+            updateCustomQuestion('', { text: 'Valid' }),
             /Valid question ID is required/
         );
 
-        const custom = await windowInstance.createCustomQuestion({
+        const custom = await createCustomQuestion({
             text: 'Valid text for validation test',
             shortLabel: 'Valid',
             tags: ['Test'],
@@ -251,17 +268,17 @@ describe('Task 5.7: Question Editing Workflow', () => {
         });
 
         await expectRejection(
-            windowInstance.updateCustomQuestion(custom.id, { text: '   ' }),
+            updateCustomQuestion(custom.id, { text: '   ' }),
             /Question text cannot be empty/
         );
 
         await expectRejection(
-            windowInstance.updateCustomQuestion(custom.id, { shortLabel: '   ' }),
+            updateCustomQuestion(custom.id, { shortLabel: '   ' }),
             /Short label cannot be empty/
         );
 
         await expectRejection(
-            windowInstance.updateCustomQuestion(custom.id, { responseType: 'invalid-type' }),
+            updateCustomQuestion(custom.id, { responseType: 'invalid-type' }),
             /Invalid responseType/
         );
     });

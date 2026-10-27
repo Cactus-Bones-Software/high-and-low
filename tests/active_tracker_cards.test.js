@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setupTestDOM, waitFor, navigateToQuestionsCanvas } from './test-utils.js';
+import { STATE } from '../public/js/state.js';
+import { getConfig } from '../public/js/storage/db.js';
 
 let _domInstance;
 let windowInstance;
@@ -22,7 +24,7 @@ describe('Task 5.5: Active Tracker Cards, Reordering Handles & In-Tracker Toggle
     it('1. Active Card Structure: Renders active cards with question text, tags, reordering, and toggle switch below badge', () => {
         const activeList = documentInstance.getElementById('questions-active-list');
         expect(activeList).not.toBeNull();
-        expect(activeList.children.length).toBe(windowInstance.STATE.activeQuestions.length);
+        expect(activeList.children.length).toBe(STATE.activeQuestions.length);
 
         const firstCard = activeList.children[0];
         expect(firstCard.classList.contains('question-card')).toBe(true);
@@ -92,10 +94,10 @@ describe('Task 5.5: Active Tracker Cards, Reordering Handles & In-Tracker Toggle
         expect(activeList.children[1].getAttribute('data-question-id')).toBe(firstCardId);
 
         // Verify STATE and IndexedDB persistence
-        expect(windowInstance.STATE.activeQuestions[0].id).toBe(secondCardId);
-        expect(windowInstance.STATE.activeQuestions[1].id).toBe(firstCardId);
+        expect(STATE.activeQuestions[0].id).toBe(secondCardId);
+        expect(STATE.activeQuestions[1].id).toBe(firstCardId);
 
-        const storedConfig = await windowInstance.getConfig('activeQuestionSet');
+        const storedConfig = await getConfig('activeQuestionSet');
         expect(storedConfig[0]).toBe(secondCardId);
         expect(storedConfig[1]).toBe(firstCardId);
     });
@@ -160,8 +162,8 @@ describe('Task 5.5: Active Tracker Cards, Reordering Handles & In-Tracker Toggle
         expect(catalogToggle.getAttribute('aria-checked')).toBe('false');
 
         // Verify STATE and IndexedDB persistence
-        expect(windowInstance.STATE.activeQuestions.some(question => question.id === targetQuestionId)).toBe(false);
-        const storedConfig = await windowInstance.getConfig('activeQuestionSet');
+        expect(STATE.activeQuestions.some(question => question.id === targetQuestionId)).toBe(false);
+        const storedConfig = await getConfig('activeQuestionSet');
         expect(storedConfig.includes(targetQuestionId)).toBe(false);
 
         // Click toggle in catalog to re-add to active tracker
@@ -297,7 +299,7 @@ describe('Task 5.5: Active Tracker Cards, Reordering Handles & In-Tracker Toggle
 
         await assertActiveQuestionPairOrder(secondId, firstId);
 
-        const storedConfig = await windowInstance.getConfig('activeQuestionSet');
+        const storedConfig = await getConfig('activeQuestionSet');
         expect(storedConfig[0]).toBe(secondId);
         expect(storedConfig[1]).toBe(firstId);
     });

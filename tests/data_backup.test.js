@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setupTestDOM } from './test-utils.js';
+import { getConfig, setConfig, getDatabase } from '../public/js/storage/db.js';
+import { formatBackupDate, updateLastBackupDisplay, exportAllDataAndConfig } from '../public/js/data-io.js';
+import { navigateTo } from '../public/js/ui/navigation.js';
 
-describe('Task 2.15: Last-Backup Indicator in the Data View Tests', () => {
+describe('Last-Backup Indicator in the Data View', () => {
     let windowInstance;
     let documentInstance;
 
@@ -11,7 +14,7 @@ describe('Task 2.15: Last-Backup Indicator in the Data View Tests', () => {
         documentInstance = environment.document;
     });
 
-    it('1. Canvas Structure: last-backup-display exists in #panel-data inside #data-canvas', () => {
+    it('displays last-backup-display inside #panel-data on #data-canvas', () => {
         const dataCanvas = documentInstance.getElementById('data-canvas');
         expect(dataCanvas).not.toBeNull();
 
@@ -24,47 +27,47 @@ describe('Task 2.15: Last-Backup Indicator in the Data View Tests', () => {
         expect(backupIndicator.classList.contains('last-backup-indicator')).toBe(true);
     });
 
-    it('2. Default State: displays "No backup yet" when lastBackupAt is not configured', async () => {
+    it('displays "No backup yet" when lastBackupAt is not configured', async () => {
         const backupIndicator = documentInstance.getElementById('last-backup-display');
         expect(backupIndicator.textContent.trim()).toBe('No backup yet');
 
         // Confirm database config store does not have lastBackupAt
-        const storedLastBackup = await windowInstance.getConfig('lastBackupAt');
+        const storedLastBackup = await getConfig('lastBackupAt');
         expect(storedLastBackup).toBeUndefined();
     });
 
-    it('3. Navigation: navigating to data-canvas updates indicator from stored lastBackupAt', async () => {
+    it('updates indicator from stored lastBackupAt when navigating to data-canvas', async () => {
         const sampleTimestamp = '2026-10-12T14:30:00.000Z';
-        await windowInstance.setConfig('lastBackupAt', sampleTimestamp);
+        await setConfig('lastBackupAt', sampleTimestamp);
 
-        const expectedDate = windowInstance.formatBackupDate(sampleTimestamp);
+        const expectedDate = formatBackupDate(sampleTimestamp);
         expect(expectedDate).toBeTruthy();
 
         // Navigate to Data canvas
-        windowInstance.navigateTo('data-canvas');
-        await windowInstance.updateLastBackupDisplay();
+        navigateTo('data-canvas');
+        await updateLastBackupDisplay();
 
         const backupIndicator = documentInstance.getElementById('last-backup-display');
         expect(backupIndicator.textContent.trim()).toBe(`Last backup: ${expectedDate}`);
     });
 
-    it('4. Null Handling: displays "No backup yet" if lastBackupAt is explicitly set to null', async () => {
-        await windowInstance.setConfig('lastBackupAt', null);
+    it('displays "No backup yet" if lastBackupAt is explicitly set to null', async () => {
+        await setConfig('lastBackupAt', null);
 
-        await windowInstance.updateLastBackupDisplay();
+        await updateLastBackupDisplay();
 
         const backupIndicator = documentInstance.getElementById('last-backup-display');
         expect(backupIndicator.textContent.trim()).toBe('No backup yet');
     });
 
-    it('5. Export Flow: exportAllDataAndConfig writes lastBackupAt and updates the indicator', async () => {
+    it('writes lastBackupAt and updates the indicator during full export', async () => {
         const backupIndicator = documentInstance.getElementById('last-backup-display');
         expect(backupIndicator.textContent.trim()).toBe('No backup yet');
 
         // Execute full export
-        await windowInstance.exportAllDataAndConfig();
+        await exportAllDataAndConfig();
 
-        const storedLastBackup = await windowInstance.getConfig('lastBackupAt');
+        const storedLastBackup = await getConfig('lastBackupAt');
         expect(storedLastBackup).toBeDefined();
         expect(typeof storedLastBackup).toBe('string');
 
@@ -73,11 +76,11 @@ describe('Task 2.15: Last-Backup Indicator in the Data View Tests', () => {
         expect(Number.isNaN(parsedDate.getTime())).toBe(false);
 
         // Verify indicator reflects the newly recorded backup
-        const expectedDate = windowInstance.formatBackupDate(storedLastBackup);
+        const expectedDate = formatBackupDate(storedLastBackup);
         expect(backupIndicator.textContent.trim()).toBe(`Last backup: ${expectedDate}`);
     });
 
-    it('6. Export File Content: excludes device-specific keys (lastBackupAt, seedVersion) from config', async () => {
+    it('excludes device-specific keys (lastBackupAt, seedVersion) from config export', async () => {
         let exportedBlob = null;
         const originalWindowCreateObjectURL = windowInstance.URL.createObjectURL;
         const originalGlobalCreateObjectURL = global.URL ? global.URL.createObjectURL : undefined;
@@ -93,7 +96,7 @@ describe('Task 2.15: Last-Backup Indicator in the Data View Tests', () => {
         }
 
         try {
-            await windowInstance.exportAllDataAndConfig();
+            await exportAllDataAndConfig();
             expect(exportedBlob).not.toBeNull();
 
             const exportedJSONString = await exportedBlob.text();
@@ -114,7 +117,7 @@ describe('Task 2.15: Last-Backup Indicator in the Data View Tests', () => {
         }
     });
 
-    it('7. Backward Compatibility: importing older backup without lastBackupAt does not fail', async () => {
+    it('does not fail when importing older backup without lastBackupAt', async () => {
         const legacyBackup = {
             exportVersion: '1.0',
             exportTimestamp: '2026-08-01T10:00:00.000Z',
@@ -127,7 +130,7 @@ describe('Task 2.15: Last-Backup Indicator in the Data View Tests', () => {
         };
 
         // Populate database with legacy backup records
-        const database = windowInstance.getDatabase ? windowInstance.getDatabase() : null;
+        const database = getDatabase ? getDatabase() : null;
         expect(database).not.toBeNull();
 
         const transaction = database.transaction(['config', 'questions', 'entries'], 'readwrite');
@@ -143,15 +146,15 @@ describe('Task 2.15: Last-Backup Indicator in the Data View Tests', () => {
         });
 
         // Verify lastBackupAt is undefined in legacy backup
-        const storedLastBackup = await windowInstance.getConfig('lastBackupAt');
+        const storedLastBackup = await getConfig('lastBackupAt');
         expect(storedLastBackup).toBeUndefined();
 
-        await windowInstance.updateLastBackupDisplay();
+        await updateLastBackupDisplay();
         const backupIndicator = documentInstance.getElementById('last-backup-display');
         expect(backupIndicator.textContent.trim()).toBe('No backup yet');
     });
 
-    it('8. Two Energy Modes: tracker canvas has zero backup banners, badges, or reminders', () => {
+    it('leaves tracker canvas with zero backup banners, badges, or reminders', () => {
         const trackerCanvas = documentInstance.getElementById('tracker-canvas');
         expect(trackerCanvas).not.toBeNull();
 
@@ -162,7 +165,7 @@ describe('Task 2.15: Last-Backup Indicator in the Data View Tests', () => {
         expect(trackerCanvas.querySelector('.last-backup-indicator')).toBeNull();
     });
 
-    it('9. Terminology Compliance: Data view copy does not contain forbidden terms', () => {
+    it('ensures Data view copy does not contain forbidden terms', () => {
         const dataCanvas = documentInstance.getElementById('data-canvas');
         expect(dataCanvas).not.toBeNull();
 

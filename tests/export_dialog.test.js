@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setupTestDOM, waitFor } from './test-utils.js';
+import { put, getAll } from '../public/js/storage/db.js';
+import { updateExportSummary } from '../public/js/ui/dialogs.js';
 
-describe('Task 2.18: Export Dialog with Scope Checkboxes Tests', () => {
+describe('Export Dialog with Scope Checkboxes', () => {
     let windowInstance;
     let documentInstance;
 
@@ -19,10 +21,10 @@ describe('Task 2.18: Export Dialog with Scope Checkboxes Tests', () => {
                 { questionId: 'q_energy', score: 4, status: 'answered' }
             ]
         };
-        await windowInstance.put('entries', sampleEntry);
+        await put('entries', sampleEntry);
     });
 
-    it('1. Data View Button Layout: keeps primary Back Up Everything button and secondary Choose button', () => {
+    it('keeps primary Back Up Everything button and secondary Choose button in Data view layout', () => {
         const backupAllButton = documentInstance.getElementById('button-export-all');
         const chooseButton = documentInstance.getElementById('button-export-choose');
 
@@ -33,7 +35,7 @@ describe('Task 2.18: Export Dialog with Scope Checkboxes Tests', () => {
         expect(chooseButton.textContent.trim()).toBe('Choose What to Export…');
     });
 
-    it('2. Modal Accessibility & Defaults: opens on secondary button tap, checked by default, hints accessible',
+    it('opens on secondary button tap, checked by default, hints accessible',
         async () => {
             const chooseButton = documentInstance.getElementById('button-export-choose');
             const overlay = documentInstance.getElementById('export-dialog-overlay');
@@ -63,7 +65,7 @@ describe('Task 2.18: Export Dialog with Scope Checkboxes Tests', () => {
             expect(settingsHint.textContent).toContain('full question catalog');
         });
 
-    it('3. Ordinary Dialog Buttons: buttons do not use hold-to-confirm barrier (Bug 7.1)', () => {
+    it('ensures buttons do not use hold-to-confirm barrier', () => {
         const exportSubmitButton = documentInstance.getElementById('button-export-submit');
         const exportCancelButton = documentInstance.getElementById('button-export-cancel');
 
@@ -73,7 +75,7 @@ describe('Task 2.18: Export Dialog with Scope Checkboxes Tests', () => {
         expect(exportCancelButton.querySelector('.hold-indicator')).toBeNull();
     });
 
-    it('4. Dynamic Summary Updates: reflects both, history-only, settings-only, and neither', async () => {
+    it('updates dynamic summary for both, history-only, settings-only, and neither', async () => {
         const chooseButton = documentInstance.getElementById('button-export-choose');
         const historyCheckbox = documentInstance.getElementById('export-scope-history');
         const settingsCheckbox = documentInstance.getElementById('export-scope-settings');
@@ -81,9 +83,9 @@ describe('Task 2.18: Export Dialog with Scope Checkboxes Tests', () => {
         const exportSubmitButton = documentInstance.getElementById('button-export-submit');
 
         chooseButton.click();
-        await windowInstance.updateExportSummary();
+        await updateExportSummary();
 
-        const allQuestions = await windowInstance.getAll('questions');
+        const allQuestions = await getAll('questions');
         const questionsCount = allQuestions.length;
 
         // 1. Both checked: "Everything — 1 Entry & X questions"
@@ -95,7 +97,7 @@ describe('Task 2.18: Export Dialog with Scope Checkboxes Tests', () => {
         // 2. History only: "History only — 1 Entry"
         settingsCheckbox.checked = false;
         settingsCheckbox.dispatchEvent(new windowInstance.Event('change'));
-        await windowInstance.updateExportSummary();
+        await updateExportSummary();
 
         expect(summaryTextElement.textContent).toBe('History only — 1 Entry');
         expect(exportSubmitButton.disabled).toBe(false);
@@ -103,7 +105,7 @@ describe('Task 2.18: Export Dialog with Scope Checkboxes Tests', () => {
         // 3. Neither checked: disabled with visible reason
         historyCheckbox.checked = false;
         historyCheckbox.dispatchEvent(new windowInstance.Event('change'));
-        await windowInstance.updateExportSummary();
+        await updateExportSummary();
 
         expect(exportSubmitButton.disabled).toBe(true);
         expect(summaryTextElement.textContent).toBe('Select at least one scope to export.');
@@ -113,7 +115,7 @@ describe('Task 2.18: Export Dialog with Scope Checkboxes Tests', () => {
         // 4. Settings only: "Settings only — X questions & preferences"
         settingsCheckbox.checked = true;
         settingsCheckbox.dispatchEvent(new windowInstance.Event('change'));
-        await windowInstance.updateExportSummary();
+        await updateExportSummary();
 
         expect(exportSubmitButton.disabled).toBe(false);
         expect(summaryTextElement.textContent).toBe(
@@ -122,7 +124,7 @@ describe('Task 2.18: Export Dialog with Scope Checkboxes Tests', () => {
         expect(summaryTextElement.classList.contains('is-empty')).toBe(false);
     });
 
-    it('5. Escape Key: closes modal and returns focus to opener button', async () => {
+    it('closes modal and returns focus to opener button on Escape key', async () => {
         const chooseButton = documentInstance.getElementById('button-export-choose');
         const overlay = documentInstance.getElementById('export-dialog-overlay');
 
@@ -142,7 +144,7 @@ describe('Task 2.18: Export Dialog with Scope Checkboxes Tests', () => {
         expect(documentInstance.activeElement).toBe(chooseButton);
     });
 
-    it('6. Cancel Button: closes modal and returns focus to opener button', async () => {
+    it('closes modal and returns focus to opener button on Cancel button', async () => {
         const chooseButton = documentInstance.getElementById('button-export-choose');
         const overlay = documentInstance.getElementById('export-dialog-overlay');
         const exportCancelButton = documentInstance.getElementById('button-export-cancel');
@@ -158,7 +160,7 @@ describe('Task 2.18: Export Dialog with Scope Checkboxes Tests', () => {
         expect(documentInstance.activeElement).toBe(chooseButton);
     });
 
-    it('7. Focus Trapping: Tab key wraps within modal dialog', async () => {
+    it('traps focus so Tab key wraps within modal dialog', async () => {
         const chooseButton = documentInstance.getElementById('button-export-choose');
         const overlay = documentInstance.getElementById('export-dialog-overlay');
         const historyCheckbox = documentInstance.getElementById('export-scope-history');
@@ -190,7 +192,7 @@ describe('Task 2.18: Export Dialog with Scope Checkboxes Tests', () => {
         expect(documentInstance.activeElement).toBe(exportSubmitButton);
     });
 
-    it('8. Export Submission: triggers exportBackup with selected scopes and closes modal', async () => {
+    it('triggers exportBackup with selected scopes and closes modal on export submission', async () => {
         const chooseButton = documentInstance.getElementById('button-export-choose');
         const overlay = documentInstance.getElementById('export-dialog-overlay');
         const settingsCheckbox = documentInstance.getElementById('export-scope-settings');
@@ -207,7 +209,7 @@ describe('Task 2.18: Export Dialog with Scope Checkboxes Tests', () => {
         // Uncheck settings to make it history-only
         settingsCheckbox.checked = false;
         settingsCheckbox.dispatchEvent(new windowInstance.Event('change'));
-        await windowInstance.updateExportSummary();
+        await updateExportSummary();
 
         exportSubmitButton.click();
 

@@ -2,8 +2,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setupTestDOM } from './test-utils.js';
 import fs from 'node:fs';
 import path from 'node:path';
+import { registerServiceWorker, setupServiceWorkerLifecycle } from '../public/js/main.js';
 
-describe('Phase 6: Offline Capabilities & Service Worker (Task 6.1, 6.2, 6.3)', () => {
+describe('Offline Capabilities and Service Worker', () => {
     let windowInstance;
     let documentInstance;
 
@@ -13,7 +14,7 @@ describe('Phase 6: Offline Capabilities & Service Worker (Task 6.1, 6.2, 6.3)', 
         documentInstance = setup.document;
     });
 
-    it('1. Service worker file (public/sw.js) exists and contains precache assets', () => {
+    it('contains precache assets in public/sw.js service worker file', () => {
         const serviceWorkerPath = path.join(process.cwd(), 'public', 'sw.js');
         expect(fs.existsSync(serviceWorkerPath)).toBe(true);
 
@@ -29,7 +30,7 @@ describe('Phase 6: Offline Capabilities & Service Worker (Task 6.1, 6.2, 6.3)', 
         expect(serviceWorkerContent).toContain('/sw.js');
     });
 
-    it('2. Service worker registers on window load event or via registerServiceWorker', async () => {
+    it('registers on window load event or via registerServiceWorker', async () => {
         let registeredPath = null;
         let registeredOptions = null;
         windowInstance.navigator.serviceWorker.register = vi.fn().mockImplementation(
@@ -47,13 +48,13 @@ describe('Phase 6: Offline Capabilities & Service Worker (Task 6.1, 6.2, 6.3)', 
             }
         );
 
-        await windowInstance.registerServiceWorker();
+        await registerServiceWorker();
 
         expect(registeredPath).toBe('sw.js');
         expect(registeredOptions).toEqual({ scope: './' });
     });
 
-    it('3. Web App Manifest exists with required PWA standalone parameters and icons', () => {
+    it('provides web app manifest with required PWA standalone parameters and icons', () => {
         const manifestPath = path.join(process.cwd(), 'public', 'manifest.json');
         expect(fs.existsSync(manifestPath)).toBe(true);
 
@@ -70,7 +71,7 @@ describe('Phase 6: Offline Capabilities & Service Worker (Task 6.1, 6.2, 6.3)', 
         expect(iconSources.some(src => src.endsWith('pwa-512x512.png'))).toBe(true);
     });
 
-    it('4. index.html links to manifest, favicon, and mobile meta headers', () => {
+    it('links to manifest, favicon, and mobile meta headers in index.html', () => {
         const manifestLink = documentInstance.querySelector('link[rel="manifest"]');
         expect(manifestLink).toBeTruthy();
         expect(manifestLink.getAttribute('href')).toBe('manifest.json');
@@ -82,7 +83,7 @@ describe('Phase 6: Offline Capabilities & Service Worker (Task 6.1, 6.2, 6.3)', 
         expect(appleTouchIcon).toBeTruthy();
     });
 
-    it('5. Service worker lifecycle monitors installing worker state and prompts on update (Task 6.3)', () => {
+    it('monitors installing worker state and prompts on update in service worker lifecycle', () => {
         const registrationListeners = new Map();
         const mockRegistration = {
             scope: './',
@@ -101,7 +102,7 @@ describe('Phase 6: Offline Capabilities & Service Worker (Task 6.1, 6.2, 6.3)', 
             })
         };
 
-        windowInstance.setupServiceWorkerLifecycle(mockRegistration);
+        setupServiceWorkerLifecycle(mockRegistration);
 
         // Simulate updatefound with active controller
         Object.defineProperty(windowInstance.navigator.serviceWorker, 'controller', {
@@ -124,7 +125,7 @@ describe('Phase 6: Offline Capabilities & Service Worker (Task 6.1, 6.2, 6.3)', 
         expect(dialogTitleElement.textContent).toContain('Update');
     });
 
-    it('6. controllerchange event triggers active tab reload (Task 6.3)', () => {
+    it('triggers active tab reload on controllerchange event', () => {
         if (windowInstance.navigator?.serviceWorker) {
             delete windowInstance.navigator.serviceWorker._hasControllerChangeListener;
         }
@@ -147,7 +148,7 @@ describe('Phase 6: Offline Capabilities & Service Worker (Task 6.1, 6.2, 6.3)', 
             reloadTriggered = true;
         });
 
-        windowInstance.setupServiceWorkerLifecycle(mockRegistration);
+        setupServiceWorkerLifecycle(mockRegistration);
 
         const controllerChangeCallback = serviceWorkerListeners.get('controllerchange');
         expect(controllerChangeCallback).toBeDefined();
@@ -156,7 +157,7 @@ describe('Phase 6: Offline Capabilities & Service Worker (Task 6.1, 6.2, 6.3)', 
         expect(reloadTriggered).toBe(true);
     });
 
-    it('7. visibilitychange and focus trigger registration.update() lifecycle re-checks (Task 6.3)', () => {
+    it('triggers registration.update() lifecycle re-checks on visibilitychange and focus', () => {
         const mockRegistration = {
             scope: './',
             installing: null,
@@ -164,7 +165,7 @@ describe('Phase 6: Offline Capabilities & Service Worker (Task 6.1, 6.2, 6.3)', 
             update: vi.fn().mockResolvedValue(undefined)
         };
 
-        windowInstance.setupServiceWorkerLifecycle(mockRegistration);
+        setupServiceWorkerLifecycle(mockRegistration);
 
         // Trigger visibilitychange with visible state
         Object.defineProperty(documentInstance, 'visibilityState', {

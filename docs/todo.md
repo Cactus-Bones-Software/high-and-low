@@ -616,7 +616,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
       and `contrast: "low"`; shows `seedVersion: 3`.
     - `docs/state.md` calls `decisions.md` "append-only"; `docs/versioning.md` says it "logs rationale for bumps".
       Both contradict `AGENTS.md` and the header of `decisions.md`.
-    - `docs/state.md` lists `question_copying.test.js`; the real file is `question-copying.test.js`.
+    - `docs/state.md` lists `question_copying.test.js`; the real file is `question_copying.test.js`.
     - `docs/state.md` documents `contrast` as `'standard'` or `'high'`, but `index.html` uses `data-contrast="low"`.
       Determine which is correct, and fix the docs or file a bug in Phase 7.
     - `biome.json` uses `lineWidth: 100`; `AGENTS.md` specifies a 120-column limit. Align them.

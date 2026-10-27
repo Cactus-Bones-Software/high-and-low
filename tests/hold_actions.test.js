@@ -2,14 +2,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setupTestDOM, sleep, dispatchContextMenuEvent } from './test-utils.js';
 
-let domInstance;
+let _domInstance;
 let windowInstance;
 let documentInstance;
 
 describe('Hold-To-Confirm Actions & Mobile Touch Compatibility', () => {
     beforeEach(async () => {
         const environment = await setupTestDOM();
-        domInstance = environment.dom;
+        _domInstance = environment.dom;
         windowInstance = environment.window;
         documentInstance = environment.document;
     });

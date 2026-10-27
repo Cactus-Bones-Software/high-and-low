@@ -16,8 +16,9 @@ import {
     DEFAULT_LANGUAGE
 } from '../public/js/localization.js';
 import { STATE } from '../public/js/state.js';
+import { getConfig } from '../public/js/storage/db.js';
 
-describe('Phase 8: Internationalization & Localization Pass (Task 8.3)', () => {
+describe('Internationalization and Localization Pass', () => {
     let testHarnessEnvironment = null;
 
     beforeEach(async () => {
@@ -60,7 +61,7 @@ describe('Phase 8: Internationalization & Localization Pass (Task 8.3)', () => {
         vi.restoreAllMocks();
     });
 
-    describe('1. Translation Engine & Dictionary Lookups (t)', () => {
+    describe('Translation Engine & Dictionary Lookups (t)', () => {
         it('returns correct translations for default English language', () => {
             STATE.language = 'en';
             expect(t('common.yes')).toBe('Yes');
@@ -104,7 +105,7 @@ describe('Phase 8: Internationalization & Localization Pass (Task 8.3)', () => {
         });
     });
 
-    describe('2. Built-in Question Localization (getLocalizedQuestion)', () => {
+    describe('Built-in Question Localization (getLocalizedQuestion)', () => {
         it('returns question unchanged when language is English', () => {
             STATE.language = 'en';
             const builtInQuestion = {
@@ -159,7 +160,7 @@ describe('Phase 8: Internationalization & Localization Pass (Task 8.3)', () => {
         });
     });
 
-    describe('3. DOM Translation Engine (applyTranslations & translateElement)', () => {
+    describe('DOM Translation Engine (applyTranslations & translateElement)', () => {
         it('translates elements with data-i18n, placeholder, aria-label, and title', () => {
             const container = testHarnessEnvironment.document.createElement('div');
             container.innerHTML = `
@@ -197,14 +198,14 @@ describe('Phase 8: Internationalization & Localization Pass (Task 8.3)', () => {
         });
     });
 
-    describe('4. Language Switching & State Persistence (setLanguage)', () => {
+    describe('Language Switching & State Persistence (setLanguage)', () => {
         it('updates STATE.language and persists to localStorage and IndexedDB', async () => {
             await setLanguage('test');
             expect(getCurrentLanguage()).toBe('test');
             expect(STATE.language).toBe('test');
             expect(testHarnessEnvironment.window.localStorage.getItem('language')).toBe('test');
 
-            const storedConfig = await testHarnessEnvironment.window.getConfig('language');
+            const storedConfig = await getConfig('language');
             expect(storedConfig).toBe('test');
 
             // Switch back to English
@@ -221,7 +222,7 @@ describe('Phase 8: Internationalization & Localization Pass (Task 8.3)', () => {
         });
     });
 
-    describe('5. Settings UI Integration: Language Selector', () => {
+    describe('Settings UI Integration: Language Selector', () => {
         it(
             'changes language and re-translates tracker UI when user selects secondary language in settings',
             async () => {
@@ -251,7 +252,7 @@ describe('Phase 8: Internationalization & Localization Pass (Task 8.3)', () => {
             });
     });
 
-    describe('6. JSON-Only Locale Loading (manifest.json + <code>.json)', () => {
+    describe('JSON-Only Locale Loading (manifest.json + <code>.json)', () => {
         const localesDirectory = resolve(process.cwd(), 'public', 'locales');
 
         it('every locale listed in manifest.json has a matching JSON file', () => {

@@ -3,8 +3,9 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setupTestDOM, isElementInert } from './test-utils.js';
+import { STATE } from '../public/js/state.js';
 
-let domInstance;
+let _domInstance;
 let windowInstance;
 let documentInstance;
 
@@ -20,15 +21,15 @@ function expectDrawerState(document, { isOpen }) {
     expect(isElementInert(trackerCanvas)).toBe(isOpen);
 }
 
-describe('Navigation Drawer State & Container Placement Tests', () => {
+describe('Navigation Drawer State and Container Placement', () => {
     beforeEach(async () => {
         const environment = await setupTestDOM();
-        domInstance = environment.dom;
+        _domInstance = environment.dom;
         windowInstance = environment.window;
         documentInstance = environment.document;
     });
 
-    it('1. Initial State Sanity Check: Drawer closed, tracker canvas active, containers properly positioned', () => {
+    it('initial state sanity check: drawer closed, tracker canvas active, containers properly positioned', () => {
         const trackerCanvas = documentInstance.getElementById('tracker-canvas');
         const historyCanvas = documentInstance.getElementById('history-canvas');
 
@@ -43,7 +44,7 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
         expect(historyCanvas.classList.contains('view-active')).toBe(false);
     });
 
-    it('2. Action: Opening Drawer via Menu Toggle Button (#button-menu)', () => {
+    it('opens drawer via menu toggle button (#button-menu)', () => {
         const menuButton = documentInstance.getElementById('button-menu');
         const trackerCanvas = documentInstance.getElementById('tracker-canvas');
 
@@ -53,11 +54,11 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
         // State changes
         expectDrawerState(documentInstance, { isOpen: true });
 
-        // Container placement check: active canvas remains .view-active (styled dimmed/scaled via CSS rule body.drawer-open .app-canvas.view-active)
+        // Container placement check: active canvas remains .view-active
         expect(trackerCanvas.classList.contains('view-active')).toBe(true);
     });
 
-    it('3. Action: Closing Drawer via Menu Toggle Button (#button-menu) when open', () => {
+    it('closes drawer via menu toggle button (#button-menu) when open', () => {
         const menuButton = documentInstance.getElementById('button-menu');
         const trackerCanvas = documentInstance.getElementById('tracker-canvas');
 
@@ -72,7 +73,7 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
         expect(trackerCanvas.classList.contains('view-active')).toBe(true);
     });
 
-    it('4. Action: Closing Drawer via Backdrop Overlay (#drawer-overlay)', () => {
+    it('closes drawer via backdrop overlay (#drawer-overlay)', () => {
         const menuButton = documentInstance.getElementById('button-menu');
         const overlay = documentInstance.getElementById('drawer-overlay');
 
@@ -87,7 +88,7 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
         expectDrawerState(documentInstance, { isOpen: false });
     });
 
-    it('5. Action: Closing Drawer via Escape Key', () => {
+    it('closes drawer via escape key', () => {
         const menuButton = documentInstance.getElementById('button-menu');
 
         // Open
@@ -101,7 +102,7 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
         expectDrawerState(documentInstance, { isOpen: false });
     });
 
-    it('6. Action: Navigating to all options in frequency order (Mood Tracker, History, Questions, Data, Settings)', () => {
+    it('navigates to all options in frequency order', () => {
         const menuButton = documentInstance.getElementById('button-menu');
         const body = documentInstance.body;
         const drawer = documentInstance.getElementById('side-drawer');
@@ -121,7 +122,9 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
 
         // Step A: Navigate to History (history-canvas)
         menuButton.click(); // Open drawer
-        const historyNavigationButton = documentInstance.querySelector('.drawer-nav-button[data-target="history-canvas"]');
+        const historyNavigationButton = documentInstance.querySelector(
+            '.drawer-nav-button[data-target="history-canvas"]'
+        );
         historyNavigationButton.click();
 
         // Sanity checks for container placement
@@ -139,7 +142,9 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
 
         // Step B: Navigate to Questions Catalog (questions-canvas)
         menuButton.click(); // Open drawer
-        const questionsNavigationButton = documentInstance.querySelector('.drawer-nav-button[data-target="questions-canvas"]');
+        const questionsNavigationButton = documentInstance.querySelector(
+            '.drawer-nav-button[data-target="questions-canvas"]'
+        );
         questionsNavigationButton.click();
 
         const questionsCanvas = documentInstance.getElementById('questions-canvas');
@@ -162,7 +167,9 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
 
         // Step D: Navigate to Settings (settings-canvas)
         menuButton.click();
-        const settingsNavigationButton = documentInstance.querySelector('.drawer-nav-button[data-target="settings-canvas"]');
+        const settingsNavigationButton = documentInstance.querySelector(
+            '.drawer-nav-button[data-target="settings-canvas"]'
+        );
         settingsNavigationButton.click();
 
         const settingsCanvas = documentInstance.getElementById('settings-canvas');
@@ -173,7 +180,9 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
 
         // Step E: Navigate to About (about-canvas)
         menuButton.click();
-        const aboutNavigationButton = documentInstance.querySelector('.drawer-nav-button[data-target="about-canvas"]');
+        const aboutNavigationButton = documentInstance.querySelector(
+            '.drawer-nav-button[data-target="about-canvas"]'
+        );
         aboutNavigationButton.click();
 
         const aboutCanvas = documentInstance.getElementById('about-canvas');
@@ -184,7 +193,9 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
 
         // Step F: Navigate back to Mood Tracker (tracker-canvas)
         menuButton.click();
-        const trackerNavigationButton = documentInstance.querySelector('.drawer-nav-button[data-target="tracker-canvas"]');
+        const trackerNavigationButton = documentInstance.querySelector(
+            '.drawer-nav-button[data-target="tracker-canvas"]'
+        );
         trackerNavigationButton.click();
 
         expect(body.classList.contains('drawer-open')).toBe(false);
@@ -193,12 +204,14 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
         expect(trackerNavigationButton.classList.contains('active')).toBe(true);
     });
 
-    it('7. Action: Re-selecting currently active canvas inside drawer', () => {
+    it('handles re-selecting currently active canvas inside drawer', () => {
         const menuButton = documentInstance.getElementById('button-menu');
         const trackerCanvas = documentInstance.getElementById('tracker-canvas');
 
         menuButton.click(); // Open
-        const trackerNavigationButton = documentInstance.querySelector('.drawer-nav-button[data-target="tracker-canvas"]');
+        const trackerNavigationButton = documentInstance.querySelector(
+            '.drawer-nav-button[data-target="tracker-canvas"]'
+        );
         trackerNavigationButton.click();
 
         // Drawer should close, canvas remains active
@@ -207,7 +220,7 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
         expect(isElementInert(trackerCanvas)).toBe(false);
     });
 
-    it('8. Action: Quick options section removed from drawer', () => {
+    it('ensures quick options section is removed from drawer', () => {
         const quickPreferences = documentInstance.querySelector('.drawer-quick-prefs');
         const drawerHandednessSelect = documentInstance.getElementById('drawer-handedness-select');
         const drawerThemeSelect = documentInstance.getElementById('drawer-theme-select');
@@ -217,7 +230,7 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
         expect(drawerThemeSelect).toBeNull();
     });
 
-    it('9. Console Debug Controls: setDebugBounds and toggleDebugBounds', () => {
+    it('attaches setDebugBounds and toggleDebugBounds console debug controls', () => {
         expect(windowInstance.setDebugBounds).toBeDefined();
         expect(windowInstance.toggleDebugBounds).toBeDefined();
 
@@ -228,7 +241,7 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
         expect(documentInstance.body.getAttribute('data-debug-bounds')).toBe('false');
     });
 
-    it('10. Landscape Mobile Layout Verification: CSS contains 2-column landscape grid rules and action buttons', () => {
+    it('contains landscape mobile layout 2-column landscape grid rules and action buttons', () => {
         const cssContent = readFileSync(resolve(__dirname, '../public/style.css'), 'utf8');
         expect(cssContent).toContain('@media (orientation: landscape) and (max-height: 600px)');
         expect(cssContent).toContain('"header input"');
@@ -249,7 +262,7 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
         expect(skipButton).not.toBeNull();
     });
 
-    it('11. Task 2.13: Restart Check-In action button in drawer resets active check-in to Question 1 and closes drawer', async () => {
+    it('resets active check-in to Question 1 and closes drawer when Restart Check-In is clicked', async () => {
         const menuButton = documentInstance.getElementById('button-menu');
         const restartCheckinButton = documentInstance.getElementById('button-restart-checkin');
         const trackerCanvas = documentInstance.getElementById('tracker-canvas');
@@ -263,8 +276,8 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
             scoreButton.click();
         }
 
-        expect(windowInstance.STATE.currentQuestionIndex).toBeGreaterThan(0);
-        expect(windowInstance.STATE.checkinAnswers.length).toBeGreaterThan(0);
+        expect(STATE.currentQuestionIndex).toBeGreaterThan(0);
+        expect(STATE.checkinAnswers.length).toBeGreaterThan(0);
 
         // Open navigation drawer
         menuButton.click();
@@ -280,9 +293,9 @@ describe('Navigation Drawer State & Container Placement Tests', () => {
         expect(trackerCanvas.classList.contains('view-active')).toBe(true);
 
         // State must be reset back to Question 1
-        expect(windowInstance.STATE.currentQuestionIndex).toBe(0);
-        expect(windowInstance.STATE.checkinAnswers.length).toBe(0);
-        expect(windowInstance.STATE.checkinNote).toBeNull();
+        expect(STATE.currentQuestionIndex).toBe(0);
+        expect(STATE.checkinAnswers.length).toBe(0);
+        expect(STATE.checkinNote).toBeNull();
 
         // Verify tracker UI shows Question 1 progress
         expect(progressElement.textContent).toContain('1 of');

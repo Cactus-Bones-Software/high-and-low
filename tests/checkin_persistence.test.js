@@ -1,14 +1,22 @@
-// @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
 import { setupTestDOM, sleep, createSampleCheckIn } from './test-utils.js';
+import { STATE } from '../public/js/state.js';
+import { navigateTo } from '../public/js/ui/navigation.js';
+import { finalizeCheckin, startNewCheckIn } from '../public/js/checkin.js';
+import {
+    saveActiveCheckin,
+    saveActiveView,
+    restoreActiveCheckin,
+    getStoredActiveView
+} from '../public/js/storage/session.js';
 
-let domInstance;
+let _domInstance;
 let windowInstance;
 let documentInstance;
 
 async function initializeTestEnvironment(customSessionStorage = {}) {
     const environment = await setupTestDOM(customSessionStorage);
-    domInstance = environment.dom;
+    _domInstance = environment.dom;
     windowInstance = environment.window;
     documentInstance = environment.document;
 }
@@ -27,9 +35,9 @@ describe('Check-in and View State Persistence (Theme Switch & Reload Resilience)
         const noteButtonLabel = documentInstance.getElementById('button-notes').querySelector('.button-label');
         expect(noteButtonLabel.textContent).toBe('Note Attached ✓');
 
-        expect(windowInstance.STATE.currentQuestionIndex).toBe(2);
-        expect(windowInstance.STATE.checkinAnswers.length).toBe(2);
-        expect(windowInstance.STATE.checkinNote).toBe('Feeling decent this afternoon.');
+        expect(STATE.currentQuestionIndex).toBe(2);
+        expect(STATE.checkinAnswers.length).toBe(2);
+        expect(STATE.checkinNote).toBe('Feeling decent this afternoon.');
     });
 
     it('restores currently active view on reload', async () => {
@@ -64,7 +72,7 @@ describe('Check-in and View State Persistence (Theme Switch & Reload Resilience)
     it('persists view in sessionStorage when navigateTo is called', async () => {
         await initializeTestEnvironment();
 
-        windowInstance.navigateTo('history-canvas');
+        navigateTo('history-canvas');
 
         expect(windowInstance.sessionStorage.getItem('high_and_low_active_view')).toBe('history-canvas');
     });
@@ -72,7 +80,7 @@ describe('Check-in and View State Persistence (Theme Switch & Reload Resilience)
     it('clears active check-in in sessionStorage when check-in is finalized', async () => {
         await initializeTestEnvironment();
 
-        windowInstance.finalizeCheckin();
+        finalizeCheckin();
         await sleep(50);
 
         expect(windowInstance.sessionStorage.getItem('high_and_low_active_checkin')).toBeNull();
@@ -88,10 +96,10 @@ describe('Check-in and View State Persistence (Theme Switch & Reload Resilience)
             })
         });
 
-        await windowInstance.startNewCheckIn();
+        await startNewCheckIn();
 
         expect(windowInstance.sessionStorage.getItem('high_and_low_active_checkin')).toBeNull();
-        expect(windowInstance.STATE.currentQuestionIndex).toBe(0);
+        expect(STATE.currentQuestionIndex).toBe(0);
     });
 
     it('discards stale check-in if older than 30 minutes (30m TTL expiry)', async () => {
@@ -106,9 +114,9 @@ describe('Check-in and View State Persistence (Theme Switch & Reload Resilience)
         // Should have reset to Question 1 because the check-in timed out
         const progressText = documentInstance.getElementById('progress-text');
         expect(progressText.textContent).toContain('Question 1 of');
-        expect(windowInstance.STATE.currentQuestionIndex).toBe(0);
-        expect(windowInstance.STATE.checkinAnswers.length).toBe(0);
-        expect(windowInstance.STATE.checkinNote).toBeNull();
+        expect(STATE.currentQuestionIndex).toBe(0);
+        expect(STATE.checkinAnswers.length).toBe(0);
+        expect(STATE.checkinNote).toBeNull();
         expect(windowInstance.sessionStorage.getItem('high_and_low_active_checkin')).toBeNull();
     });
 
@@ -123,7 +131,7 @@ describe('Check-in and View State Persistence (Theme Switch & Reload Resilience)
         });
 
         // Test saveActiveCheckin handles error gracefully
-        expect(() => windowInstance.saveActiveCheckin()).not.toThrow();
+        expect(() => saveActiveCheckin()).not.toThrow();
         expect(warnSpy).toHaveBeenCalledWith(
             'Failed to save active check-in state to sessionStorage:',
             expect.any(Error)
@@ -131,7 +139,7 @@ describe('Check-in and View State Persistence (Theme Switch & Reload Resilience)
 
         // Test saveActiveView handles error gracefully
         warnSpy.mockClear();
-        expect(() => windowInstance.saveActiveView('settings-canvas')).not.toThrow();
+        expect(() => saveActiveView('settings-canvas')).not.toThrow();
         expect(warnSpy).toHaveBeenCalledWith(
             'Failed to save active view state to sessionStorage:',
             expect.any(Error)
@@ -145,14 +153,14 @@ describe('Check-in and View State Persistence (Theme Switch & Reload Resilience)
         });
 
         warnSpy.mockClear();
-        expect(() => windowInstance.restoreActiveCheckin()).not.toThrow();
+        expect(() => restoreActiveCheckin()).not.toThrow();
         expect(warnSpy).toHaveBeenCalledWith(
             'Failed to restore active check-in state from sessionStorage:',
             expect.any(Error)
         );
 
         warnSpy.mockClear();
-        expect(windowInstance.getStoredActiveView()).toBeNull();
+        expect(getStoredActiveView()).toBeNull();
         expect(warnSpy).toHaveBeenCalledWith(
             'Failed to retrieve active view state from sessionStorage:',
             expect.any(Error)

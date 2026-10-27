@@ -7,8 +7,10 @@ import {
     loadQuestionsView
 } from '../public/js/ui/question-view.js';
 import { executeHoldAction } from '../public/js/ui/hold-actions.js';
+import { getConfig } from '../public/js/storage/db.js';
+import { STATE } from '../public/js/state.js';
 
-describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
+describe('Questions View — Search, Layout & Modal', () => {
     let windowInstance;
     let documentInstance;
 
@@ -18,7 +20,7 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
         documentInstance = setup.document;
     });
 
-    it('1. questionMatchesSearch matches text, short label, and tags case-insensitively', () => {
+    it('matches text, short label, and tags case-insensitively in questionMatchesSearch', () => {
         const sampleQuestion = {
             text: 'How heavy or deep is your sadness right now?',
             shortLabel: 'Sadness Depth',
@@ -32,7 +34,7 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
         expect(questionMatchesSearch(sampleQuestion, '')).toBe(true);
     });
 
-    it('2. partitionQuestionsForView splits active tracker order and lists all questions in catalog', () => {
+    it('splits active tracker order and lists all questions in catalog in partitionQuestionsForView', () => {
         const allQuestions = [
             { id: 'q_energy', text: 'Energy', shortLabel: 'Energy', builtIn: true, archived: false, tags: ['Energy'] },
             { id: 'q_sadness', text: 'Sadness', shortLabel: 'Sadness', builtIn: true, archived: false, tags: ['Mood'] },
@@ -52,7 +54,7 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
         ]);
     });
 
-    it('3. Navigating to questions view renders active cards and catalog cards', async () => {
+    it('renders active cards and catalog cards when navigating to questions view', async () => {
         await navigateToQuestionsCanvas(windowInstance, documentInstance);
         await waitFor(() => documentInstance.querySelectorAll('.question-card').length >= 8);
 
@@ -73,7 +75,7 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
         expect(catalogList.querySelector('button[role="switch"]')).toBeTruthy();
     });
 
-    it('4. Search input filters both sections in real time', async () => {
+    it('filters both sections in real time via search input', async () => {
         await navigateToQuestionsCanvas(windowInstance, documentInstance);
         await waitFor(() => documentInstance.querySelectorAll('.question-card').length >= 7);
 
@@ -92,7 +94,7 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
         expect(documentInstance.getElementById('questions-catalog-empty').hidden).toBe(true);
     });
 
-    it('5. Add-question FAB opens modal, focuses first field, and closes on Escape with focus return', async () => {
+    it('opens modal, focuses first field, and closes on Escape with focus return on Add-question FAB', async () => {
         await navigateToQuestionsCanvas(windowInstance, documentInstance);
         await loadQuestionsView();
 
@@ -114,7 +116,7 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
         expect(documentInstance.activeElement).toBe(addButton);
     });
 
-    it('6. Saving a custom question refreshes lists and closes the modal', async () => {
+    it('refreshes lists and closes modal when saving a custom question', async () => {
         await navigateToQuestionsCanvas(windowInstance, documentInstance);
         await loadQuestionsView();
 
@@ -139,7 +141,7 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
         expect(documentInstance.getElementById('notice-dialog-overlay').classList.contains('is-open')).toBe(true);
     });
 
-    it('7. Restores question cards when questions-canvas is the persisted view on refresh', async () => {
+    it('restores question cards when questions-canvas is the persisted view on refresh', async () => {
         const setup = await setupTestDOM({ high_and_low_active_view: 'questions-canvas' });
         const restoredDocument = setup.document;
 
@@ -151,7 +153,7 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
         expect(restoredDocument.getElementById('questions-catalog-list').querySelectorAll('.question-card').length).toBe(8);
     });
 
-    it('8. Active tracker cards reorder the persisted tracker sequence', async () => {
+    it('reorders the persisted tracker sequence via active tracker cards', async () => {
         await navigateToQuestionsCanvas(windowInstance, documentInstance);
         await waitFor(() => documentInstance.querySelectorAll('#questions-active-list .question-card').length === 4);
 
@@ -160,17 +162,17 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
         firstCard.querySelector('button[data-action="move-down"]').click();
 
         await waitFor(async () => {
-            const activeSetIds = await windowInstance.getConfig('activeQuestionSet');
+            const activeSetIds = await getConfig('activeQuestionSet');
             return activeSetIds[1] === firstQuestionId;
         });
 
         const renderedIds = [...documentInstance.querySelectorAll('#questions-active-list .question-card')]
             .map(card => card.dataset.questionId);
         expect(renderedIds[1]).toBe(firstQuestionId);
-        expect(windowInstance.STATE.activeQuestions[1].id).toBe(firstQuestionId);
+        expect(STATE.activeQuestions[1].id).toBe(firstQuestionId);
     });
 
-    it('9. In Tracker switch removes an active question into the catalog', async () => {
+    it('removes an active question into the catalog on In Tracker switch', async () => {
         await navigateToQuestionsCanvas(windowInstance, documentInstance);
         await waitFor(() => documentInstance.querySelectorAll('#questions-active-list .question-card').length === 4);
 
@@ -180,7 +182,7 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
         trackerToggle.click();
 
         await waitFor(async () => {
-            const activeSetIds = await windowInstance.getConfig('activeQuestionSet');
+            const activeSetIds = await getConfig('activeQuestionSet');
             return !activeSetIds.includes(questionId);
         });
 
@@ -189,10 +191,10 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
         );
         expect(catalogCard).toBeTruthy();
         expect(catalogCard.querySelector('.question-tracker-toggle').getAttribute('aria-checked')).toBe('false');
-        expect(windowInstance.STATE.activeQuestions.some(question => question.id === questionId)).toBe(false);
+        expect(STATE.activeQuestions.some(question => question.id === questionId)).toBe(false);
     });
 
-    it('10. Catalog switches add inactive questions to the tracker', async () => {
+    it('adds inactive questions to tracker on catalog switches', async () => {
         await navigateToQuestionsCanvas(windowInstance, documentInstance);
         await waitFor(() => documentInstance.querySelectorAll('#questions-catalog-list .question-card').length === 7);
 
@@ -203,11 +205,11 @@ describe('Questions View — Search, Layout & Modal (Task 5.4)', () => {
         trackerToggle.click();
 
         await waitFor(async () => {
-            const activeSetIds = await windowInstance.getConfig('activeQuestionSet');
+            const activeSetIds = await getConfig('activeQuestionSet');
             return activeSetIds.includes(questionId);
         });
 
-        expect(windowInstance.STATE.activeQuestions.some(question => question.id === questionId)).toBe(true);
+        expect(STATE.activeQuestions.some(question => question.id === questionId)).toBe(true);
     });
 });
 

@@ -1,20 +1,24 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setupTestDOM, waitFor } from './test-utils.js';
+import { DEFAULT_QUESTIONS, createCustomQuestion } from '../public/js/questions.js';
+import { getAll, put } from '../public/js/storage/db.js';
+import { buildScoreButtonsHTML } from '../public/js/checkin.js';
+import { escapeHTML, html, rawHTML } from '../public/js/utils.js';
 
-describe('Question Schema & Default Tags Tests (Task 5.1)', () => {
-    let windowInstance;
-    let documentInstance;
+describe('Question Schema & Default Tags', () => {
+    let _windowInstance;
+    let _documentInstance;
 
     beforeEach(async () => {
         const setup = await setupTestDOM();
-        windowInstance = setup.window;
-        documentInstance = setup.document;
+        _windowInstance = setup.window;
+        _documentInstance = setup.document;
         // Wait for IndexedDB initialization and seeding
-        await waitFor(() => windowInstance.getAll && typeof windowInstance.getAll === 'function');
+        await waitFor(() => getAll && typeof getAll === 'function');
     });
 
-    it('1. Built-in DEFAULT_QUESTIONS constant includes non-empty tags array for all built-in questions', () => {
-        const defaultQuestions = windowInstance.DEFAULT_QUESTIONS;
+    it('includes non-empty tags array for all built-in questions in DEFAULT_QUESTIONS', () => {
+        const defaultQuestions = DEFAULT_QUESTIONS;
         expect(Array.isArray(defaultQuestions)).toBe(true);
         expect(defaultQuestions.length).toBe(8);
 
@@ -41,8 +45,8 @@ describe('Question Schema & Default Tags Tests (Task 5.1)', () => {
         expect(eatenQuestion.tags).toEqual(['Somatic', 'Physical']);
     });
 
-    it('2. Seeded questions in IndexedDB questions store contain tags array', async () => {
-        const questionsInStore = await windowInstance.getAll('questions');
+    it('contains tags array for seeded questions in IndexedDB questions store', async () => {
+        const questionsInStore = await getAll('questions');
         expect(questionsInStore.length).toBe(8);
 
         questionsInStore.forEach(question => {
@@ -55,8 +59,8 @@ describe('Question Schema & Default Tags Tests (Task 5.1)', () => {
         expect(energyInDb.tags).toContain('Somatic');
     });
 
-    it('3. createCustomQuestion persists tags array correctly to IndexedDB', async () => {
-        const customQuestionOutcome = await windowInstance.createCustomQuestion({
+    it('persists tags array correctly to IndexedDB in createCustomQuestion', async () => {
+        const customQuestionOutcome = await createCustomQuestion({
             text: 'How well did you sleep last night?',
             shortLabel: 'Sleep Quality',
             tags: ['Sleep', 'Rest', 'Physical'],
@@ -71,15 +75,15 @@ describe('Question Schema & Default Tags Tests (Task 5.1)', () => {
         expect(customQuestionOutcome.question.tags).toEqual(['Sleep', 'Rest', 'Physical']);
 
         // Verify it was persisted to IndexedDB questions store
-        const questionsInStore = await windowInstance.getAll('questions');
+        const questionsInStore = await getAll('questions');
         const retrievedCustom = questionsInStore.find(question => question.id === customQuestionOutcome.id);
         expect(retrievedCustom).toBeDefined();
         expect(retrievedCustom.tags).toEqual(['Sleep', 'Rest', 'Physical']);
     });
 
-    it('4. createCustomQuestion normalizes comma-separated string tags and defaults missing tags to empty array', async () => {
+    it('normalizes comma-separated string tags and defaults missing tags to empty array in createCustomQuestion', async () => {
         // Test comma-separated string tags
-        const stringTagsOutcome = await windowInstance.createCustomQuestion({
+        const stringTagsOutcome = await createCustomQuestion({
             text: 'How focused is your attention right now?',
             shortLabel: 'Focus Level',
             tags: 'Focus, Attention, Cognitive',
@@ -90,7 +94,7 @@ describe('Question Schema & Default Tags Tests (Task 5.1)', () => {
         expect(stringTagsOutcome.question.tags).toEqual(['Focus', 'Attention', 'Cognitive']);
 
         // Test undefined tags defaults to empty array
-        const emptyTagsOutcome = await windowInstance.createCustomQuestion({
+        const emptyTagsOutcome = await createCustomQuestion({
             text: 'Are you feeling social today?',
             shortLabel: 'Sociability',
             curve: 'more-is-better',
@@ -101,7 +105,7 @@ describe('Question Schema & Default Tags Tests (Task 5.1)', () => {
         expect(emptyTagsOutcome.question.tags).toEqual([]);
     });
 
-    it('5. seedDefaults updates pre-existing legacy questions missing tags', async () => {
+    it('updates pre-existing legacy questions missing tags when seeding', async () => {
         // Manually put a question without tags in the store
         const legacyQuestion = {
             id: 'q_racing',
@@ -117,26 +121,26 @@ describe('Question Schema & Default Tags Tests (Task 5.1)', () => {
             updatedAt: new Date().toISOString()
             // Notice: tags property is omitted
         };
-        await windowInstance.put('questions', legacyQuestion);
+        await put('questions', legacyQuestion);
 
         // Run seedDefaults again
-        const allQuestionsBefore = await windowInstance.getAll('questions');
+        const allQuestionsBefore = await getAll('questions');
         const racingBefore = allQuestionsBefore.find(q => q.id === 'q_racing');
         expect(racingBefore.tags).toBeUndefined();
 
         // Seed / upgrade
-        const defaultRacing = windowInstance.DEFAULT_QUESTIONS.find(q => q.id === 'q_racing');
-        await windowInstance.put('questions', {
+        const defaultRacing = DEFAULT_QUESTIONS.find(q => q.id === 'q_racing');
+        await put('questions', {
             ...racingBefore,
             tags: defaultRacing.tags
         });
 
-        const allQuestionsAfter = await windowInstance.getAll('questions');
+        const allQuestionsAfter = await getAll('questions');
         const racingAfter = allQuestionsAfter.find(q => q.id === 'q_racing');
         expect(racingAfter.tags).toEqual(['Cognitive', 'Pacing']);
     });
 
-    it('6. HTML escaping discipline: buildScoreButtonsHTML escapes malicious label strings in innerHTML', () => {
+    it('escapes malicious label strings in innerHTML in buildScoreButtonsHTML', () => {
         // This is malicious HTML, WebStorm. It's going to be malformed, for good reason.
         // noinspection HtmlRequiredAltAttribute,HtmlUnknownTarget,HtmlDeprecatedAttribute
         const maliciousQuestion = {
@@ -146,7 +150,7 @@ describe('Question Schema & Default Tags Tests (Task 5.1)', () => {
             maxLabel: '<script>alert(2)</script> & "High"',
             midLabel: '<b>Balanced & Safe</b>'
         };
-        const buttonsHTML = windowInstance.buildScoreButtonsHTML(maliciousQuestion);
+        const buttonsHTML = buildScoreButtonsHTML(maliciousQuestion);
         // Ditto for this stuff too.
         // noinspection HtmlRequiredAltAttribute,HtmlUnknownTarget,HtmlDeprecatedAttribute
         expect(buttonsHTML).not.toContain('<img src=x onerror=alert(1)>');
@@ -157,9 +161,7 @@ describe('Question Schema & Default Tags Tests (Task 5.1)', () => {
         expect(buttonsHTML).toContain('&lt;b&gt;Balanced &amp; Safe&lt;/b&gt;');
     });
 
-    it('7. HTML escaping discipline: escapeHTML and html template helper sanitize interpolated expressions', () => {
-        const { escapeHTML, html, rawHTML } = windowInstance;
-
+    it('sanitizes interpolated expressions in escapeHTML and html template helper', () => {
         expect(escapeHTML(null)).toBe('');
         expect(escapeHTML(undefined)).toBe('');
         expect(escapeHTML(0)).toBe('0');

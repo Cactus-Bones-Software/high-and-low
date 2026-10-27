@@ -2,13 +2,14 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setupTestDOM, waitFor } from './test-utils.js';
 import {
     formatCSVCell,
-    generateHistoryCSV,
-    exportHistoryCSV
+    generateHistoryCSV
 } from '../public/js/data-io.js';
 import {
     BOOLEAN_NO_SCORE,
     BOOLEAN_YES_SCORE
 } from '../public/js/questions.js';
+import { STATE } from '../public/js/state.js';
+import { getDatabase, put } from '../public/js/storage/db.js';
 
 describe('Task 3.12: CSV Export for Sharing with a Clinician Tests', () => {
     let windowInstance;
@@ -20,8 +21,8 @@ describe('Task 3.12: CSV Export for Sharing with a Clinician Tests', () => {
         documentInstance = environment.document;
 
         await waitFor(() => Boolean(
-            windowInstance.STATE?.activeQuestions &&
-            windowInstance.STATE.activeQuestions.length > 0 &&
+            STATE?.activeQuestions &&
+            STATE.activeQuestions.length > 0 &&
             documentInstance.getElementById('progress-text') &&
             documentInstance.getElementById('progress-text').textContent !== 'Loading tracker...'
         ));
@@ -223,7 +224,7 @@ describe('Task 3.12: CSV Export for Sharing with a Clinician Tests', () => {
 
     it('8. UI Flow: Shows notice dialog if there are no entries to export', async () => {
         // Ensure entries store is empty
-        const database = windowInstance.getDatabase();
+        const database = getDatabase();
         await new Promise((resolve, reject) => {
             const clearTransaction = database.transaction('entries', 'readwrite');
             clearTransaction.objectStore('entries').clear();
@@ -238,7 +239,7 @@ describe('Task 3.12: CSV Export for Sharing with a Clinician Tests', () => {
 
         await waitFor(() => {
             const noticeOverlay = documentInstance.getElementById('notice-dialog-overlay');
-            return noticeOverlay && noticeOverlay.classList.contains('active');
+            return noticeOverlay?.classList.contains('active');
         });
 
         const noticeTitle = documentInstance.getElementById('notice-dialog-title');
@@ -256,7 +257,7 @@ describe('Task 3.12: CSV Export for Sharing with a Clinician Tests', () => {
                 { questionId: 'q_sadness', score: 2, status: 'answered' }
             ]
         };
-        await windowInstance.put('entries', sampleEntry);
+        await put('entries', sampleEntry);
 
         let createdBlob = null;
         let downloadedFilename = null;
