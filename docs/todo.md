@@ -796,7 +796,7 @@ Rules for every task in this phase:
   - Tests that need a DOM element (e.g. `applyGraphGestureTransform`) or the rendered app stay where they are.
   - Move, do not rewrite: assertions must be unchanged. Test count must be identical before and after.
 
-- [ ] **Task 10.5: Replace Real `sleep()` Waits — Graph Suites**
+- [x] **Task 10.5: Replace Real `sleep()` Waits — Graph Suites**
   - In `graph.test.js` (14 calls) and `graph_gestures.test.js` (4 calls), replace `await sleep(...)` with
     `vi.useFakeTimers()` + `vi.advanceTimersByTime(...)`, or with `waitFor(...)` when waiting on an observable DOM or
     state change. The wheel-gesture debounce and long-press (450 ms) tests are the main targets.

@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
     setupTestDOM,
-    sleep,
+    waitFor,
     createSampleGraphQuestions,
     createSampleTwoDayLogs,
     createSingleSampleQuestion,
@@ -102,7 +102,7 @@ function getSvgContentRightEdge(svgElement) {
     return maxX;
 }
 
-async function simulateLongPress(windowInstance, element, durationMs = 500) {
+function simulateLongPress(windowInstance, element, durationMs = 500) {
     const pointerDownEvent = new windowInstance.PointerEvent('pointerdown', {
         bubbles: true,
         cancelable: true,
@@ -111,7 +111,7 @@ async function simulateLongPress(windowInstance, element, durationMs = 500) {
         clientY: 100
     });
     element.dispatchEvent(pointerDownEvent);
-    await sleep(durationMs);
+    vi.advanceTimersByTime(durationMs);
 }
 
 describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
@@ -119,6 +119,10 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         const environment = await setupTestDOM();
         windowInstance = environment.window;
         documentInstance = environment.document;
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
     });
 
     it('renders empty placeholder when no logs exist', () => {
@@ -280,9 +284,9 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
     it('enables recording multiple check-ins without refreshing the page', async () => {
         // Complete a check-in
         finalizeCheckin();
-        await sleep(50);
-
         const progressElement = documentInstance.getElementById('progress-text');
+        await waitFor(() => progressElement.textContent === 'Check-In Complete');
+
         const questionElement = documentInstance.getElementById('question-text');
         const newCheckinButton = documentInstance.getElementById('button-new-checkin');
         const footerBox = documentInstance.getElementById('footer-box');
@@ -294,7 +298,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
 
         // Click "Record Another Check-In"
         newCheckinButton.click();
-        await sleep(50);
+        await waitFor(() => documentInstance.getElementById('progress-text').textContent.includes('Question 1 of'));
 
         // Canvas should reset back to active Question 1
         expect(documentInstance.getElementById('progress-text').textContent).toContain('Question 1 of');
@@ -383,19 +387,20 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         expectGraphLegendAndLines(container, [true, false, false], 1, 2);
     });
 
-    it('isolates a single question on long-press (450ms) and restores all on second long-press (Task 3.7)', async () => {
+    it('isolates a single question on long-press (450ms) and restores all on second long-press (Task 3.7)', () => {
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
         const { container } = renderSampleTwoDayGraph();
 
         let items = expectGraphLegendAndLines(container, [true, true, true], 3, 6);
 
         // Simulate long-press pointerdown on item 1 (q2)
-        await simulateLongPress(windowInstance, items[1], 500);
+        simulateLongPress(windowInstance, items[1], 500);
 
         // Graph should now be isolated to q2 alone
         items = expectGraphLegendAndLines(container, [false, true, false], 1, 2);
 
         // Long-press q2 again while isolated to restore all
-        await simulateLongPress(windowInstance, items[1], 500);
+        simulateLongPress(windowInstance, items[1], 500);
 
         expectGraphLegendAndLines(container, [true, true, true], 3, 6);
     });
@@ -508,9 +513,9 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
 
         // 3. Click first note marker and verify notice modal dialog opens with note content
         firstMarker.dispatchEvent(new windowInstance.MouseEvent('click', { bubbles: true, cancelable: true }));
-        await sleep(80);
-
         const overlayElement = documentInstance.getElementById('notice-dialog-overlay');
+        await waitFor(() => overlayElement.classList.contains('is-open'));
+
         const titleElement = documentInstance.getElementById('notice-dialog-title');
         const subtitleElement = documentInstance.getElementById('notice-dialog-subtitle');
 
@@ -523,19 +528,18 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         // Close dialog
         const okButton = documentInstance.getElementById('button-notice-ok');
         okButton.click();
-        await sleep(50);
+        await waitFor(() => !overlayElement.classList.contains('is-open'));
         expect(overlayElement.classList.contains('is-open')).toBe(false);
 
         // 4. Test keyboard activation (Enter key) on second note marker
         secondMarker.dispatchEvent(new windowInstance.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
-        await sleep(80);
+        await waitFor(() => overlayElement.classList.contains('is-open'));
 
-        expect(overlayElement.classList.contains('is-open')).toBe(true);
         expect(subtitleElement.textContent).toBe('Sudden spike in agitation after difficult meeting.');
 
         // Close via Escape key
         overlayElement.dispatchEvent(new windowInstance.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
-        await sleep(50);
+        await waitFor(() => !overlayElement.classList.contains('is-open'));
         expect(overlayElement.classList.contains('is-open')).toBe(false);
     });
 
@@ -607,7 +611,10 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         for (const testCase of timeframeTestCases) {
             const button = container.querySelector(`.graph-timeframe-button[data-range="${testCase.range}"]`);
             button.click();
-            await sleep(50);
+            await waitFor(() => {
+                const targetButton = container.querySelector(`.graph-timeframe-button[data-range="${testCase.range}"]`);
+                return targetButton.classList.contains('is-active');
+            });
 
             // Under Task 9.2, full history is always included in the rendered SVG domain
             points = container.querySelectorAll('svg g.points circle');
@@ -761,7 +768,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             expect(sevenDayButton.getAttribute('aria-label')).toBe('Zoom to ~7 days');
 
             sevenDayButton.click();
-            await sleep(50);
+            await waitFor(() => STATE.historyTimeRange === '7d');
 
             expect(STATE.historyZoomScale).toBe(1.79);
             expect(STATE.historyTimeRange).toBe('7d');
@@ -806,7 +813,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             renderLineGraph(container, { entries, questions, zoomScale: 3.0 });
             const zoomInButton = container.querySelector('#button-graph-zoom-in');
             zoomInButton.click();
-            await sleep(50);
+            await waitFor(() => STATE.historyZoomScale === 3.25);
 
             expect(STATE.historyZoomScale).toBe(3.25);
             const zoomValue = container.querySelector('.graph-zoom-value');
@@ -821,7 +828,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             renderLineGraph(container, { entries, questions, zoomScale: 0.5 });
             const zoomOutButton = container.querySelector('#button-graph-zoom-out');
             zoomOutButton.click();
-            await sleep(50);
+            await waitFor(() => STATE.historyZoomScale === 0.25);
 
             expect(STATE.historyZoomScale).toBe(0.25);
             const zoomValue = container.querySelector('.graph-zoom-value');
@@ -830,7 +837,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             // Zoom out again from 0.25
             const nextZoomOutButton = container.querySelector('#button-graph-zoom-out');
             nextZoomOutButton.click();
-            await sleep(50);
+            await waitFor(() => STATE.historyZoomScale === 0.13);
 
             expect(STATE.historyZoomScale).toBe(0.13);
             expect(STATE.historyZoomScale).toBeGreaterThan(0);
@@ -847,7 +854,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
 
             const zoomInButton = container.querySelector('#button-graph-zoom-in');
             zoomInButton.click();
-            await sleep(50);
+            await waitFor(() => STATE.historyZoomScale === 1.25);
 
             // Previous center = 200 + 600 / 2 = 500
             // paddingLeft = 0
@@ -897,7 +904,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             expect(nowButton).toBeTruthy();
 
             nowButton.click();
-            await sleep(50);
+            await waitFor(() => STATE.historyScrollLeft === 2600);
 
             // Zoom scale must remain unchanged
             expect(STATE.historyZoomScale).toBe(2.0);

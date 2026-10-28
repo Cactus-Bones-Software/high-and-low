@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { setupTestDOM, sleep, createSampleGraphQuestions, createSampleTwoDayLogs } from './test-utils.js';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { setupTestDOM, waitFor, createSampleGraphQuestions, createSampleTwoDayLogs } from './test-utils.js';
 import { STATE } from '../public/js/state.js';
 import {
     setupGraphGestureZoom,
@@ -21,6 +21,10 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
         const environment = await setupTestDOM();
         windowInstance = environment.window;
         documentInstance = environment.document;
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
     });
 
     describe('Two-pointer touch pinch gesture tracking', () => {
@@ -182,7 +186,8 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
     });
 
     describe('Desktop Ctrl/Meta+Wheel zoom gesture handling', () => {
-        it('starts gesture, computes scale factor, and triggers debounced end on wheel + ctrlKey', async () => {
+        it('starts gesture, computes scale factor, and triggers debounced end on wheel + ctrlKey', () => {
+            vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
             const scrollContainerElement = documentInstance.createElement('div');
             scrollContainerElement.className = 'graph-scroll-container';
             documentInstance.body.appendChild(scrollContainerElement);
@@ -232,8 +237,8 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
             const expectedCumulativeScale = expectedFirstScale * expectedFirstScale;
             expect(gestureController.getState().currentScaleFactor).toBeCloseTo(expectedCumulativeScale, 4);
 
-            // Wait for debounce timeout to fire
-            await sleep(70);
+            // Fast-forward debounce timeout without real sleep
+            vi.advanceTimersByTime(70);
 
             expect(gestureController.getState().isActive).toBe(false);
             expect(onGestureEnd).toHaveBeenCalledTimes(1);
@@ -247,7 +252,8 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
             scrollContainerElement.remove();
         });
 
-        it('supports metaKey for macOS Command+wheel and trackpad pinch', async () => {
+        it('supports metaKey for macOS Command+wheel and trackpad pinch', () => {
+            vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
             const scrollContainerElement = documentInstance.createElement('div');
             scrollContainerElement.className = 'graph-scroll-container';
             documentInstance.body.appendChild(scrollContainerElement);
@@ -275,7 +281,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
             expect(gestureController.getState().isActive).toBe(true);
             expect(onGestureStart).toHaveBeenCalledTimes(1);
 
-            await sleep(60);
+            vi.advanceTimersByTime(60);
             expect(gestureController.getState().isActive).toBe(false);
             expect(onGestureEnd).toHaveBeenCalledTimes(1);
 
@@ -796,14 +802,15 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
                 expect(noteClicked).toBe(true);
 
                 // 4. Modal note dialog opens correctly after commit
-                await sleep(50);
                 const overlayElement = documentInstance.getElementById('notice-dialog-overlay');
+                await waitFor(() => overlayElement.classList.contains('is-open'));
                 expect(overlayElement.classList.contains('is-open')).toBe(true);
 
                 // Close dialog
                 const okButton = documentInstance.getElementById('button-notice-ok');
                 okButton.click();
-                await sleep(40);
+                await waitFor(() => !overlayElement.classList.contains('is-open'));
+                expect(overlayElement.classList.contains('is-open')).toBe(false);
 
                 container.remove();
             });
