@@ -8,6 +8,7 @@ import {
     createSingleSampleQuestion,
     createSampleOneDayRecentEntries,
     createSampleFourteenDayEntries,
+    createSampleEntry,
     mockScrollDimensions
 } from './test-utils.js';
 import { STATE } from '../public/js/state.js';
@@ -135,8 +136,14 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         const container = documentInstance.createElement('div');
         const questions = [{ id: 'q1', text: 'Energy level', shortLabel: 'Energy', curve: 'more-is-better' }];
         const entries = [
-            { timestamp: '2026-08-10T10:00:00.000Z', answers: [{ questionId: 'q1', score: 3, status: 'answered' }] },
-            { timestamp: '2026-08-11T10:00:00.000Z', answers: [{ questionId: 'q1', score: 4, status: 'answered' }] }
+            createSampleEntry({
+                timestamp: '2026-08-10T10:00:00.000Z',
+                answers: [{ questionId: 'q1', score: 3, status: 'answered' }]
+            }),
+            createSampleEntry({
+                timestamp: '2026-08-11T10:00:00.000Z',
+                answers: [{ questionId: 'q1', score: 4, status: 'answered' }]
+            })
         ];
 
         renderLineGraph(container, { entries, questions });
@@ -171,34 +178,34 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         // Day 3: q1 absent (not in answers), q2 skipped (status: skipped)
         // Day 4: q1=5 (answered), q2=1 (answered)
         const logs = [
-            {
+            createSampleEntry({
                 timestamp: '2026-08-10T10:00:00.000Z',
                 answers: [
                     { questionId: 'q1', score: 4, status: 'answered' },
                     { questionId: 'q2', score: 2, status: 'answered' }
                 ]
-            },
-            {
+            }),
+            createSampleEntry({
                 timestamp: '2026-08-11T10:00:00.000Z',
                 answers: [
                     { questionId: 'q1', score: null, status: 'skipped' },
                     { questionId: 'q2', score: 3, status: 'answered' }
                 ]
-            },
-            {
+            }),
+            createSampleEntry({
                 timestamp: '2026-08-12T10:00:00.000Z',
                 answers: [
                     // q1 is absent (wasn't asked / not in active set)
                     { questionId: 'q2', score: null, status: 'skipped' }
                 ]
-            },
-            {
+            }),
+            createSampleEntry({
                 timestamp: '2026-08-13T10:00:00.000Z',
                 answers: [
                     { questionId: 'q1', score: 5, status: 'answered' },
                     { questionId: 'q2', score: 1, status: 'answered' }
                 ]
-            }
+            })
         ];
 
         renderLineGraph(container, { entries: logs, questions });
@@ -245,18 +252,18 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         // Log 2: 10:00 (t0 + 2h -> 2/10 = 20% of span)
         // Log 3: 18:00 (t0 + 10h -> 10/10 = 100% of span)
         const logs = [
-            {
+            createSampleEntry({
                 timestamp: '2026-08-14T08:00:00.000Z',
                 answers: [{ questionId: 'q1', score: 3, status: 'answered' }]
-            },
-            {
+            }),
+            createSampleEntry({
                 timestamp: '2026-08-14T10:00:00.000Z',
                 answers: [{ questionId: 'q1', score: 4, status: 'answered' }]
-            },
-            {
+            }),
+            createSampleEntry({
                 timestamp: '2026-08-14T18:00:00.000Z',
                 answers: [{ questionId: 'q1', score: 5, status: 'answered' }]
-            }
+            })
         ];
 
         renderLineGraph(container, { entries: logs, questions });
@@ -316,7 +323,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         ];
 
         const logs = [
-            {
+            createSampleEntry({
                 timestamp: '2026-08-14T08:00:00.000Z',
                 answers: [
                     { questionId: 'q1', score: 3, status: 'answered' },
@@ -324,8 +331,8 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
                     { questionId: 'q3', score: 4, status: 'answered' },
                     { questionId: 'q4', score: 1, status: 'answered' }
                 ]
-            },
-            {
+            }),
+            createSampleEntry({
                 timestamp: '2026-08-14T18:00:00.000Z',
                 answers: [
                     { questionId: 'q1', score: 4, status: 'answered' },
@@ -333,7 +340,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
                     { questionId: 'q3', score: 5, status: 'answered' },
                     { questionId: 'q4', score: 2, status: 'answered' }
                 ]
-            }
+            })
         ];
 
         renderLineGraph(container, { entries: logs, questions });
@@ -461,38 +468,38 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         // Day 3: note is whitespace string (no marker)
         // Day 4: With note
         const logs = [
-            {
+            createSampleEntry({
                 timestamp: '2026-08-10T09:00:00.000Z',
                 note: 'Felt well-rested after 8 hours of sleep.',
                 answers: [
                     { questionId: 'q1', score: 4, status: 'answered' },
                     { questionId: 'q2', score: 1, status: 'answered' }
                 ]
-            },
-            {
+            }),
+            createSampleEntry({
                 timestamp: '2026-08-11T09:00:00.000Z',
                 note: null,
                 answers: [
                     { questionId: 'q1', score: 3, status: 'answered' },
                     { questionId: 'q2', score: 2, status: 'answered' }
                 ]
-            },
-            {
+            }),
+            createSampleEntry({
                 timestamp: '2026-08-12T09:00:00.000Z',
                 note: '   ',
                 answers: [
                     { questionId: 'q1', score: 2, status: 'answered' },
                     { questionId: 'q2', score: 4, status: 'answered' }
                 ]
-            },
-            {
+            }),
+            createSampleEntry({
                 timestamp: '2026-08-13T09:00:00.000Z',
                 note: 'Sudden spike in agitation after difficult meeting.',
                 answers: [
                     { questionId: 'q1', score: 2, status: 'answered' },
                     { questionId: 'q2', score: 5, status: 'answered' }
                 ]
-            }
+            })
         ];
 
         renderLineGraph(container, { entries: logs, questions });
@@ -557,26 +564,31 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         // Day 4: today
         const now = Date.now();
         const logs = [
-            {
-                timestamp: new Date(now - 40 * 24 * 3600 * 1000).toISOString(),
+            createSampleEntry({
+                baseTimestamp: now,
+                daysAgo: 40,
                 answers: [{ questionId: 'q1', score: 2, status: 'answered' }]
-            },
-            {
-                timestamp: new Date(now - 20 * 24 * 3600 * 1000).toISOString(),
+            }),
+            createSampleEntry({
+                baseTimestamp: now,
+                daysAgo: 20,
                 answers: [{ questionId: 'q1', score: 3, status: 'answered' }]
-            },
-            {
-                timestamp: new Date(now - 10 * 24 * 3600 * 1000).toISOString(),
+            }),
+            createSampleEntry({
+                baseTimestamp: now,
+                daysAgo: 10,
                 answers: [{ questionId: 'q1', score: 4, status: 'answered' }]
-            },
-            {
-                timestamp: new Date(now - 5 * 24 * 3600 * 1000).toISOString(),
+            }),
+            createSampleEntry({
+                baseTimestamp: now,
+                daysAgo: 5,
                 answers: [{ questionId: 'q1', score: 5, status: 'answered' }]
-            },
-            {
-                timestamp: new Date(now).toISOString(),
+            }),
+            createSampleEntry({
+                baseTimestamp: now,
+                daysAgo: 0,
                 answers: [{ questionId: 'q1', score: 4, status: 'answered' }]
-            }
+            })
         ];
 
         renderLineGraph(container, { entries: logs, questions });
@@ -635,10 +647,11 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         const now = Date.now();
         const logs = [];
         for (let entryIndex = 0; entryIndex < 25; entryIndex++) {
-            logs.push({
-                timestamp: new Date(now - (24 - entryIndex) * 24 * 3600 * 1000).toISOString(),
+            logs.push(createSampleEntry({
+                baseTimestamp: now,
+                daysAgo: 24 - entryIndex,
                 answers: [{ questionId: 'q1', score: (entryIndex % 5) + 1, status: 'answered' }]
-            });
+            }));
         }
 
         renderLineGraph(container, { entries: logs, questions });
@@ -681,9 +694,9 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         await setConfig('activeQuestionSet', ['q_energy', 'q_sadness', 'q_irritability', 'q_overall']);
 
         // Seed entries with answers for all 7 questions
-        await put('entries', {
+        await put('entries', createSampleEntry({
             id: 'entry_1',
-            timestamp: new Date(Date.now() - 86400000).toISOString(),
+            daysAgo: 1,
             answers: {
                 q_energy: 3,
                 q_sadness: 2,
@@ -693,10 +706,10 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
                 q_impulse: 2,
                 q_overall: 4
             }
-        });
-        await put('entries', {
+        }));
+        await put('entries', createSampleEntry({
             id: 'entry_2',
-            timestamp: new Date().toISOString(),
+            daysAgo: 0,
             answers: {
                 q_energy: 4,
                 q_sadness: 1,
@@ -706,7 +719,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
                 q_impulse: 1,
                 q_overall: 5
             }
-        });
+        }));
 
         await loadHistoryView();
 
@@ -728,8 +741,16 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             { id: 'q1', text: 'Overall Mood', shortLabel: 'Mood', curve: 'more-is-better' }
         ];
         const entries = [
-            { id: 'entry_1', timestamp: new Date(Date.now() - 86400000).toISOString(), answers: [{ questionId: 'q1', score: 3, status: 'answered' }] },
-            { id: 'entry_2', timestamp: new Date().toISOString(), answers: [{ questionId: 'q1', score: 4, status: 'answered' }] }
+            createSampleEntry({
+                id: 'entry_1',
+                daysAgo: 1,
+                answers: [{ questionId: 'q1', score: 3, status: 'answered' }]
+            }),
+            createSampleEntry({
+                id: 'entry_2',
+                daysAgo: 0,
+                answers: [{ questionId: 'q1', score: 4, status: 'answered' }]
+            })
         ];
         renderLineGraph(container, { entries, questions });
 
@@ -872,7 +893,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             const questions = [{ id: 'q1', text: 'Mood', shortLabel: 'Mood', curve: 'more-is-better' }];
             const now = Date.now();
             const entries = [
-                { timestamp: new Date(now).toISOString(), answers: [{ questionId: 'q1', score: 4 }] }
+                createSampleEntry({ baseTimestamp: now, daysAgo: 0, answers: [{ questionId: 'q1', score: 4 }] })
             ];
 
             renderLineGraph(container, { entries, questions });
@@ -921,17 +942,34 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
             // purely on elapsed time, not on entry index or entry count.
             const now = Date.now();
             return [
-                { timestamp: new Date(now - 20 * 86400000).toISOString(), answers: [{ questionId: 'q1', score: 2, status: 'answered' }] },
-                { timestamp: new Date(now - 13 * 86400000).toISOString(), answers: [{ questionId: 'q1', score: 5, status: 'answered' }] },
-                { timestamp: new Date(now - 9 * 86400000).toISOString(), answers: [{ questionId: 'q1', score: 1, status: 'answered' }] },
-                { timestamp: new Date(now - 4 * 86400000).toISOString(), answers: [{ questionId: 'q1', score: 3, status: 'answered' }] },
-                {
+                createSampleEntry({
+                    baseTimestamp: now,
+                    daysAgo: 20,
+                    answers: [{ questionId: 'q1', score: 2, status: 'answered' }]
+                }),
+                createSampleEntry({
+                    baseTimestamp: now,
+                    daysAgo: 13,
+                    answers: [{ questionId: 'q1', score: 5, status: 'answered' }]
+                }),
+                createSampleEntry({
+                    baseTimestamp: now,
+                    daysAgo: 9,
+                    answers: [{ questionId: 'q1', score: 1, status: 'answered' }]
+                }),
+                createSampleEntry({
+                    baseTimestamp: now,
+                    daysAgo: 4,
+                    answers: [{ questionId: 'q1', score: 3, status: 'answered' }]
+                }),
+                createSampleEntry({
                     // Final entry carries a note, so the rightmost content element on the timeline
                     // is the note marker rather than a plain point circle.
-                    timestamp: new Date(now).toISOString(),
+                    baseTimestamp: now,
+                    daysAgo: 0,
                     answers: [{ questionId: 'q1', score: 4, status: 'answered' }],
                     note: 'Last check-in of the window.'
-                }
+                })
             ];
         }
 

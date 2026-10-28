@@ -243,14 +243,56 @@ export function createSingleSampleQuestion(overrides = {}) {
 }
 
 /**
+ * Creates a sample check-in entry fixture for graph, data-io, and timeline tests.
+ * @param {object} [options={}]
+ * @param {number} [options.daysAgo=0] - Number of days in the past relative to reference time.
+ * @param {number} [options.baseTimestamp=Date.now()] - Reference base timestamp in milliseconds.
+ * @param {string} [options.timestamp] - Exact ISO timestamp override (if daysAgo not used).
+ * @param {Array<Record<string, unknown>> | Record<string, number>} [options.answers=[]] - Answers array or object.
+ * @param {string | null} [options.note] - Optional user note.
+ * @param {string} [options.id] - Optional entry identifier.
+ * @returns {Record<string, unknown>}
+ */
+export function createSampleEntry(options = {}) {
+    const {
+        daysAgo,
+        baseTimestamp = Date.now(),
+        timestamp,
+        answers = [],
+        note,
+        id
+    } = options;
+
+    const resolvedTimestamp = timestamp || (
+        typeof daysAgo === 'number'
+            ? new Date(baseTimestamp - daysAgo * 86400000).toISOString()
+            : new Date(baseTimestamp).toISOString()
+    );
+
+    const entry = {
+        timestamp: resolvedTimestamp,
+        answers
+    };
+
+    if (note !== undefined) {
+        entry.note = note;
+    }
+    if (id !== undefined) {
+        entry.id = id;
+    }
+
+    return entry;
+}
+
+/**
  * Creates a 2-entry array spanning 1 day for zoom tests.
  * @param {number} [now=Date.now()]
  * @returns {Array<Record<string, unknown>>}
  */
 export function createSampleOneDayRecentEntries(now = Date.now()) {
     return [
-        { timestamp: new Date(now - 86400000).toISOString(), answers: [{ questionId: 'q1', score: 3 }] },
-        { timestamp: new Date(now).toISOString(), answers: [{ questionId: 'q1', score: 4 }] }
+        createSampleEntry({ baseTimestamp: now, daysAgo: 1, answers: [{ questionId: 'q1', score: 3 }] }),
+        createSampleEntry({ baseTimestamp: now, daysAgo: 0, answers: [{ questionId: 'q1', score: 4 }] })
     ];
 }
 
@@ -261,8 +303,8 @@ export function createSampleOneDayRecentEntries(now = Date.now()) {
  */
 export function createSampleFourteenDayEntries(now = Date.now()) {
     return [
-        { timestamp: new Date(now - 14 * 86400000).toISOString(), answers: [{ questionId: 'q1', score: 2 }] },
-        { timestamp: new Date(now).toISOString(), answers: [{ questionId: 'q1', score: 5 }] }
+        createSampleEntry({ baseTimestamp: now, daysAgo: 14, answers: [{ questionId: 'q1', score: 2 }] }),
+        createSampleEntry({ baseTimestamp: now, daysAgo: 0, answers: [{ questionId: 'q1', score: 5 }] })
     ];
 }
 

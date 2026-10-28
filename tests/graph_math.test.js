@@ -13,6 +13,7 @@ import {
     computeGraphLayout
 } from '../public/js/ui/history-graph.js';
 import { BOOLEAN_YES_SCORE } from '../public/js/questions.js';
+import { createSampleEntry } from './test-utils.js';
 
 describe('Graph Math & Pure Layout Calculations', () => {
     describe('calculatePinchDistance helper', () => {
@@ -201,10 +202,7 @@ describe('Graph Math & Pure Layout Calculations', () => {
             expect(emptyEntriesLayout.reason).toBe('no-entries');
 
             const emptyQuestionsLayout = computeGraphLayout({
-                entries: [{
-                    timestamp: new Date().toISOString(),
-                    answers: [{ questionId: 'q1', score: 3, status: 'answered' }]
-                }],
+                entries: [createSampleEntry({ answers: [{ questionId: 'q1', score: 3, status: 'answered' }] })],
                 questions: []
             });
             expect(emptyQuestionsLayout.isEmpty).toBe(true);
@@ -217,22 +215,26 @@ describe('Graph Math & Pure Layout Calculations', () => {
                 { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' }
             ];
             const entries = [
-                {
-                    timestamp: new Date(now - 40 * 86400000).toISOString(),
+                createSampleEntry({
+                    baseTimestamp: now,
+                    daysAgo: 40,
                     answers: [{ questionId: 'q1', score: 1, status: 'answered' }]
-                },
-                {
-                    timestamp: new Date(now - 20 * 86400000).toISOString(),
+                }),
+                createSampleEntry({
+                    baseTimestamp: now,
+                    daysAgo: 20,
                     answers: [{ questionId: 'q1', score: 2, status: 'answered' }]
-                },
-                {
-                    timestamp: new Date(now - 5 * 86400000).toISOString(),
+                }),
+                createSampleEntry({
+                    baseTimestamp: now,
+                    daysAgo: 5,
                     answers: [{ questionId: 'q1', score: 4, status: 'answered' }]
-                },
-                {
-                    timestamp: new Date(now).toISOString(),
+                }),
+                createSampleEntry({
+                    baseTimestamp: now,
+                    daysAgo: 0,
                     answers: [{ questionId: 'q1', score: 5, status: 'answered' }]
-                }
+                })
             ];
 
             // Always-render-everything model (Task 9.2): full entry history is always included in the rendered/scrollable domain
@@ -273,24 +275,28 @@ describe('Graph Math & Pure Layout Calculations', () => {
                 { id: 'q1', text: 'Overall Mood', shortLabel: 'Mood', curve: 'more-is-better' }
             ];
             const entries = [
-                {
-                    timestamp: new Date(now - 3 * 86400000).toISOString(),
+                createSampleEntry({
+                    baseTimestamp: now,
+                    daysAgo: 3,
                     note: 'Felt energetic',
                     answers: [{ questionId: 'q1', score: 4, status: 'answered' }]
-                },
-                {
-                    timestamp: new Date(now - 2 * 86400000).toISOString(),
+                }),
+                createSampleEntry({
+                    baseTimestamp: now,
+                    daysAgo: 2,
                     answers: [{ questionId: 'q1', score: null, status: 'skipped' }]
-                },
-                {
-                    timestamp: new Date(now - 86400000).toISOString(),
+                }),
+                createSampleEntry({
+                    baseTimestamp: now,
+                    daysAgo: 1,
                     note: 'Great day',
                     answers: [{ questionId: 'q1', score: 5, status: 'answered' }]
-                },
-                {
-                    timestamp: new Date(now).toISOString(),
+                }),
+                createSampleEntry({
+                    baseTimestamp: now,
+                    daysAgo: 0,
                     answers: [{ questionId: 'q1', score: 4, status: 'answered' }]
-                }
+                })
             ];
 
             const layout = computeGraphLayout({ entries, questions });
@@ -323,22 +329,22 @@ describe('Graph Math & Pure Layout Calculations', () => {
 
             // 4 logs at 0h, 3h, 6h, 12h: non-uniform elapsed times
             const entries = [
-                {
+                createSampleEntry({
                     timestamp: new Date(baseTime).toISOString(),
                     answers: [{ questionId: 'q1', score: 3, status: 'answered' }]
-                },
-                {
+                }),
+                createSampleEntry({
                     timestamp: new Date(baseTime + 3 * 3600 * 1000).toISOString(),
                     answers: [{ questionId: 'q1', score: 4, status: 'answered' }]
-                },
-                {
+                }),
+                createSampleEntry({
                     timestamp: new Date(baseTime + 6 * 3600 * 1000).toISOString(),
                     answers: [{ questionId: 'q1', score: 2, status: 'answered' }]
-                },
-                {
+                }),
+                createSampleEntry({
                     timestamp: new Date(baseTime + 12 * 3600 * 1000).toISOString(),
                     answers: [{ questionId: 'q1', score: 5, status: 'answered' }]
-                }
+                })
             ];
 
             expect(BASE_PIXELS_PER_HOUR).toBe(2);
@@ -373,22 +379,26 @@ describe('Graph Math & Pure Layout Calculations', () => {
             ];
             // Entries spanning 180 days ago to now
             const entries = [
-                {
-                    timestamp: new Date(now - 180 * 86400000).toISOString(),
+                createSampleEntry({
+                    baseTimestamp: now,
+                    daysAgo: 180,
                     answers: [{ questionId: 'q1', score: 2, status: 'answered' }]
-                },
-                {
-                    timestamp: new Date(now - 60 * 86400000).toISOString(),
+                }),
+                createSampleEntry({
+                    baseTimestamp: now,
+                    daysAgo: 60,
                     answers: [{ questionId: 'q1', score: 3, status: 'answered' }]
-                },
-                {
-                    timestamp: new Date(now - 20 * 86400000).toISOString(),
+                }),
+                createSampleEntry({
+                    baseTimestamp: now,
+                    daysAgo: 20,
                     answers: [{ questionId: 'q1', score: 4, status: 'answered' }]
-                },
-                {
-                    timestamp: new Date(now - 2 * 86400000).toISOString(),
+                }),
+                createSampleEntry({
+                    baseTimestamp: now,
+                    daysAgo: 2,
                     answers: [{ questionId: 'q1', score: 5, status: 'answered' }]
-                }
+                })
             ];
 
             ['7d', '14d', '30d', '90d', 'all'].forEach(timeRange => {
@@ -416,8 +426,8 @@ describe('Graph Math & Pure Layout Calculations', () => {
             // 'all': entries spanning 5 days (120 hours) -> 120 * 2 = 240 px base -> scale = 600 / 240 = 2.5
             const baseTime = Date.now();
             const entries = [
-                { timestamp: new Date(baseTime - 5 * 24 * 3600 * 1000).toISOString() },
-                { timestamp: new Date(baseTime).toISOString() }
+                createSampleEntry({ baseTimestamp: baseTime, daysAgo: 5 }),
+                createSampleEntry({ baseTimestamp: baseTime, daysAgo: 0 })
             ];
             expect(calculateTimeframePresetZoomScale('all', { entries, viewportWidth })).toBe(2.5);
         });
@@ -482,19 +492,19 @@ describe('Graph Math & Pure Layout Calculations', () => {
     });
 
     describe('computeGraphLayout responseType tagging', () => {
-        it('1. computeGraphLayout tags series items with responseType', () => {
+        it('tags series items with responseType', () => {
             const questions = [
                 { id: 'scale_q', text: 'Mood', curve: 'more-is-better', responseType: 'scale' },
                 { id: 'bool_q', text: 'Eaten', curve: 'more-is-better', responseType: 'boolean' }
             ];
             const entries = [
-                {
+                createSampleEntry({
                     timestamp: '2026-08-10T10:00:00.000Z',
                     answers: [
                         { questionId: 'scale_q', score: 3, status: 'answered' },
                         { questionId: 'bool_q', score: 5, status: 'answered' }
                     ]
-                }
+                })
             ];
 
             const layout = computeGraphLayout({
@@ -510,19 +520,19 @@ describe('Graph Math & Pure Layout Calculations', () => {
             expect(layout.series[1].responseType).toBe('boolean');
         });
 
-        it('1. computeGraphLayout tags point items with question responseType', () => {
+        it('tags point items with question responseType', () => {
             const questions = [
                 { id: 'scale_q', text: 'Energy', curve: 'more-is-better', responseType: 'scale' },
                 { id: 'bool_q', text: 'Eaten', curve: 'more-is-better', responseType: 'boolean' }
             ];
             const entries = [
-                {
+                createSampleEntry({
                     timestamp: '2026-08-10T10:00:00.000Z',
                     answers: [
                         { questionId: 'scale_q', score: 3, status: 'answered' },
                         { questionId: 'bool_q', score: BOOLEAN_YES_SCORE, status: 'answered' }
                     ]
-                }
+                })
             ];
 
             const layout = computeGraphLayout({
