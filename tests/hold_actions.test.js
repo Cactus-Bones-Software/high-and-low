@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach } from 'vitest';
-import { setupTestDOM, sleep, dispatchContextMenuEvent } from './test-utils.js';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { setupTestDOM, dispatchContextMenuEvent } from './test-utils.js';
 
 let _domInstance;
 let windowInstance;
@@ -14,6 +14,10 @@ describe('Hold-To-Confirm Actions & Mobile Touch Compatibility', () => {
         documentInstance = environment.document;
     });
 
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
     it('prevents default on contextmenu event for all .hold-action buttons', () => {
         const holdButtons = Array.from(documentInstance.querySelectorAll('.hold-action'));
         expect(holdButtons.length).toBeGreaterThan(0);
@@ -24,7 +28,8 @@ describe('Hold-To-Confirm Actions & Mobile Touch Compatibility', () => {
         });
     });
 
-    it('Wipe & Replace button (#button-import-replace) executes after 1500ms hold', async () => {
+    it('Wipe & Replace button (#button-import-replace) executes after 1500ms hold', () => {
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
         const replaceButton = documentInstance.getElementById('button-import-replace');
         expect(replaceButton).not.toBeNull();
 
@@ -46,8 +51,8 @@ describe('Hold-To-Confirm Actions & Mobile Touch Compatibility', () => {
         // Holding should still be active
         expect(replaceButton.classList.contains('is-holding')).toBe(true);
 
-        // Wait for 1500ms hold timer to complete
-        await sleep(1600);
+        // Fast-forward 1500ms hold timer
+        vi.advanceTimersByTime(1500);
 
         expect(replaceButton.classList.contains('is-holding')).toBe(false);
     });

@@ -806,7 +806,7 @@ Rules for every task in this phase:
   - Keep the same assertions and the same intent. A test that asserts real elapsed time must keep a real wait and a
     one-line comment saying why.
 
-- [ ] **Task 10.6: Replace Real `sleep()` Waits — Remaining Suites**
+- [x] **Task 10.6: Replace Real `sleep()` Waits — Remaining Suites**
   - Apply the Task 10.5 approach to `erase_data.test.js` (6 calls, including the 1600 ms hold-to-confirm waits),
     `transitions.test.js` (5), `checkin_persistence.test.js` (2), and `hold_actions.test.js` (1).
   - Tests in `transitions.test.js` that verify real animation timing (<250 ms is a project constraint) may keep a

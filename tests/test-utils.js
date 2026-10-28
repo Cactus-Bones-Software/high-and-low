@@ -37,15 +37,6 @@ export function isElementInert(element) {
 }
 
 /**
- * Async sleep utility for test waiting.
- * @param {number} milliseconds
- * @returns {Promise<void>}
- */
-export function sleep(milliseconds) {
-    return new Promise(resolve => setTimeout(resolve, milliseconds));
-}
-
-/**
  * Polls until a predicate returns true or timeout expires.
  * @param {() => boolean | Promise<boolean>} predicate
  * @param {number} timeoutMilliseconds
@@ -56,7 +47,7 @@ export async function waitFor(predicate, timeoutMilliseconds = 1500, intervalMil
     const startTime = Date.now();
     while (Date.now() - startTime < timeoutMilliseconds) {
         if (await predicate()) return;
-        await sleep(intervalMilliseconds);
+        await new Promise(resolve => setTimeout(resolve, intervalMilliseconds));
     }
 }
 

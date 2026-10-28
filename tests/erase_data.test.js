@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { setupTestDOM, sleep } from './test-utils.js';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { setupTestDOM, waitFor } from './test-utils.js';
 import { setIsHoldDelayEnabled } from '../public/js/ui/hold-actions.js';
 import { openEraseDialog } from '../public/js/ui/dialogs.js';
 import { eraseAllData } from '../public/js/data-io.js';
@@ -17,6 +17,10 @@ describe('Erase All Data from Inside the App', () => {
         windowInstance = environment.window;
         documentInstance = environment.document;
         setIsHoldDelayEnabled(true);
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
     });
 
     it('positions Erase All Data in a clearly separated section at the bottom of the Data view', () => {
@@ -56,6 +60,7 @@ describe('Erase All Data from Inside the App', () => {
         expect(overlay.classList.contains('is-open')).toBe(false);
 
         // Start hold
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
         const pointerDownEvent = new windowInstance.PointerEvent('pointerdown', {
             pointerId: 1,
             button: 0,
@@ -66,7 +71,7 @@ describe('Erase All Data from Inside the App', () => {
         expect(eraseButton.classList.contains('is-holding')).toBe(true);
 
         // Cancel before 1500ms
-        await sleep(300);
+        vi.advanceTimersByTime(300);
         const pointerUpEvent = new windowInstance.PointerEvent('pointerup', {
             pointerId: 1,
             button: 0,
@@ -80,13 +85,14 @@ describe('Erase All Data from Inside the App', () => {
         // Full 1500ms hold opens dialog
         eraseButton.dispatchEvent(pointerDownEvent);
         expect(eraseButton.classList.contains('is-holding')).toBe(true);
-        await sleep(1600);
+        vi.advanceTimersByTime(1850);
 
         expect(eraseButton.classList.contains('is-holding')).toBe(false);
         expect(overlay.classList.contains('is-open')).toBe(true);
     });
 
-    it('requires a 1500ms hold on button-erase-data even when holdDelay is disabled', async () => {
+    it('requires a 1500ms hold on button-erase-data even when holdDelay is disabled', () => {
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
         setIsHoldDelayEnabled(false);
 
         const eraseButton = documentInstance.getElementById('button-erase-data');
@@ -107,7 +113,7 @@ describe('Erase All Data from Inside the App', () => {
         eraseButton.dispatchEvent(pointerDownEvent);
         expect(eraseButton.classList.contains('is-holding')).toBe(true);
 
-        await sleep(1600);
+        vi.advanceTimersByTime(1850);
         expect(eraseButton.classList.contains('is-holding')).toBe(false);
         expect(overlay.classList.contains('is-open')).toBe(true);
     });
@@ -139,7 +145,7 @@ describe('Erase All Data from Inside the App', () => {
         expect(listItems.some(item => item.includes('preferences') || item.includes('settings'))).toBe(true);
 
         // Back Up First is the first, default-focused option
-        await sleep(100);
+        await waitFor(() => documentInstance.activeElement === backupFirstButton);
         expect(documentInstance.activeElement).toBe(backupFirstButton);
     });
 
@@ -155,7 +161,7 @@ describe('Erase All Data from Inside the App', () => {
         };
 
         backupFirstButton.click();
-        await sleep(50);
+        await waitFor(() => exportOptionsPassed !== null);
 
         expect(exportOptionsPassed).toEqual({ includeHistory: true, includeSettings: true });
         // Dialog remains open so user can subsequently cancel or confirm erase
@@ -284,7 +290,7 @@ describe('Erase All Data from Inside the App', () => {
         };
 
         confirmButton.click();
-        await sleep(150);
+        await waitFor(() => noticeShown);
 
         // Transaction failed, so notice dialog was shown
         expect(noticeShown).toBe(true);

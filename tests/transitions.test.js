@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
-import { setupTestDOM, isElementInert, sleep, createSampleCheckIn } from './test-utils.js';
+import { setupTestDOM, isElementInert, waitFor, createSampleCheckIn } from './test-utils.js';
 import { navigateTo } from '../public/js/ui/navigation.js';
 import { STATE } from '../public/js/state.js';
 import { renderCurrentQuestion, startNewCheckIn } from '../public/js/checkin.js';
@@ -111,7 +111,7 @@ describe('Seamless View & Question Transitions', () => {
         expect(trackerCanvas.classList.contains('view-active')).toBe(true);
 
         // Wait for question micro-transition
-        await sleep(200);
+        await waitFor(() => progressElement.textContent.includes('Question 2'));
 
         expect(progressElement.textContent).toContain('Question 2');
         expect(trackerCanvas.classList.contains('view-active')).toBe(true);
@@ -132,7 +132,7 @@ describe('Seamless View & Question Transitions', () => {
         expect(lastScoreButton).not.toBeNull();
         lastScoreButton.click();
 
-        await sleep(200);
+        await waitFor(() => completionView.hidden === false);
 
         expect(buttonStack.hidden).toBe(true);
         expect(completionView.hidden).toBe(false);
@@ -154,7 +154,7 @@ describe('Suppress Transitions on Initial Load & Page Refreshes', () => {
         const document = environment.document;
 
         // Allow microtasks and safeRAF to complete
-        await sleep(50);
+        await waitFor(() => !document.body.classList.contains('suppress-transitions'));
 
         // After initialization completes, suppress-transitions should be cleanly removed for interactive navigation
         expect(document.body.classList.contains('suppress-transitions')).toBe(false);
@@ -226,7 +226,11 @@ describe('Suppress Transitions on Initial Load & Page Refreshes', () => {
             contrastSelect.dispatchEvent(new environment.window.Event('change', { bubbles: true }));
         }
 
-        await sleep(50);
+        await waitFor(() => {
+            const hasTheme = document.body.getAttribute('data-theme') === 'light';
+            const hasContrast = document.body.getAttribute('data-contrast') === 'high';
+            return hasTheme && hasContrast;
+        });
 
         expect(document.body.getAttribute('data-theme')).toBe('light');
         expect(document.body.getAttribute('data-contrast')).toBe('high');
@@ -251,9 +255,16 @@ describe('Suppress Transitions on Initial Load & Page Refreshes', () => {
             const firstScoreButton = document.querySelector('.score-button');
             if (firstScoreButton) {
                 firstScoreButton.click();
-                await sleep(150);
+                if (i < 4) {
+                    await waitFor(() => {
+                        const progressText = document.getElementById('progress-text')?.textContent;
+                        return progressText?.includes(`Question ${i + 2}`);
+                    });
+                }
             }
         }
+
+        await waitFor(() => completionView.hidden === false);
 
         // Completion view should be visible and transition classes cleanly removed
         expect(completionView.hidden).toBe(false);

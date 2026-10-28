@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { setupTestDOM, sleep, createSampleCheckIn } from './test-utils.js';
+import { setupTestDOM, waitFor, createSampleCheckIn } from './test-utils.js';
 import { STATE } from '../public/js/state.js';
 import { navigateTo } from '../public/js/ui/navigation.js';
 import { finalizeCheckin, startNewCheckIn } from '../public/js/checkin.js';
@@ -58,8 +58,7 @@ describe('Check-in and View State Persistence (Theme Switch & Reload Resilience)
         const firstScoreButton = documentInstance.querySelector('.score-button');
         firstScoreButton.click();
 
-        // Allow microtask and transition
-        await sleep(250);
+        await waitFor(() => windowInstance.sessionStorage.getItem('high_and_low_active_checkin') !== null);
 
         const stored = windowInstance.sessionStorage.getItem('high_and_low_active_checkin');
         expect(stored).not.toBeNull();
@@ -81,7 +80,7 @@ describe('Check-in and View State Persistence (Theme Switch & Reload Resilience)
         await initializeTestEnvironment();
 
         finalizeCheckin();
-        await sleep(50);
+        await waitFor(() => windowInstance.sessionStorage.getItem('high_and_low_active_checkin') === null);
 
         expect(windowInstance.sessionStorage.getItem('high_and_low_active_checkin')).toBeNull();
     });
