@@ -838,7 +838,7 @@ Rules for every task in this phase:
   - Titles only: do not move tests between files, reorder them, or change any code. Names must stay unique within
     their file.
 
-- [ ] **Task 10.10: Split the Three Large Suites by Module and Behavior**
+- [x] **Task 10.10: Split the Three Large Suites by Module and Behavior**
   - Split `graph.test.js`, `graph_gestures.test.js`, and `question_response_type.test.js` into files of roughly
     400 lines or fewer, organized by what is under test. Suggested seams: graph rendering and gaps, legend and
     isolation controls, timeframe/zoom/NOW controls, layout math (already `graph-math.test.js` after Task 10.4),

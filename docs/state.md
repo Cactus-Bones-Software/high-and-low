@@ -263,18 +263,23 @@ export const STATE = {
     ├── drawer.test.js
     ├── erase_data.test.js
     ├── export_dialog.test.js
-    ├── graph_math.test.js
-    ├── graph.test.js
-    ├── graph_gestures.test.js
+    ├── graph-math.test.js
+    ├── graph_controls.test.js
+    ├── graph_gestures_commit.test.js
+    ├── graph_gestures_input.test.js
+    ├── graph_legend.test.js
+    ├── graph_rendering.test.js
     ├── handedness.test.js
     ├── hold_actions.test.js
     ├── localization.test.js
     ├── partial_import.test.js
     ├── question_copying.test.js
     ├── question_editing.test.js
-    ├── question_response_type.test.js
+    ├── question_response_type_deck.test.js
+    ├── question_response_type_dialog.test.js
+    ├── question_response_type_schema.test.js
     ├── questions.test.js
-    ├── questions_view.test.js
+    ├── questions-view.test.js
     ├── removed_questions.test.js
     ├── selective_backup.test.js
     ├── service_worker.test.js
