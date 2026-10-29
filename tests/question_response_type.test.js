@@ -21,7 +21,6 @@ import {
 } from '../public/js/questions.js';
 import { buildScoreButtonsHTML, renderCurrentQuestion } from '../public/js/checkin.js';
 import { saveQuestionFromAuthoring } from '../public/js/ui/question-view.js';
-import { renderLineGraph } from '../public/js/ui/history-graph.js';
 import { get, getAll, put } from '../public/js/storage/db.js';
 import { STATE } from '../public/js/state.js';
 
@@ -664,46 +663,6 @@ describe('Task 5.11.3: Boolean Line Rendering — Step Interpolation', () => {
             `M ${p0.x} ${p0.y} L ${p1.x} ${p0.y} L ${p1.x} ${p1.y} L ${p2.x} ${p1.y} L ${p2.x} ${p2.y}`;
         expect(pathData).toBe(expectedPath);
     });
-
-    it('5. Integration: renderLineGraph renders both boolean step and scale diagonal paths', () => {
-        const container = documentInstance.createElement('div');
-        const questions = [
-            { id: 'scale_q', text: 'Energy', shortLabel: 'Energy', curve: 'more-is-better', responseType: 'scale' },
-            { id: 'bool_q', text: 'Eaten', shortLabel: 'Eaten', curve: 'more-is-better', responseType: 'boolean' }
-        ];
-        const entries = [
-            {
-                timestamp: '2026-08-10T10:00:00.000Z',
-                answers: [
-                    { questionId: 'scale_q', score: 2, status: 'answered' },
-                    { questionId: 'bool_q', score: 5, status: 'answered' }
-                ]
-            },
-            {
-                timestamp: '2026-08-11T10:00:00.000Z',
-                answers: [
-                    { questionId: 'scale_q', score: 4, status: 'answered' },
-                    { questionId: 'bool_q', score: 1, status: 'answered' }
-                ]
-            }
-        ];
-
-        renderLineGraph(container, { entries, questions });
-
-        const paths = container.querySelectorAll('svg g.lines path');
-        expect(paths.length).toBe(2);
-
-        const scalePathD = paths[0].getAttribute('d');
-        const booleanPathD = paths[1].getAttribute('d');
-
-        // Scale path must have only 1 'L' command (start 'M' + 1 destination 'L')
-        const scaleLCount = (scalePathD.match(/L/g) || []).length;
-        expect(scaleLCount).toBe(1);
-
-        // Boolean step path must have 2 'L' commands for 2 points (horizontal then vertical)
-        const booleanLCount = (booleanPathD.match(/L/g) || []).length;
-        expect(booleanLCount).toBe(2);
-    });
 });
 
 describe('Task 5.11.4: Boolean Point Tooltips & Accessible Labels', () => {
@@ -776,78 +735,4 @@ describe('Task 5.11.4: Boolean Point Tooltips & Accessible Labels', () => {
         expect(ariaLabel).toContain('Mood: Score 3');
         expect(titleText).toContain('Mood: Score 3/5');
     });
-
-    it('5. Integration: renderLineGraph renders Yes/No tooltips for boolean & Score X/5 for scale', () => {
-        const container = documentInstance.createElement('div');
-        const questions = [
-            {
-                id: 'scale_q',
-                text: 'Energy level',
-                shortLabel: 'Energy',
-                curve: 'more-is-better',
-                responseType: 'scale'
-            },
-            {
-                id: 'bool_q',
-                text: 'Have you eaten?',
-                shortLabel: 'Eaten',
-                curve: 'more-is-better',
-                responseType: 'boolean'
-            }
-        ];
-        const entries = [
-            {
-                timestamp: '2026-08-10T10:00:00.000Z',
-                answers: [
-                    { questionId: 'scale_q', score: 4, status: 'answered' },
-                    { questionId: 'bool_q', score: BOOLEAN_YES_SCORE, status: 'answered' }
-                ]
-            },
-            {
-                timestamp: '2026-08-11T10:00:00.000Z',
-                answers: [
-                    { questionId: 'scale_q', score: 2, status: 'answered' },
-                    { questionId: 'bool_q', score: BOOLEAN_NO_SCORE, status: 'answered' }
-                ]
-            }
-        ];
-
-        renderLineGraph(container, { entries, questions });
-
-        const circles = container.querySelectorAll('svg g.points circle');
-        expect(circles.length).toBe(4);
-
-        const circleTexts = Array.from(circles).map(circle => ({
-            label: circle.getAttribute('aria-label'),
-            title: circle.querySelector('title').textContent
-        }));
-
-        // Two circles for scale_q: should have Score 4 and Score 2
-        const scalePoint1 = circleTexts.find(circleText =>
-            circleText.label.includes('Energy') && circleText.label.includes('Score 4')
-        );
-        const scalePoint2 = circleTexts.find(circleText =>
-            circleText.label.includes('Energy') && circleText.label.includes('Score 2')
-        );
-        expect(scalePoint1).toBeDefined();
-        expect(scalePoint1.title).toContain('Score 4/5');
-        expect(scalePoint2).toBeDefined();
-        expect(scalePoint2.title).toContain('Score 2/5');
-
-        // Two circles for bool_q: should have Yes and No
-        const booleanPointYes = circleTexts.find(circleText =>
-            circleText.label.includes('Eaten') && circleText.label.includes('Yes')
-        );
-        const booleanPointNo = circleTexts.find(circleText =>
-            circleText.label.includes('Eaten') && circleText.label.includes('No')
-        );
-        expect(booleanPointYes).toBeDefined();
-        expect(booleanPointYes.title).toContain('Eaten: Yes');
-        expect(booleanPointYes.title).not.toContain('/5');
-        expect(booleanPointNo).toBeDefined();
-        expect(booleanPointNo.title).toContain('Eaten: No');
-        expect(booleanPointNo.title).not.toContain('/5');
-    });
 });
-
-

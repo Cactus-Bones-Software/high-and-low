@@ -813,7 +813,7 @@ Rules for every task in this phase:
     real wait, with a one-line comment explaining why.
   - Remove the `sleep` helper from `tests/test-utils.js` if no test uses it afterward.
 
-- [ ] **Task 10.7: Entry Fixture Helpers for `graph.test.js`**
+- [x] **Task 10.7: Entry Fixture Helpers for `graph.test.js`**
   - `graph.test.js` contains ~35 inline `{ timestamp: new Date(now - N * 86400000).toISOString(), answers: [...] }`
     literals. Add a small helper to `tests/test-utils.js` (e.g. `createSampleEntry({ daysAgo, answers, note })`),
     reuse the existing `createSampleFourteenDayEntries` / `createSampleTwoDayLogs` helpers where they already match,
@@ -821,7 +821,7 @@ Rules for every task in this phase:
   - Do not change any timestamp offset, score, or note value. Rendered output must be identical.
   - Check the other suites for the same pattern and convert any found.
 
-- [ ] **Task 10.8: Audit and Trim Layered Duplicate Tests**
+- [x] **Task 10.8: Audit and Trim Layered Duplicate Tests**
   - Review pairs where the same behavior is tested at two layers: the "unit" test of `computeGraphLayout` /
     `renderGraphSVG` followed by an "Integration: renderLineGraph ..." test in `question_response_type.test.js`
     (boolean step paths, Yes/No tooltips), and the zoom/preset button tests in `graph.test.js` versus
