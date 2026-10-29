@@ -24,7 +24,7 @@ import { saveQuestionFromAuthoring } from '../public/js/ui/question-view.js';
 import { get, getAll, put } from '../public/js/storage/db.js';
 import { STATE } from '../public/js/state.js';
 
-describe('Task 5.10.1: Yes/No Question Type — Schema Field Tests', () => {
+describe('Yes/No Question Type — Schema Field Tests', () => {
     let _windowInstance;
 
     beforeEach(async () => {
@@ -32,7 +32,7 @@ describe('Task 5.10.1: Yes/No Question Type — Schema Field Tests', () => {
         _windowInstance = setup.window;
     });
 
-    it('1. DEFAULT_QUESTIONS explicitly sets responseType on every built-in question', () => {
+    it('DEFAULT_QUESTIONS explicitly sets responseType on every built-in question', () => {
         const defaultQuestions = DEFAULT_QUESTIONS;
         expect(Array.isArray(defaultQuestions)).toBe(true);
         expect(defaultQuestions.length).toBe(8);
@@ -50,7 +50,7 @@ describe('Task 5.10.1: Yes/No Question Type — Schema Field Tests', () => {
         expect(booleanQuestions[0].text).toBe('Have you eaten today?');
     });
 
-    it('2. Seeded questions in IndexedDB contain explicit responseType', async () => {
+    it('seeded questions in IndexedDB contain explicit responseType', async () => {
         const questionsInStore = await getAll('questions');
         expect(questionsInStore.length).toBe(8);
 
@@ -63,7 +63,7 @@ describe('Task 5.10.1: Yes/No Question Type — Schema Field Tests', () => {
         expect(eatenInStore.builtIn).toBe(true);
     });
 
-    it('3. createCustomQuestion defaults responseType to "scale" when omitted', async () => {
+    it('createCustomQuestion defaults responseType to "scale" when omitted', async () => {
         const outcome = await createCustomQuestion({
             text: 'How focused were you today?',
             shortLabel: 'Focus Level',
@@ -78,7 +78,7 @@ describe('Task 5.10.1: Yes/No Question Type — Schema Field Tests', () => {
         expect(inStore.responseType).toBe('scale');
     });
 
-    it('4. createCustomQuestion persists responseType: "boolean" when provided', async () => {
+    it('createCustomQuestion persists responseType: "boolean" when provided', async () => {
         const outcome = await createCustomQuestion({
             text: 'Did you take your medication today?',
             shortLabel: 'Medication Taken',
@@ -93,7 +93,7 @@ describe('Task 5.10.1: Yes/No Question Type — Schema Field Tests', () => {
         expect(inStore.responseType).toBe('boolean');
     });
 
-    it('5. createCustomQuestion throws when responseType is invalid', async () => {
+    it('createCustomQuestion throws when responseType is invalid', async () => {
         let firstRejectionError = null;
         try {
             await createCustomQuestion({
@@ -121,7 +121,7 @@ describe('Task 5.10.1: Yes/No Question Type — Schema Field Tests', () => {
         expect(secondRejectionError.message).toMatch(/Invalid responseType/);
     });
 
-    it('6. createCustomQuestion persists responseType on restore-from-archive path', async () => {
+    it('createCustomQuestion persists responseType on restore-from-archive path', async () => {
         const initial = await createCustomQuestion({
             text: 'Did you exercise today?',
             shortLabel: 'Exercise',
@@ -148,7 +148,7 @@ describe('Task 5.10.1: Yes/No Question Type — Schema Field Tests', () => {
         expect(inStore.responseType).toBe('boolean');
     });
 
-    it('7. seedDefaults backfills responseType: "scale" on pre-existing stored records', async () => {
+    it('seedDefaults backfills responseType: "scale" on pre-existing stored records', async () => {
         // Create a legacy custom record without responseType
         const legacyCustomQuestion = {
             id: 'c_legacy123',
@@ -181,7 +181,7 @@ describe('Task 5.10.1: Yes/No Question Type — Schema Field Tests', () => {
     });
 });
 
-describe('Task 5.10.2: Yes/No Question Type — Authoring Dialog Field Tests', () => {
+describe('Yes/No Question Type — Authoring Dialog Field Tests', () => {
     let windowInstance;
 
     beforeEach(async () => {
@@ -189,7 +189,7 @@ describe('Task 5.10.2: Yes/No Question Type — Authoring Dialog Field Tests', (
         windowInstance = setup.window;
     });
 
-    it('1. Markup has response type selector matching form field conventions', () => {
+    it('renders response type selector matching form field conventions in markup', () => {
         const document = windowInstance.document;
         const selector = document.getElementById('q-response-type');
         expect(selector).toBeTruthy();
@@ -209,7 +209,7 @@ describe('Task 5.10.2: Yes/No Question Type — Authoring Dialog Field Tests', (
         expect(selector.value).toBe('scale');
     });
 
-    it('2. Selecting Yes/No hides scale-only fields and selecting 5-Point Scale shows them', async () => {
+    it('hides scale-only fields when selecting Yes/No and shows them when selecting 5-Point Scale', async () => {
         const document = windowInstance.document;
         const addQuestionButton = document.getElementById('button-add-question');
         expect(addQuestionButton).toBeTruthy();
@@ -245,7 +245,7 @@ describe('Task 5.10.2: Yes/No Question Type — Authoring Dialog Field Tests', (
         expectScaleFieldsVisible(true);
     });
 
-    it('3. Live preview reflects selected response type', async () => {
+    it('reflects selected response type in live preview', async () => {
         const document = windowInstance.document;
         const addQuestionButton = document.getElementById('button-add-question');
         addQuestionButton.click();
@@ -282,7 +282,7 @@ describe('Task 5.10.2: Yes/No Question Type — Authoring Dialog Field Tests', (
     });
 });
 
-describe('Task 5.10.3: Yes/No Question Type — Wire Selector Into Save/Edit Tests', () => {
+describe('Yes/No Question Type — Wire Selector Into Save/Edit Tests', () => {
     let windowInstance;
     let documentInstance;
 
@@ -292,7 +292,7 @@ describe('Task 5.10.3: Yes/No Question Type — Wire Selector Into Save/Edit Tes
         documentInstance = setup.document;
     });
 
-    it('1. Saving new custom question through UI passes responseType: "boolean" to createCustomQuestion', async () => {
+    it('passes responseType: "boolean" to createCustomQuestion when saving new custom question through UI', async () => {
         const addQuestionButton = documentInstance.getElementById('button-add-question');
         addQuestionButton.click();
 
@@ -321,7 +321,7 @@ describe('Task 5.10.3: Yes/No Question Type — Wire Selector Into Save/Edit Tes
         expect(savedQuestion.shortLabel).toBe('Medication');
     });
 
-    it('2. Saving new custom question through UI defaults to responseType: "scale"', async () => {
+    it('defaults to responseType: "scale" when saving new custom question through UI', async () => {
         const addQuestionButton = documentInstance.getElementById('button-add-question');
         addQuestionButton.click();
 
@@ -343,7 +343,7 @@ describe('Task 5.10.3: Yes/No Question Type — Wire Selector Into Save/Edit Tes
         expect(savedQuestion.responseType).toBe('scale');
     });
 
-    it('3. Opening edit modal on boolean question populates responseType and hides scale fields', async () => {
+    it('populates responseType and hides scale fields when opening edit modal on boolean question', async () => {
         const outcome = await createCustomQuestion({
             text: 'Did you exercise today?',
             shortLabel: 'Exercise',
@@ -375,7 +375,7 @@ describe('Task 5.10.3: Yes/No Question Type — Wire Selector Into Save/Edit Tes
         expect(buttons[1].textContent.trim()).toBe('No');
     });
 
-    it('4. Opening edit modal on a scale question populates responseType and shows scale fields', async () => {
+    it('populates responseType and shows scale fields when opening edit modal on a scale question', async () => {
         const outcome = await createCustomQuestion({
             text: 'How calm was your day?',
             shortLabel: 'Calmness',
@@ -398,7 +398,7 @@ describe('Task 5.10.3: Yes/No Question Type — Wire Selector Into Save/Edit Tes
         expect(previewElement.getAttribute('data-curve')).toBe('more-is-better');
     });
 
-    it('5. Editing an existing question can change responseType and persists to storage', async () => {
+    it('changes responseType and persists to storage when editing an existing question', async () => {
         const outcome = await createCustomQuestion({
             text: 'Did you drink water today?',
             shortLabel: 'Water',
@@ -425,7 +425,7 @@ describe('Task 5.10.3: Yes/No Question Type — Wire Selector Into Save/Edit Tes
         expect(inDb.responseType).toBe('boolean');
     });
 
-    it('6. Copying a question populates responseType and immediately syncs field visibility', async () => {
+    it('populates responseType and immediately syncs field visibility when copying a question', async () => {
         await navigateToQuestionsCanvas(windowInstance, documentInstance);
         await openQuestionAuthoringDialog(documentInstance, 'q_eaten', 'copy');
 
@@ -439,7 +439,7 @@ describe('Task 5.10.3: Yes/No Question Type — Wire Selector Into Save/Edit Tes
     });
 });
 
-describe('Task 5.11.1: Boolean Score Mapping Constants', () => {
+describe('Boolean Score Mapping Constants', () => {
     let windowInstance;
     let documentInstance;
 
@@ -449,7 +449,7 @@ describe('Task 5.11.1: Boolean Score Mapping Constants', () => {
         documentInstance = setup.document;
     });
 
-    it('1. Exports BOOLEAN_NO_SCORE and BOOLEAN_YES_SCORE with values 1 and 5', () => {
+    it('exports BOOLEAN_NO_SCORE and BOOLEAN_YES_SCORE with values 1 and 5', () => {
         expect(BOOLEAN_NO_SCORE).toBe(1);
         expect(BOOLEAN_YES_SCORE).toBe(5);
         expect(BOOLEAN_NO_SCORE).toBe(1);
@@ -458,7 +458,7 @@ describe('Task 5.11.1: Boolean Score Mapping Constants', () => {
         expect(typeof BOOLEAN_YES_SCORE).toBe('number');
     });
 
-    it('2. Authoring preview renders Yes/No buttons mapped to the exported constants', async () => {
+    it('renders Yes/No buttons mapped to the exported constants in authoring preview', async () => {
         await navigateToQuestionsCanvas(windowInstance, documentInstance);
         await openQuestionAuthoringDialog(documentInstance, 'q_eaten', 'copy');
 
@@ -476,7 +476,7 @@ describe('Task 5.11.1: Boolean Score Mapping Constants', () => {
     });
 });
 
-describe('Task 5.11.2: Yes/No Tracker Input Deck', () => {
+describe('Yes/No Tracker Input Deck', () => {
     let _windowInstance;
     let documentInstance;
 
@@ -486,7 +486,7 @@ describe('Task 5.11.2: Yes/No Tracker Input Deck', () => {
         documentInstance = setup.document;
     });
 
-    it('1. buildScoreButtonsHTML renders 2 boolean buttons for boolean questions and 5 for scale', () => {
+    it('buildScoreButtonsHTML renders 2 boolean buttons for boolean questions and 5 for scale', () => {
         const booleanQuestion = {
             id: 'test_boolean',
             text: 'Did you eat today?',
@@ -526,7 +526,7 @@ describe('Task 5.11.2: Yes/No Tracker Input Deck', () => {
         expect(scaleButtons.length).toBe(5);
     });
 
-    it('2. renderCurrentQuestion renders 2-button deck for boolean question in tracker', async () => {
+    it('renderCurrentQuestion renders 2-button deck for boolean question in tracker', async () => {
         const eatenQuestion = DEFAULT_QUESTIONS.find(question => question.id === 'q_eaten');
         expect(eatenQuestion.responseType).toBe('boolean');
 
@@ -552,7 +552,7 @@ describe('Task 5.11.2: Yes/No Tracker Input Deck', () => {
         expect(inputBox.getAttribute('data-response-type')).toBe('boolean');
     });
 
-    it('3. Clicking Yes submits BOOLEAN_YES_SCORE (5) to handleScoreSubmission and answers array', async () => {
+    it('submits BOOLEAN_YES_SCORE (5) to handleScoreSubmission and answers array when clicking Yes', async () => {
         const eatenQuestion = DEFAULT_QUESTIONS.find(question => question.id === 'q_eaten');
         STATE.activeQuestions = [eatenQuestion];
         STATE.currentQuestionIndex = 0;
@@ -571,7 +571,7 @@ describe('Task 5.11.2: Yes/No Tracker Input Deck', () => {
         });
     });
 
-    it('4. Clicking No submits BOOLEAN_NO_SCORE (1) to handleScoreSubmission and answers array', async () => {
+    it('submits BOOLEAN_NO_SCORE (1) to handleScoreSubmission and answers array when clicking No', async () => {
         const eatenQuestion = DEFAULT_QUESTIONS.find(question => question.id === 'q_eaten');
         STATE.activeQuestions = [eatenQuestion];
         STATE.currentQuestionIndex = 0;
@@ -591,7 +591,7 @@ describe('Task 5.11.2: Yes/No Tracker Input Deck', () => {
     });
 });
 
-describe('Task 5.11.3: Boolean Line Rendering — Step Interpolation', () => {
+describe('Boolean Line Rendering — Step Interpolation', () => {
     let windowInstance;
     let documentInstance;
 
@@ -601,7 +601,7 @@ describe('Task 5.11.3: Boolean Line Rendering — Step Interpolation', () => {
         documentInstance = setup.document;
     });
 
-    it('2. renderGraphSVG produces horizontal-then-vertical step for boolean series', () => {
+    it('produces horizontal-then-vertical step for boolean series in renderGraphSVG', () => {
         const booleanQuestion = createSampleBooleanQuestion({ text: 'Eaten today?' });
         const entries = createSampleBooleanEntries([5, 1]);
 
@@ -624,7 +624,7 @@ describe('Task 5.11.3: Boolean Line Rendering — Step Interpolation', () => {
         expect(pathData).toBe(expectedStepPath);
     });
 
-    it('3. renderGraphSVG produces straight diagonal lines for scale series', () => {
+    it('produces straight diagonal lines for scale series in renderGraphSVG', () => {
         const scaleQuestion = createSampleScaleQuestion();
         const entries = createSampleBooleanEntries([5, 1], 'scale_q');
 
@@ -646,7 +646,7 @@ describe('Task 5.11.3: Boolean Line Rendering — Step Interpolation', () => {
         expect(pathData).toBe(expectedStraightPath);
     });
 
-    it('4. Multi-point boolean series steps across alternating Yes/No answers', () => {
+    it('steps across alternating Yes/No answers in multi-point boolean series', () => {
         const booleanQuestion = createSampleBooleanQuestion({ text: 'Eaten' });
         const entries = createSampleBooleanEntries([5, 1, 5]);
 
@@ -665,7 +665,7 @@ describe('Task 5.11.3: Boolean Line Rendering — Step Interpolation', () => {
     });
 });
 
-describe('Task 5.11.4: Boolean Point Tooltips & Accessible Labels', () => {
+describe('Boolean Point Tooltips & Accessible Labels', () => {
     let windowInstance;
     let documentInstance;
 
@@ -675,7 +675,7 @@ describe('Task 5.11.4: Boolean Point Tooltips & Accessible Labels', () => {
         documentInstance = setup.document;
     });
 
-    it('2. Boolean points render "Yes" for BOOLEAN_YES_SCORE in aria-label and <title>', () => {
+    it('renders "Yes" for BOOLEAN_YES_SCORE in aria-label and <title> on boolean points', () => {
         const booleanQuestion = createSampleBooleanQuestion();
         const entries = createSampleBooleanEntries([BOOLEAN_YES_SCORE]);
 
@@ -696,7 +696,7 @@ describe('Task 5.11.4: Boolean Point Tooltips & Accessible Labels', () => {
         expect(titleText).not.toContain('Score 5/5');
     });
 
-    it('3. Boolean points render "No" for BOOLEAN_NO_SCORE in aria-label and <title>', () => {
+    it('renders "No" for BOOLEAN_NO_SCORE in aria-label and <title> on boolean points', () => {
         const booleanQuestion = createSampleBooleanQuestion();
         const entries = createSampleBooleanEntries([BOOLEAN_NO_SCORE]);
 
@@ -717,7 +717,7 @@ describe('Task 5.11.4: Boolean Point Tooltips & Accessible Labels', () => {
         expect(titleText).not.toContain('Score 1/5');
     });
 
-    it('4. Scale points retain "Score X/5" in <title> and "Score X" in aria-label unchanged', () => {
+    it('retains "Score X/5" in <title> and "Score X" in aria-label unchanged on scale points', () => {
         const scaleQuestion = createSampleScaleQuestion();
         const entries = createSampleBooleanEntries([3], 'scale_q');
 
@@ -736,3 +736,5 @@ describe('Task 5.11.4: Boolean Point Tooltips & Accessible Labels', () => {
         expect(titleText).toContain('Mood: Score 3/5');
     });
 });
+
+

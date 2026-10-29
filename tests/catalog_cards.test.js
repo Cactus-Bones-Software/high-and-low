@@ -8,7 +8,7 @@ let _domInstance;
 let windowInstance;
 let documentInstance;
 
-describe('Task 5.6: Catalog Cards & Non-Dominant Edit Actions', () => {
+describe('Catalog Cards & Non-Dominant Edit Actions', () => {
     beforeEach(async () => {
         const environment = await setupTestDOM();
         _domInstance = environment.dom;
@@ -19,7 +19,7 @@ describe('Task 5.6: Catalog Cards & Non-Dominant Edit Actions', () => {
         await navigateToQuestionsCanvas(windowInstance, documentInstance);
     });
 
-    it('1. Catalog Card Structure: Renders cards with question text, tags, edit button, and toggle switch', () => {
+    it('renders cards with question text, tags, edit button, and toggle switch', () => {
         const catalogList = documentInstance.getElementById('questions-catalog-list');
         expect(catalogList).not.toBeNull();
         expect(catalogList.children.length).toBe(8);
@@ -63,7 +63,7 @@ describe('Task 5.6: Catalog Cards & Non-Dominant Edit Actions', () => {
         expect(firstCard.classList.contains('is-reorderable')).toBe(false);
     });
 
-    it('2. Toggle Functionality: Toggling an inactive catalog card activates it into active tracker', async () => {
+    it('activates an inactive catalog card into active tracker on toggle', async () => {
         const activeList = documentInstance.getElementById('questions-active-list');
         const catalogList = documentInstance.getElementById('questions-catalog-list');
         const initialActiveCount = activeList.children.length;
@@ -92,7 +92,7 @@ describe('Task 5.6: Catalog Cards & Non-Dominant Edit Actions', () => {
         expect(updatedCatalogCard.querySelector('.question-tracker-toggle').getAttribute('aria-checked')).toBe('true');
     });
 
-    it('3. Handedness Alignment & CSS Rules: Edit button follows non-dominant alignment rule', () => {
+    it('aligns edit button according to non-dominant handedness rules in CSS', () => {
         const cssContent = readFileSync(resolve(__dirname, '../public/style.css'), 'utf8');
 
         // Edit button styles exist

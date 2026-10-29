@@ -10,7 +10,7 @@ let _domInstance;
 let windowInstance;
 let documentInstance;
 
-describe('Task 5.5: Active Tracker Cards, Reordering Handles & In-Tracker Toggle', () => {
+describe('Active Tracker Cards, Reordering Handles & In-Tracker Toggle', () => {
     beforeEach(async () => {
         const environment = await setupTestDOM();
         _domInstance = environment.dom;
@@ -21,7 +21,7 @@ describe('Task 5.5: Active Tracker Cards, Reordering Handles & In-Tracker Toggle
         await navigateToQuestionsCanvas(windowInstance, documentInstance);
     });
 
-    it('1. Active Card Structure: Renders active cards with question text, tags, reordering, and toggle switch below badge', () => {
+    it('renders active cards with question text, tags, reordering, and toggle switch below badge', () => {
         const activeList = documentInstance.getElementById('questions-active-list');
         expect(activeList).not.toBeNull();
         expect(activeList.children.length).toBe(STATE.activeQuestions.length);
@@ -63,7 +63,7 @@ describe('Task 5.5: Active Tracker Cards, Reordering Handles & In-Tracker Toggle
         expect(downButton.disabled).toBe(false);
     });
 
-    it('2. Boundary Buttons: Last active card has move-down disabled and move-up enabled', () => {
+    it('disables move-down and enables move-up on the last active card', () => {
         const activeList = documentInstance.getElementById('questions-active-list');
         const totalCards = activeList.children.length;
         expect(totalCards).toBeGreaterThanOrEqual(2);
@@ -76,7 +76,7 @@ describe('Task 5.5: Active Tracker Cards, Reordering Handles & In-Tracker Toggle
         expect(downButton.disabled).toBe(true);
     });
 
-    it('3. Reordering Sequence: Clicking move-down swaps order and persists in config', async () => {
+    it('swaps order and persists in config when clicking move-down', async () => {
         const activeList = documentInstance.getElementById('questions-active-list');
         const firstCardId = activeList.children[0].getAttribute('data-question-id');
         const secondCardId = activeList.children[1].getAttribute('data-question-id');
@@ -102,7 +102,7 @@ describe('Task 5.5: Active Tracker Cards, Reordering Handles & In-Tracker Toggle
         expect(storedConfig[1]).toBe(firstCardId);
     });
 
-    it('4. Reordering Sequence: Clicking move-up moves question up and updates disabled states', async () => {
+    it('moves question up and updates disabled states when clicking move-up', async () => {
         const activeList = documentInstance.getElementById('questions-active-list');
         const secondCard = activeList.children[1];
         const secondCardId = secondCard.getAttribute('data-question-id');
@@ -121,7 +121,7 @@ describe('Task 5.5: Active Tracker Cards, Reordering Handles & In-Tracker Toggle
         expect(newUpButton.disabled).toBe(true);
     });
 
-    it('5. In-Tracker Toggle: Clicking toggle switch removes question from active set into catalog, and adding from catalog', async () => {
+    it('removes question from active set into catalog when clicking toggle switch, and restores from catalog', async () => {
         const activeList = documentInstance.getElementById('questions-active-list');
         const catalogList = document.getElementById('questions-catalog-list');
         const headingCatalog = documentInstance.getElementById('questions-catalog-heading');
@@ -179,7 +179,7 @@ describe('Task 5.5: Active Tracker Cards, Reordering Handles & In-Tracker Toggle
         expect(updatedCatalogCard.querySelector('.question-tracker-toggle').getAttribute('aria-checked')).toBe('true');
     });
 
-    it('6. Layout & CSS Rules: Status group holds badge and toggle, reorder controls in action row', () => {
+    it('places badge and toggle in status group and reorder controls in action row', () => {
         const activeList = documentInstance.getElementById('questions-active-list');
         const firstCard = activeList.children[0];
 
@@ -207,7 +207,7 @@ describe('Task 5.5: Active Tracker Cards, Reordering Handles & In-Tracker Toggle
         expect(cssContent).toContain('.question-tracker-toggle');
     });
 
-    it('7. Drag Handle Structure: Center placement, flanking reorder buttons, and grip lines', () => {
+    it('centers drag handle between flanking reorder buttons with grip lines', () => {
         const activeList = documentInstance.getElementById('questions-active-list');
         const firstCard = activeList.children[0];
 
@@ -251,7 +251,7 @@ describe('Task 5.5: Active Tracker Cards, Reordering Handles & In-Tracker Toggle
         expect(updatedActiveList.children[1].getAttribute('data-question-id')).toBe(secondExpectedId);
     }
 
-    it('8. Drag and Drop Reordering: Dragging card drops into new position and persists order', async () => {
+    it('drops card into new position and persists order during drag and drop reordering', async () => {
         const activeList = documentInstance.getElementById('questions-active-list');
         const firstCard = activeList.children[0];
         const secondCard = activeList.children[1];
@@ -304,7 +304,7 @@ describe('Task 5.5: Active Tracker Cards, Reordering Handles & In-Tracker Toggle
         expect(storedConfig[1]).toBe(firstId);
     });
 
-    it('9. Drag Handle Keyboard Navigation: Arrow keys reorder active question sequence', async () => {
+    it('reorders active question sequence via arrow keys on drag handle', async () => {
         const activeList = documentInstance.getElementById('questions-active-list');
         const firstCard = activeList.children[0];
         const secondCard = activeList.children[1];

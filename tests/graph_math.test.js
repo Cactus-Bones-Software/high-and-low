@@ -192,7 +192,7 @@ describe('Graph Math & Pure Layout Calculations', () => {
         });
     });
 
-    describe('computeGraphLayout pure layout computation (Task 4.13)', () => {
+    describe('computeGraphLayout pure layout computation', () => {
         it('returns empty layout state when no entries or questions are provided', () => {
             const emptyEntriesLayout = computeGraphLayout({
                 entries: [],
@@ -321,7 +321,7 @@ describe('Graph Math & Pure Layout Calculations', () => {
             expect(layout.notes[1].entryIndex).toBe(2);
         });
 
-        it('derives every point x-position purely from elapsed time and BASE_PIXELS_PER_HOUR scale (Task 9.1)', () => {
+        it('derives every point x-position purely from elapsed time and BASE_PIXELS_PER_HOUR scale', () => {
             const baseTime = new Date('2026-08-01T12:00:00.000Z').getTime();
             const questions = [
                 { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' }
@@ -372,7 +372,7 @@ describe('Graph Math & Pure Layout Calculations', () => {
             expect(zoomedPoints[3].x).toBe(paddingLeft + 36);
         });
 
-        it('never excludes entries based on timeRange parameter, keeping full history rendered (Task 9.2)', () => {
+        it('never excludes entries based on timeRange parameter, keeping full history rendered', () => {
             const now = Date.now();
             const questions = [
                 { id: 'q1', text: 'Energy', shortLabel: 'Energy', curve: 'more-is-better' }

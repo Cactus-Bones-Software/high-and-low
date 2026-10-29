@@ -11,7 +11,7 @@ import {
 import { STATE } from '../public/js/state.js';
 import { getDatabase, put } from '../public/js/storage/db.js';
 
-describe('Task 3.12: CSV Export for Sharing with a Clinician Tests', () => {
+describe('CSV Export for Sharing with a Clinician', () => {
     let windowInstance;
     let documentInstance;
 
@@ -28,7 +28,7 @@ describe('Task 3.12: CSV Export for Sharing with a Clinician Tests', () => {
         ));
     });
 
-    it('1. UI Structure: Renders dedicated Sharing section and CSV export button in Data view', () => {
+    it('renders dedicated Sharing section and CSV export button in Data view', () => {
         const dataPanel = documentInstance.getElementById('panel-data');
         expect(dataPanel).not.toBeNull();
 
@@ -57,7 +57,7 @@ describe('Task 3.12: CSV Export for Sharing with a Clinician Tests', () => {
         expect(isFollowing).toBe(true);
     });
 
-    it('2. formatCSVCell: Handles empty values, quoting, and newlines', () => {
+    it('handles empty values, quoting, and newlines in formatCSVCell', () => {
         expect(formatCSVCell(null)).toBe('');
         expect(formatCSVCell(undefined)).toBe('');
         expect(formatCSVCell('')).toBe('');
@@ -75,7 +75,7 @@ describe('Task 3.12: CSV Export for Sharing with a Clinician Tests', () => {
         expect(formatCSVCell("Line 1\r\nLine 2")).toBe('"Line 1\r\nLine 2"');
     });
 
-    it('3. formatCSVCell: Neutralizes spreadsheet formula injection symbols (=, +, -, @)', () => {
+    it('neutralizes spreadsheet formula injection symbols in formatCSVCell', () => {
         // Starts with equals sign
         expect(formatCSVCell('=SUM(1,2)')).toBe("\"'=SUM(1,2)\"");
 
@@ -89,7 +89,7 @@ describe('Task 3.12: CSV Export for Sharing with a Clinician Tests', () => {
         expect(formatCSVCell('@mention')).toBe("\"'@mention\"");
     });
 
-    it('4. generateHistoryCSV: Formats header row with Timestamp, Date, Note, and question shortLabels', () => {
+    it('formats header row with Timestamp, Date, Note, and question shortLabels in generateHistoryCSV', () => {
         const sampleQuestions = [
             { id: 'q_energy', shortLabel: 'Energy Level', text: 'Energy question', responseType: 'scale' },
             { id: 'q_sadness', shortLabel: 'Sadness Depth', text: 'Sadness question', responseType: 'scale' },
@@ -116,7 +116,7 @@ describe('Task 3.12: CSV Export for Sharing with a Clinician Tests', () => {
         expect(lines[1]).toBe('2026-10-20T10:00:00.000Z,2026-10-20,Morning check-in,4,2,Yes');
     });
 
-    it('5. generateHistoryCSV: Includes archived questions that have answers in historical entries', () => {
+    it('includes archived questions that have answers in historical entries in generateHistoryCSV', () => {
         const sampleQuestions = [
             { id: 'q_energy', shortLabel: 'Energy Level', text: 'Energy', responseType: 'scale', archived: false },
             { id: 'q_old_test', shortLabel: 'Old Factor', text: 'Old', responseType: 'scale', archived: true },
@@ -145,7 +145,7 @@ describe('Task 3.12: CSV Export for Sharing with a Clinician Tests', () => {
         expect(headerLine).not.toContain('Unused Old');
     });
 
-    it('6. generateHistoryCSV: Outputs Yes/No for boolean questions, and never writes 0 or -1', () => {
+    it('outputs Yes/No for boolean questions and never writes 0 or -1 in generateHistoryCSV', () => {
         const sampleQuestions = [
             { id: 'q_eaten', shortLabel: 'Eaten Today', responseType: 'boolean' },
             { id: 'q_scale', shortLabel: 'Scale Score', responseType: 'scale' }
@@ -188,7 +188,7 @@ describe('Task 3.12: CSV Export for Sharing with a Clinician Tests', () => {
         expect(csvOutput).not.toContain(',-1\r\n');
     });
 
-    it('7. generateHistoryCSV: Handles skipped answers vs not-asked questions as empty cells', () => {
+    it('handles skipped answers vs not-asked questions as empty cells in generateHistoryCSV', () => {
         const sampleQuestions = [
             { id: 'q_energy', shortLabel: 'Energy Level', responseType: 'scale' },
             { id: 'q_sadness', shortLabel: 'Sadness Depth', responseType: 'scale' },
@@ -222,7 +222,7 @@ describe('Task 3.12: CSV Export for Sharing with a Clinician Tests', () => {
         expect(lines[1]).toBe('2026-10-20T10:00:00.000Z,2026-10-20,,4,,');
     });
 
-    it('8. UI Flow: Shows notice dialog if there are no entries to export', async () => {
+    it('shows notice dialog if there are no entries to export', async () => {
         // Ensure entries store is empty
         const database = getDatabase();
         await new Promise((resolve, reject) => {
@@ -246,7 +246,7 @@ describe('Task 3.12: CSV Export for Sharing with a Clinician Tests', () => {
         expect(noticeTitle.textContent.trim()).toBe('No Entries to Export');
     });
 
-    it('9. UI Flow: Clicking CSV export button initiates browser download when entries exist', async () => {
+    it('initiates browser download when clicking CSV export button with existing entries', async () => {
         // Seed a sample entry into IndexedDB
         const sampleEntry = {
             timestamp: '2026-10-24T14:30:00.000Z',

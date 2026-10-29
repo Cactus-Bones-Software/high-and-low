@@ -831,7 +831,7 @@ Rules for every task in this phase:
   - In the hand-off message, list each removed test with the name of the test that still covers it. This is the only
     task in the phase allowed to change the test count.
 
-- [ ] **Task 10.9: Behavior-Based Test Names**
+- [x] **Task 10.9: Behavior-Based Test Names**
   - Rename every `describe`/`it` title that carries a roadmap reference (`(Task 3.5)`, `Task 5.10.1:`, `Task 9.7`) or a
     numeric prefix (`1.`, `2.`) so it describes behavior. Cover all 23 `tests/*.test.js` files
     (`graph.test.js` has 18 offenders, `question_response_type.test.js` 7, `graph_gestures.test.js` 4).

@@ -16,7 +16,7 @@ import {
 let windowInstance;
 let documentInstance;
 
-describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
+describe('Live Gesture Zoom Input Handling', () => {
     beforeEach(async () => {
         const environment = await setupTestDOM();
         windowInstance = environment.window;
@@ -458,7 +458,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
         });
     });
 
-    describe('Live Gesture Zoom — CSS Transform Rendering Pass (Task 9.8)', () => {
+    describe('Live Gesture Zoom — CSS Transform Rendering Pass', () => {
         it('applyGraphGestureTransform sets transformOrigin to 0 0 and applies transform string', () => {
             const dummyElement = documentInstance.createElement('div');
             const transformResult = applyGraphGestureTransform(dummyElement, 1.5, 120);
@@ -512,7 +512,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
         });
     });
 
-    describe('Live Gesture Zoom — Per-Frame Counter-Scale for Points & Text (Task 9.9)', () => {
+    describe('Live Gesture Zoom — Per-Frame Counter-Scale for Points & Text', () => {
         it('renderGraphSVG renders vector-effect="non-scaling-stroke" on line paths and point circles', () => {
             const container = documentInstance.createElement('div');
             const questions = createSampleGraphQuestions();
@@ -698,7 +698,7 @@ describe('Live Gesture Zoom Input Handling Tests (Task 9.7)', () => {
         });
     });
 
-    describe('Live Gesture Zoom — Commit on Gesture End (Task 9.10)', () => {
+    describe('Live Gesture Zoom — Commit on Gesture End', () => {
         describe('updateGraphSVGInPlace', () => {
             it('updates SVG attributes and element groups without discarding DOM elements', () => {
                 const container = documentInstance.createElement('div');

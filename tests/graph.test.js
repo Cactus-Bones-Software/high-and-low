@@ -115,7 +115,7 @@ function simulateLongPress(windowInstance, element, durationMs = 500) {
     vi.advanceTimersByTime(durationMs);
 }
 
-describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
+describe('History Timeline & Gap Handling', () => {
     beforeEach(async () => {
         const environment = await setupTestDOM();
         windowInstance = environment.window;
@@ -313,7 +313,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         expect(footerBox.style.display).not.toBe('none');
     });
 
-    it('assigns distinct stroke-dasharray patterns to each active question line (Task 3.5)', () => {
+    it('assigns distinct stroke-dasharray patterns to each active question line', () => {
         const container = documentInstance.createElement('div');
         const questions = [
             { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' },
@@ -371,7 +371,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         expect(legendSwatches.length).toBe(4);
     });
 
-    it('toggles question line visibility when tapping legend checklist rows and prevents toggling to zero (Task 3.6)', () => {
+    it('toggles question line visibility when tapping legend checklist rows and prevents toggling to zero', () => {
         const { container } = renderSampleTwoDayGraph();
 
         // Initial state: 3 lines, 3 legend checklist buttons with aria-checked="true"
@@ -394,7 +394,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         expectGraphLegendAndLines(container, [true, false, false], 1, 2);
     });
 
-    it('isolates a single question on long-press (450ms) and restores all on second long-press (Task 3.7)', () => {
+    it('isolates a single question on long-press (450ms) and restores all on second long-press', () => {
         vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
         const { container } = renderSampleTwoDayGraph();
 
@@ -412,7 +412,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         expectGraphLegendAndLines(container, [true, true, true], 3, 6);
     });
 
-    it('isolates and restores questions via accessible per-row isolate button (Task 3.8)', () => {
+    it('isolates and restores questions via accessible per-row isolate button', () => {
         const { container } = renderSampleTwoDayGraph();
 
         let isolateButtons = Array.from(container.querySelectorAll('.legend-isolate-button'));
@@ -437,7 +437,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         expect(isolateButtons[1].getAttribute('aria-label')).toContain('Isolate Sadness');
     });
 
-    it('provides Show all and Clear all quick action buttons for fast timeline filter reset (Task 3.8)', () => {
+    it('provides Show all and Clear all quick action buttons for fast timeline filter reset', () => {
         const { container } = renderSampleTwoDayGraph();
 
         const showAllButton = container.querySelector('#button-legend-show-all');
@@ -455,7 +455,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         expectGraphLegendAndLines(container, [true, true, true], 3);
     });
 
-    it('renders note indicators on timeline and opens note modal with content on tap or keyboard interaction (Task 3.9)', async () => {
+    it('renders note indicators on timeline and opens note modal with content on tap or keyboard interaction', async () => {
         const container = documentInstance.getElementById('panel-history');
         const questions = [
             { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' },
@@ -550,7 +550,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         expect(overlayElement.classList.contains('is-open')).toBe(false);
     });
 
-    it('renders timeframe presets toolbar and keeps all data points rendered across timeframe selection (Task 3.10, Task 9.2)', async () => {
+    it('renders timeframe presets toolbar and keeps all data points rendered across timeframe selection', async () => {
         const container = documentInstance.createElement('div');
         const questions = [
             { id: 'q1', text: 'Overall Mood', shortLabel: 'Mood', curve: 'more-is-better' }
@@ -637,7 +637,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         }
     });
 
-    it('scales SVG width dynamically and provides horizontal scroll container for dense entries (Task 3.10)', () => {
+    it('scales SVG width dynamically and provides horizontal scroll container for dense entries', () => {
         const container = documentInstance.createElement('div');
         const questions = [
             { id: 'q1', text: 'Energy Level', shortLabel: 'Energy', curve: 'more-is-better' }
@@ -774,7 +774,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         expect(scrollContainer.scrollLeft).toBe(150);
     });
 
-    describe('Timeframe Buttons as Zoom Presets & Viewport Center Pivoting (Task 9.3)', () => {
+    describe('Timeframe Buttons as Zoom Presets & Viewport Center Pivoting', () => {
         it('updates zoom scale and scroll position when clicking preset button in DOM', async () => {
             const container = documentInstance.createElement('div');
             const questions = createSingleSampleQuestion();
@@ -798,7 +798,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         });
     });
 
-    describe('Zoom Buttons — Pivot on Viewport Center, No Clamp (Task 9.4)', () => {
+    describe('Zoom Buttons — Pivot on Viewport Center, No Clamp', () => {
         it('renders zoom in and zoom out buttons without disabled attributes regardless of scale', () => {
             const container = documentInstance.createElement('div');
             const questions = createSingleSampleQuestion();
@@ -887,7 +887,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         });
     });
 
-    describe('NOW Return Button Tests (Task 9.5)', () => {
+    describe('NOW Return Button', () => {
         it('renders NOW button in .graph-header-controls with accessible labels', () => {
             const container = documentInstance.createElement('div');
             const questions = [{ id: 'q1', text: 'Mood', shortLabel: 'Mood', curve: 'more-is-better' }];
@@ -936,7 +936,7 @@ describe('History Timeline & Gap Handling Tests (Task 3.4)', () => {
         });
     });
 
-    describe('SVG Width Tightness — No Dead Space Beyond Intended Padding (Task 9.6 diagnosis)', () => {
+    describe('SVG Width Tightness — No Dead Space Beyond Intended Padding', () => {
         function buildDeadSpaceRegressionEntries() {
             // Entries spread across real, unevenly-spaced days so that content position depends
             // purely on elapsed time, not on entry index or entry count.
