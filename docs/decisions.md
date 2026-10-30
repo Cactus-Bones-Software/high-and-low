@@ -74,6 +74,7 @@ Entry format: **Rule.** Why. *(Enforced in: ...)* — omit the last part if noth
   line; every change to `text` is therefore recorded in `textHistory` (new wording and time) and the history graph
   marks where it happened. Why: old and new answers that look like the same question can mislead the person and
   any clinician reading the graph, and a visible marker leaves that judgment to them instead of making it for them.
+  *(Enforced in: `tests/default_question_editing.test.js`)*
 
 ## Backup & restore
 

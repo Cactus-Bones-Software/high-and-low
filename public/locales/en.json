@@ -125,7 +125,8 @@
     "noticeBuiltInMessage": "Built-in questions are part of the core tracker and cannot be edited or removed.",
     "errorRequired": "Question text and short label are required.",
     "errorCopyDuplicate": "Please change the question text so this copy has a unique prompt.",
-    "errorGeneric": "Could not save question. Please verify all fields."
+    "errorGeneric": "Could not save question. Please verify all fields.",
+    "editWordingHint": "Past answers keep their place on the graph; the graph will mark where the wording changed."
   },
   "data": {
     "title": "Data Management & Backups",

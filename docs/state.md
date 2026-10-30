@@ -55,9 +55,9 @@ Current Version: `3`
     curve: 'more-is-better' | 'less-is-better' | 'middle-is-best';
     minLabel: string | null; // Label for score 1
     midLabel: string | null; // Label for score 3 (used by middle-is-best)
-    maxLabel: string | null; // Label for score 5
     builtIn: boolean; // true for defaults, false for user-authored
     archived: boolean; // Soft-delete flag; true hides from library catalog
+    textHistory?: Array<{ text: string; changedAt: string }>; // Appended on every edit that changes normalized text
     createdAt: string; // ISO-8601 timestamp
     updatedAt: string; // ISO-8601 timestamp
   }
@@ -273,7 +273,7 @@ export const STATE = {
     ├── hold_actions.test.js
     ├── localization.test.js
     ├── partial_import.test.js
-    ├── question_copying.test.js
+    ├── default_question_editing.test.js
     ├── question_editing.test.js
     ├── question_response_type_deck.test.js
     ├── question_response_type_dialog.test.js

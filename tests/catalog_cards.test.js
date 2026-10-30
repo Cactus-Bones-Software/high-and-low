@@ -50,15 +50,15 @@ describe('Catalog Cards & Non-Dominant Edit Actions', () => {
         expect(actionRow).not.toBeNull();
         const nonDominantActions = actionRow.querySelector('.card-actions-non-dominant');
         expect(nonDominantActions).not.toBeNull();
-        const copyButton = nonDominantActions.querySelector('.card-action-copy, .question-copy-button');
-        expect(copyButton).not.toBeNull();
-        expect(copyButton.getAttribute('data-action')).toBe('copy-question');
-        expect(copyButton.textContent.trim()).toBe('Copy');
+        const editButton = nonDominantActions.querySelector('.card-action-edit, .question-edit-button');
+        expect(editButton).not.toBeNull();
+        expect(editButton.getAttribute('data-action')).toBe('edit-question');
+        expect(editButton.textContent.trim()).toBe('Edit');
 
         // Active list card also has action button always visible and has is-reorderable class
         const activeList = documentInstance.getElementById('questions-active-list');
         const firstActiveCard = activeList.children[0];
-        expect(firstActiveCard.querySelector('.question-copy-button, .question-edit-button')).not.toBeNull();
+        expect(firstActiveCard.querySelector('.question-edit-button')).not.toBeNull();
         expect(firstActiveCard.classList.contains('is-reorderable')).toBe(true);
         expect(firstCard.classList.contains('is-reorderable')).toBe(false);
     });

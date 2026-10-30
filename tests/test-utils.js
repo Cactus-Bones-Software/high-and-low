@@ -352,10 +352,12 @@ export async function openQuestionAuthoringDialog(documentInstance, questionId, 
     if (!card) {
         throw new Error(`Question card with id "${questionId}" not found in DOM.`);
     }
-    const buttonSelector = action === 'copy' ? '.question-copy-button' : '.question-edit-button';
+    const buttonSelector = action === 'copy'
+        ? '.question-copy-button, .question-edit-button'
+        : '.question-edit-button';
     const actionButton = card.querySelector(buttonSelector);
     if (!actionButton) {
-        throw new Error(`Button "${buttonSelector}" not found on card "${questionId}".`);
+        throw new Error(`Action button for action "${action}" not found on card "${questionId}".`);
     }
     actionButton.click();
     const overlay = documentInstance.getElementById('question-authoring-dialog-overlay');

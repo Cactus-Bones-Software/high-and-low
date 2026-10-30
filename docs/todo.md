@@ -437,7 +437,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
     `1`/`5` for a question that was never actually a 5-point scale.
   - Scale-question tooltips keep their current `Score X/5` wording unchanged.
 
-- [ ] **Task 5.12.1: Wording History & In-Place Editing of Default Questions**
+- [x] **Task 5.12.1: Wording History & In-Place Editing of Default Questions**
   - Default questions are starter content, not a shared clinical baseline. Let users edit them in place under the
     same rules as custom questions (`id` and `originalText` stay frozen). Remove the built-in edit lock in
     `updateCustomQuestion`, and replace the "Copy" action on default cards with "Edit" (Task 5.9 is superseded).
@@ -616,7 +616,6 @@ just native `<script type="module">`, staying within the vanilla-only constraint
       and `contrast: "low"`; shows `seedVersion: 3`.
     - `docs/state.md` calls `decisions.md` "append-only"; `docs/versioning.md` says it "logs rationale for bumps".
       Both contradict `AGENTS.md` and the header of `decisions.md`.
-    - `docs/state.md` lists `question_copying.test.js`; the real file is `question_copying.test.js`.
     - `docs/state.md` documents `contrast` as `'standard'` or `'high'`, but `index.html` uses `data-contrast="low"`.
       Determine which is correct, and fix the docs or file a bug in Phase 7.
     - `biome.json` uses `lineWidth: 100`; `AGENTS.md` specifies a 120-column limit. Align them.

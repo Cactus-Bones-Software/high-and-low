@@ -219,7 +219,6 @@ export function buildQuestionCardHTML(rawQuestion, options = {}) {
             </span>
         </button>`;
 
-    const isBuiltIn = Boolean(question.builtIn);
     let actionButtonsHTML;
     if (isArchived) {
         actionButtonsHTML = `
@@ -227,20 +226,6 @@ export function buildQuestionCardHTML(rawQuestion, options = {}) {
                     data-action="restore-question" data-question-id="${question.id}"
                     aria-label="Restore question: ${questionTitle}">
                 ${escapeHTML(t('common.restore'))}
-            </button>
-        `;
-    } else if (isBuiltIn) {
-        actionButtonsHTML = `
-            <button type="button" class="question-copy-button card-action-copy card-action-edit"
-                    data-action="copy-question" data-question-id="${question.id}"
-                    aria-label="Copy question: ${questionTitle}">
-                ${escapeHTML(t('common.copy'))}
-            </button>
-            <button type="button"
-                    class="question-archive-button question-remove-button card-action-archive card-action-remove"
-                    data-action="archive-question" data-question-id="${question.id}"
-                    aria-label="Remove question: ${questionTitle}">
-                ${escapeHTML(t('common.remove'))}
             </button>
         `;
     } else {
@@ -890,6 +875,7 @@ export function setupQuestionAuthoring() {
     const archiveRow = document.getElementById('archive-question-row');
     const searchInput = document.getElementById('questions-search-input');
     const formErrorBanner = document.getElementById('question-form-error');
+    const editWordingHintElement = document.getElementById('question-edit-wording-hint');
     let sourceCopiedQuestion = null;
 
     if (!addQuestionButton || !overlay || !form || !textInput || !curveInput || !maxInput || !midField || !midInput ||
@@ -990,6 +976,9 @@ export function setupQuestionAuthoring() {
     function resetForm() {
         form.reset();
         clearValidationErrors();
+        if (editWordingHintElement) {
+            editWordingHintElement.hidden = true;
+        }
         syncResponseTypeVisibility();
         syncMidVisibility();
         syncSaveEnabled();
@@ -1072,6 +1061,9 @@ export function setupQuestionAuthoring() {
         const removeButtonLabel = archiveRow?.querySelector('.button-label');
         if (removeButtonLabel) removeButtonLabel.textContent = t('questions.removeQuestion');
         if (addToSetLabel) addToSetLabel.textContent = t('questions.addToDailySet');
+        if (editWordingHintElement) {
+            editWordingHintElement.hidden = false;
+        }
 
         populateAuthoringFieldsFromQuestion(question);
 
@@ -1251,15 +1243,6 @@ export function setupQuestionAuthoring() {
         const allQuestions = await getAll('questions');
         const question = allQuestions.find(q => q.id === questionId);
         if (!question) return;
-
-        if (question.builtIn) {
-            showNoticeDialog(
-                t('questions.noticeBuiltInTitle'),
-                t('questions.noticeBuiltInMessage'),
-                event.target
-            );
-            return;
-        }
 
         await openEditModal(question);
     });

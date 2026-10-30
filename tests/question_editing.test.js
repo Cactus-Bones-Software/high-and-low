@@ -79,15 +79,23 @@ describe('Question Editing Workflow', () => {
         expect(retrieved.originalText).toBe(originalQuestion.originalText);
     });
 
-    it('prevents editing of built-in questions', async () => {
-        let rejectionError = null;
-        try {
-            await updateCustomQuestion('q_energy', { text: 'New energy text' });
-        } catch (error) {
-            rejectionError = error;
-        }
-        expect(rejectionError).not.toBeNull();
-        expect(rejectionError.message).toMatch(/Built-in questions cannot be edited/);
+    it('allows editing of built-in questions in place and tracks text history', async () => {
+        const originalBuiltIn = await get('questions', 'q_energy');
+        expect(originalBuiltIn).not.toBeNull();
+        expect(originalBuiltIn.builtIn).toBe(true);
+
+        const updated = await updateCustomQuestion('q_energy', {
+            text: 'How high was your physical energy level today?'
+        });
+
+        expect(updated.id).toBe('q_energy');
+        expect(updated.originalText).toBe(originalBuiltIn.originalText);
+        expect(updated.builtIn).toBe(true);
+        expect(updated.text).toBe('How high was your physical energy level today?');
+        expect(Array.isArray(updated.textHistory)).toBe(true);
+        expect(updated.textHistory.length).toBe(1);
+        expect(updated.textHistory[0].text).toBe('How high was your physical energy level today?');
+        expect(typeof updated.textHistory[0].changedAt).toBe('string');
     });
 
     it('soft-deletes custom question and removes it from activeQuestionSet on removeQuestion', async () => {
