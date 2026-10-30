@@ -33,7 +33,7 @@ describe('Question Editing Workflow', () => {
         await waitFor(() => getAll && typeof getAll === 'function');
     });
 
-    it('preserves immutable fields (id, originalText, builtIn, createdAt) while updating mutable fields', async () => {
+    it('preserves immutable fields (id, originalText, createdAt) while updating mutable fields', async () => {
         const creationOutcome = await createCustomQuestion({
             text: 'How focused were you on your primary project today?',
             shortLabel: 'Focus Duration',
@@ -60,7 +60,7 @@ describe('Question Editing Workflow', () => {
         expect(updated.id).toBe(originalQuestion.id);
         expect(updated.originalText).toBe(originalQuestion.originalText);
         expect(updated.createdAt).toBe(originalQuestion.createdAt);
-        expect(updated.builtIn).toBe(false);
+        expect(updated.builtIn).toBeUndefined();
         expect(updated.text).toBe('How deep was your mental concentration today?');
         expect(updated.shortLabel).toBe('Mental Focus');
         expect(updated.tags).toEqual(['Work', 'Cognitive', 'Clarity']);
@@ -79,18 +79,18 @@ describe('Question Editing Workflow', () => {
         expect(retrieved.originalText).toBe(originalQuestion.originalText);
     });
 
-    it('allows editing of built-in questions in place and tracks text history', async () => {
-        const originalBuiltIn = await get('questions', 'q_energy');
-        expect(originalBuiltIn).not.toBeNull();
-        expect(originalBuiltIn.builtIn).toBe(true);
+    it('allows editing of default questions in place and tracks text history', async () => {
+        const originalDefault = await get('questions', 'q_energy');
+        expect(originalDefault).not.toBeNull();
+        expect(originalDefault.builtIn).toBeUndefined();
 
         const updated = await updateCustomQuestion('q_energy', {
             text: 'How high was your physical energy level today?'
         });
 
         expect(updated.id).toBe('q_energy');
-        expect(updated.originalText).toBe(originalBuiltIn.originalText);
-        expect(updated.builtIn).toBe(true);
+        expect(updated.originalText).toBe(originalDefault.originalText);
+        expect(updated.builtIn).toBeUndefined();
         expect(updated.text).toBe('How high was your physical energy level today?');
         expect(Array.isArray(updated.textHistory)).toBe(true);
         expect(updated.textHistory.length).toBe(1);

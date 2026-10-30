@@ -105,54 +105,54 @@ describe('Internationalization and Localization Pass', () => {
         });
     });
 
-    describe('Built-in Question Localization (getLocalizedQuestion)', () => {
+    describe('Default Question Localization (getLocalizedQuestion)', () => {
         it('returns question unchanged when language is English', () => {
             STATE.language = 'en';
-            const builtInQuestion = {
+            const defaultQuestion = {
                 id: 'q_energy',
-                text: 'How is your energy right now?',
-                shortLabel: 'Energy Level',
-                builtIn: true
+                originalText: 'What is your current energy level?',
+                text: 'What is your current energy level?',
+                shortLabel: 'Energy Level'
             };
-            const localized = getLocalizedQuestion(builtInQuestion);
-            expect(localized.text).toBe('How is your energy right now?');
+            const localized = getLocalizedQuestion(defaultQuestion);
+            expect(localized.text).toBe('What is your current energy level?');
             expect(localized.shortLabel).toBe('Energy Level');
         });
 
-        it('returns translated text and shortLabel for built-in questions in secondary language', () => {
+        it('returns translated text and shortLabel for unedited default questions in secondary language', () => {
             STATE.language = 'test';
-            const builtInQuestion = {
+            const defaultQuestion = {
                 id: 'q_energy',
-                text: 'How is your energy right now?',
-                shortLabel: 'Energy Level',
-                builtIn: true
+                originalText: 'What is your current energy level?',
+                text: 'What is your current energy level?',
+                shortLabel: 'Energy Level'
             };
-            const localized = getLocalizedQuestion(builtInQuestion);
+            const localized = getLocalizedQuestion(defaultQuestion);
             expect(localized.text).toBe('¿Cómo está tu energía en este momento?');
             expect(localized.shortLabel).toBe('Nivel de Energía');
         });
 
-        it('does not translate custom user-created questions', () => {
+        it('does not translate custom user-created questions even if forged with builtIn: true', () => {
             STATE.language = 'test';
             const customQuestion = {
                 id: 'c_custom123',
+                originalText: 'My custom daily prompt',
                 text: 'My custom daily prompt',
                 shortLabel: 'Custom Prompt',
-                builtIn: false
+                builtIn: true
             };
             const localized = getLocalizedQuestion(customQuestion);
             expect(localized.text).toBe('My custom daily prompt');
             expect(localized.shortLabel).toBe('Custom Prompt');
         });
 
-        it('does not translate user-edited built-in questions where text was customized', () => {
+        it('does not translate user-edited default questions where text was customized', () => {
             STATE.language = 'test';
             const editedQuestion = {
                 id: 'q_energy',
-                originalText: 'How is your energy right now?',
+                originalText: 'What is your current energy level?',
                 text: 'My customized energy inquiry',
-                shortLabel: 'Energy Inquiry',
-                builtIn: true
+                shortLabel: 'Energy Inquiry'
             };
             const localized = getLocalizedQuestion(editedQuestion);
             expect(localized.text).toBe('My customized energy inquiry');

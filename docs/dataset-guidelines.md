@@ -51,7 +51,6 @@ The output must be a single valid JSON object formatted for the **High & Low** b
       "minLabel": "Bedbound/Depleted",
       "maxLabel": "Fully Charged",
       "midLabel": null,
-      "builtIn": true,
       "archived": false,
       "createdAt": "2026-05-01T00:00:00.000Z",
       "updatedAt": "2026-05-01T00:00:00.000Z"
@@ -64,7 +63,6 @@ The output must be a single valid JSON object formatted for the **High & Low** b
       "minLabel": "No Sadness",
       "maxLabel": "Overwhelming",
       "midLabel": null,
-      "builtIn": true,
       "archived": false,
       "createdAt": "2026-05-01T00:00:00.000Z",
       "updatedAt": "2026-05-01T00:00:00.000Z"
@@ -77,7 +75,6 @@ The output must be a single valid JSON object formatted for the **High & Low** b
       "minLabel": "Intense Guilt/Worthless",
       "maxLabel": "At Peace",
       "midLabel": null,
-      "builtIn": true,
       "archived": false,
       "createdAt": "2026-05-01T00:00:00.000Z",
       "updatedAt": "2026-05-01T00:00:00.000Z"
@@ -90,7 +87,6 @@ The output must be a single valid JSON object formatted for the **High & Low** b
       "minLabel": "Calm & Patient",
       "maxLabel": "Highly Snappy",
       "midLabel": null,
-      "builtIn": true,
       "archived": false,
       "createdAt": "2026-05-01T00:00:00.000Z",
       "updatedAt": "2026-05-01T00:00:00.000Z"
@@ -103,7 +99,6 @@ The output must be a single valid JSON object formatted for the **High & Low** b
       "minLabel": "Quiet & Focused",
       "maxLabel": "Unstoppable Racing",
       "midLabel": null,
-      "builtIn": true,
       "archived": false,
       "createdAt": "2026-05-01T00:00:00.000Z",
       "updatedAt": "2026-05-01T00:00:00.000Z"
@@ -116,7 +111,6 @@ The output must be a single valid JSON object formatted for the **High & Low** b
       "minLabel": "Deliberate",
       "maxLabel": "Highly Impulsive",
       "midLabel": null,
-      "builtIn": true,
       "archived": false,
       "createdAt": "2026-05-01T00:00:00.000Z",
       "updatedAt": "2026-05-01T00:00:00.000Z"
@@ -129,7 +123,6 @@ The output must be a single valid JSON object formatted for the **High & Low** b
       "minLabel": "Deeply Low",
       "maxLabel": "Manic/Spiked",
       "midLabel": "Stable & Even",
-      "builtIn": true,
       "archived": false,
       "createdAt": "2026-05-01T00:00:00.000Z",
       "updatedAt": "2026-05-01T00:00:00.000Z"

@@ -36,10 +36,10 @@ describe('Questions View — Search, Layout & Modal', () => {
 
     it('splits active tracker order and lists all questions in catalog in partitionQuestionsForView', () => {
         const allQuestions = [
-            { id: 'q_energy', text: 'Energy', shortLabel: 'Energy', builtIn: true, archived: false, tags: ['Energy'] },
-            { id: 'q_sadness', text: 'Sadness', shortLabel: 'Sadness', builtIn: true, archived: false, tags: ['Mood'] },
-            { id: 'q_worth', text: 'Worth', shortLabel: 'Worth', builtIn: true, archived: false, tags: ['Cognitive'] },
-            { id: 'c_custom', text: 'Custom', shortLabel: 'Custom', builtIn: false, archived: false, tags: ['Sleep'] }
+            { id: 'q_energy', text: 'Energy', shortLabel: 'Energy', archived: false, tags: ['Energy'] },
+            { id: 'q_sadness', text: 'Sadness', shortLabel: 'Sadness', archived: false, tags: ['Mood'] },
+            { id: 'q_worth', text: 'Worth', shortLabel: 'Worth', archived: false, tags: ['Cognitive'] },
+            { id: 'c_custom', text: 'Custom', shortLabel: 'Custom', archived: false, tags: ['Sleep'] }
         ];
         const activeSetIds = ['q_sadness', 'q_energy'];
 
@@ -63,7 +63,7 @@ describe('Questions View — Search, Layout & Modal', () => {
 
         expect(activeList.querySelectorAll('.question-card').length).toBe(4);
         expect(catalogList.querySelectorAll('.question-card').length).toBe(8);
-        expect(activeList.querySelector('.question-card-badge-builtin')).toBeTruthy();
+        expect(activeList.querySelector('.question-card-badge-builtin')).toBeNull();
         expect(activeList.querySelector('.question-tag-chip')).toBeTruthy();
         expect(activeList.textContent).toContain('Energy');
         expect(activeList.innerHTML).not.toContain('&lt;span class="question-tag-chip"');

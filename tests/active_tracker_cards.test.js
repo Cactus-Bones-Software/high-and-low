@@ -21,7 +21,7 @@ describe('Active Tracker Cards, Reordering Handles & In-Tracker Toggle', () => {
         await navigateToQuestionsCanvas(windowInstance, documentInstance);
     });
 
-    it('renders active cards with question text, tags, reordering, and toggle switch below badge', () => {
+    it('renders active cards with question text, tags, reordering, and toggle switch in status group', () => {
         const activeList = documentInstance.getElementById('questions-active-list');
         expect(activeList).not.toBeNull();
         expect(activeList.children.length).toBe(STATE.activeQuestions.length);
@@ -42,7 +42,7 @@ describe('Active Tracker Cards, Reordering Handles & In-Tracker Toggle', () => {
         const statusGroup = firstCard.querySelector('.question-card-status-group');
         expect(statusGroup).not.toBeNull();
         const badge = statusGroup.querySelector('.question-card-badge');
-        expect(badge).not.toBeNull();
+        expect(badge).toBeNull();
 
         const toggleButton = statusGroup.querySelector('.question-tracker-toggle');
         expect(toggleButton).not.toBeNull();
@@ -179,13 +179,13 @@ describe('Active Tracker Cards, Reordering Handles & In-Tracker Toggle', () => {
         expect(updatedCatalogCard.querySelector('.question-tracker-toggle').getAttribute('aria-checked')).toBe('true');
     });
 
-    it('places badge and toggle in status group and reorder controls in action row', () => {
+    it('places toggle in status group without status badge and reorder controls in action row', () => {
         const activeList = documentInstance.getElementById('questions-active-list');
         const firstCard = activeList.children[0];
 
         const statusGroup = firstCard.querySelector('.question-card-status-group');
         expect(statusGroup).not.toBeNull();
-        expect(statusGroup.querySelector('.question-card-badge')).not.toBeNull();
+        expect(statusGroup.querySelector('.question-card-badge')).toBeNull();
         expect(statusGroup.querySelector('.question-tracker-toggle')).not.toBeNull();
 
         const actionRow = firstCard.querySelector('.card-action-row');

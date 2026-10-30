@@ -55,7 +55,6 @@ Current Version: `3`
     curve: 'more-is-better' | 'less-is-better' | 'middle-is-best';
     minLabel: string | null; // Label for score 1
     midLabel: string | null; // Label for score 3 (used by middle-is-best)
-    builtIn: boolean; // true for defaults, false for user-authored
     archived: boolean; // Soft-delete flag; true hides from library catalog
     textHistory?: Array<{ text: string; changedAt: string }>; // Appended on every edit that changes normalized text
     createdAt: string; // ISO-8601 timestamp
@@ -63,10 +62,10 @@ Current Version: `3`
   }
   ```
 * **Localization Invariant**: Questions in IndexedDB and backups maintain their stored `text`, `shortLabel`, and
-  endpoint labels. At render time, unedited built-in questions (`builtIn: true` where `text === originalText`) resolve
-  their displayed copy dynamically from the active locale dictionary (`public/locales/<lang>.json`) by question `id`.
-  Custom and user-edited questions (`builtIn: false` or `text !== originalText`) always display user-provided text
-  untranslated. No `seedVersion` bump is required.
+  endpoint labels. At render time, unedited default questions (derived dynamically: `id` is present in
+  `DEFAULT_QUESTIONS` where `text === originalText`) resolve their displayed copy dynamically from the active
+  locale dictionary (`public/locales/<lang>.json`) by question `id`. Custom questions and user-edited default questions
+  always display user-provided text untranslated. No `seedVersion` bump is required.
 
 #### `entries` Store
 * **KeyPath**: `'timestamp'` (string, ISO-8601 UTC)

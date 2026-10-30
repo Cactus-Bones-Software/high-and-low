@@ -5,6 +5,7 @@
 
 import { STATE } from './state.js';
 import { setConfig } from './storage/db.js';
+import { isUneditedDefault } from './questions.js';
 
 export const DEFAULT_LANGUAGE = 'en';
 const LOCALES_DIRECTORY = './locales/';
@@ -125,10 +126,9 @@ export function populateLanguageOptions() {
 export function getLocalizedQuestion(question) {
     if (!question) return question;
     const currentLanguage = getCurrentLanguage();
-    // Only translate if there is an unedited built-in question and a translation exists.
-    // If user edited the question (text !== originalText or builtIn is false), display what user provided.
-    const isUserEdited = Boolean(question.originalText && question.text !== question.originalText);
-    if (!isUserEdited && question.builtIn && TRANSLATIONS[currentLanguage]?.builtInQuestions?.[question.id]) {
+    // Only translate if there is an unedited default question and a translation exists.
+    // If user edited the question (text !== originalText) or it is custom, display what user provided.
+    if (isUneditedDefault(question) && TRANSLATIONS[currentLanguage]?.builtInQuestions?.[question.id]) {
         const localized = TRANSLATIONS[currentLanguage].builtInQuestions[question.id];
         return {
             ...question,

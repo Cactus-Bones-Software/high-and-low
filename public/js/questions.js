@@ -18,9 +18,9 @@ export const ALLOWED_RESPONSE_TYPES = ['scale', 'boolean'];
 export const BOOLEAN_NO_SCORE = 1;
 export const BOOLEAN_YES_SCORE = 5;
 
-// Built-in questions shipped with the app. User-authored questions live in the
-// same 'questions' store but with builtIn:false and a content-addressed id
-// (see makeCustomId). Built-ins use readable slugs for export/debug legibility.
+// Default questions shipped with the app. User-authored questions live in the
+// same 'questions' store with a content-addressed id (see makeCustomId).
+// Built-in questions use readable slugs for export/debug legibility.
 export const DEFAULT_QUESTIONS = [
     {
         id: 'q_energy',
@@ -141,6 +141,20 @@ export function fnv1a32(inputString) {
 }
 
 /**
+ * Determines whether a question is an unedited default question.
+ * Derived dynamically: question ID is present in DEFAULT_QUESTIONS and current text matches originalText.
+ * @param {Object} question - The question definition to inspect.
+ * @returns {boolean} True if question is an unedited default question.
+ */
+export function isUneditedDefault(question) {
+    if (!question || typeof question !== 'object' || !question.id) return false;
+    const defaultQuestion = DEFAULT_QUESTIONS.find(item => item.id === question.id);
+    if (!defaultQuestion) return false;
+    const original = question.originalText || defaultQuestion.text;
+    return question.text === original;
+}
+
+/**
  * Generates a stable content-addressed identifier ('c_' + 8 hex chars) for a user-authored question.
  * The identifier remains frozen to originalText so subsequent edits never orphan historical check-in records.
  * @param {string} text - Question prompt text.
@@ -176,7 +190,6 @@ export async function seedDefaults() {
                         responseType: question.responseType || 'scale',
                         originalText: question.text,
                         tags: Array.isArray(question.tags) ? question.tags : [],
-                        builtIn: true,
                         archived: false,
                         createdAt: now,
                         updatedAt: now
@@ -184,23 +197,38 @@ export async function seedDefaults() {
                 } else {
                     const existingQuestion = existingQuestions.find(item => item.id === question.id);
                     if (existingQuestion) {
-                        const needsTagUpdate = !Array.isArray(existingQuestion.tags) ||
-                            existingQuestion.tags.length === 0;
-                        const needsShortLabelUpdate = !existingQuestion.shortLabel ||
-                            existingQuestion.shortLabel !== question.shortLabel;
+                        const isEdited = (existingQuestion.text !== existingQuestion.originalText) ||
+                            (Array.isArray(existingQuestion.textHistory) && existingQuestion.textHistory.length > 0) ||
+                            (existingQuestion.createdAt && existingQuestion.updatedAt && existingQuestion.createdAt !== existingQuestion.updatedAt);
                         const needsResponseTypeUpdate = !existingQuestion.responseType;
 
-                        if (needsTagUpdate || needsShortLabelUpdate || needsResponseTypeUpdate) {
-                            store.put({
-                                ...existingQuestion,
-                                responseType: existingQuestion.responseType || question.responseType || 'scale',
-                                shortLabel: question.shortLabel,
-                                tags: Array.isArray(existingQuestion.tags) && existingQuestion.tags.length > 0
-                                    ? existingQuestion.tags
-                                    : (question.tags || []),
-                                updatedAt: now
-                            });
-                            updatedQuestionIds.add(existingQuestion.id);
+                        if (isEdited) {
+                            if (needsResponseTypeUpdate) {
+                                store.put({
+                                    ...existingQuestion,
+                                    responseType: question.responseType || 'scale',
+                                    updatedAt: existingQuestion.updatedAt || now
+                                });
+                                updatedQuestionIds.add(existingQuestion.id);
+                            }
+                        } else {
+                            const needsTagUpdate = !Array.isArray(existingQuestion.tags) ||
+                                existingQuestion.tags.length === 0;
+                            const needsShortLabelUpdate = !existingQuestion.shortLabel ||
+                                existingQuestion.shortLabel !== question.shortLabel;
+
+                            if (needsTagUpdate || needsShortLabelUpdate || needsResponseTypeUpdate) {
+                                store.put({
+                                    ...existingQuestion,
+                                    responseType: existingQuestion.responseType || question.responseType || 'scale',
+                                    shortLabel: question.shortLabel,
+                                    tags: Array.isArray(existingQuestion.tags) && existingQuestion.tags.length > 0
+                                        ? existingQuestion.tags
+                                        : (question.tags || []),
+                                    updatedAt: now
+                                });
+                                updatedQuestionIds.add(existingQuestion.id);
+                            }
                         }
                     }
                 }
@@ -397,7 +425,6 @@ export async function createCustomQuestion({
                     minLabel: minLabel || null,
                     maxLabel: maxLabel || null,
                     midLabel: curve === 'middle-is-best' ? (midLabel || null) : null,
-                    builtIn: false,
                     archived: false,
                     createdAt: now,
                     updatedAt: now
@@ -424,10 +451,9 @@ export async function createCustomQuestion({
 }
 
 /**
- * Updates editable fields of an existing user-authored question.
- * Preserves immutable properties (id, originalText, builtIn, createdAt).
- * Built-in questions cannot be edited and will throw an error.
- * @param {string} questionId - ID of the custom question to update.
+ * Updates editable fields of an existing user-authored or default question in place.
+ * Preserves immutable properties (id, originalText, createdAt).
+ * @param {string} questionId - ID of the question to update.
  * @param {Object} [updates={}] - Fields to update.
  * @param {string} [updates.text] - New question prompt text.
  * @param {string} [updates.shortLabel] - New short label.
@@ -461,15 +487,20 @@ export async function updateCustomQuestion(questionId, updates = {}) {
             if (!existing) {
                 return reject(new Error(`Question not found with ID: ${questionId}`));
             }
-            if (existing.builtIn) {
-                return reject(new Error('Built-in questions cannot be edited.'));
-            }
-
             const rawText = typeof updates.text === 'string' ? updates.text : existing.text;
             const normalizedText = normalizeQuestionText(rawText);
             if (!normalizedText) {
                 return reject(new Error('Question text cannot be empty.'));
             }
+
+            const currentNormalizedText = normalizeQuestionText(existing.text || '');
+            const textChanged = currentNormalizedText !== normalizedText;
+            const existingTextHistory = Array.isArray(existing.textHistory)
+                ? existing.textHistory.slice()
+                : [];
+            const textHistory = textChanged
+                ? [...existingTextHistory, { text: normalizedText, changedAt: now }]
+                : existingTextHistory;
 
             const rawShortLabel = typeof updates.shortLabel === 'string'
                 ? updates.shortLabel
@@ -510,13 +541,13 @@ export async function updateCustomQuestion(questionId, updates = {}) {
                 ? (updates.midLabel !== undefined ? (updates.midLabel || null) : existing.midLabel)
                 : null;
 
-            // Preserve immutable properties: id, originalText, builtIn, createdAt
+            // Preserve immutable properties: id, originalText, createdAt
+            const { builtIn: _unusedBuiltIn, ...sanitizedExisting } = existing;
             const recordToSave = {
-                ...existing,
+                ...sanitizedExisting,
                 id: existing.id,
                 originalText: existing.originalText || existing.text,
-                builtIn: false,
-                createdAt: existing.createdAt,
+                createdAt: existing.createdAt || now,
                 text: normalizedText,
                 shortLabel: normalizedShortLabel,
                 tags,
@@ -527,6 +558,10 @@ export async function updateCustomQuestion(questionId, updates = {}) {
                 midLabel,
                 updatedAt: now
             };
+
+            if (textHistory.length > 0) {
+                recordToSave.textHistory = textHistory;
+            }
 
             store.put(recordToSave);
             transaction.oncomplete = () => resolve(recordToSave);

@@ -387,4 +387,85 @@ describe('Import Partial Backups Safely', () => {
         expect(noticeTitle.toLowerCase()).toContain('invalid');
         expect(noticeMessage.length).toBeGreaterThan(0);
     });
+
+    it('drops builtIn flags when importing legacy or forged backup payloads in replace and merge modes', async () => {
+        const legacyBackup = {
+            exportVersion: '2.0',
+            scope: ['settings'],
+            config: [{ key: 'theme', value: 'dark' }],
+            questions: [
+                {
+                    id: 'q_energy',
+                    text: 'What is your current energy level?',
+                    shortLabel: 'Energy Level',
+                    curve: 'more-is-better',
+                    builtIn: true,
+                    archived: false,
+                    createdAt: '2026-10-01T00:00:00.000Z',
+                    updatedAt: '2026-10-01T00:00:00.000Z'
+                },
+                {
+                    id: 'c_custom999',
+                    text: 'How well did you sleep?',
+                    shortLabel: 'Sleep Quality',
+                    curve: 'more-is-better',
+                    builtIn: true,
+                    archived: false,
+                    createdAt: '2026-10-01T00:00:00.000Z',
+                    updatedAt: '2026-10-01T00:00:00.000Z'
+                }
+            ]
+        };
+
+        // Test in replace mode
+        await executeBackupImport(legacyBackup, 'replace');
+
+        const storedDefault = await get('questions', 'q_energy');
+        let storedCustom = await get('questions', 'c_custom999');
+        expect(storedDefault).not.toBeNull();
+        expect(storedDefault.builtIn).toBeUndefined();
+        expect(storedCustom).not.toBeNull();
+        expect(storedCustom.builtIn).toBeUndefined();
+
+        // Update with newer timestamp to test merge mode
+        const mergeBackup = {
+            exportVersion: '2.0',
+            scope: ['settings'],
+            questions: [
+                {
+                    id: 'c_custom999',
+                    text: 'How well did you sleep last night?',
+                    shortLabel: 'Sleep Quality',
+                    curve: 'more-is-better',
+                    builtIn: true,
+                    archived: false,
+                    createdAt: '2026-10-01T00:00:00.000Z',
+                    updatedAt: '2026-10-02T00:00:00.000Z'
+                }
+            ]
+        };
+
+        await executeBackupImport(mergeBackup, 'merge');
+
+        storedCustom = await get('questions', 'c_custom999');
+        expect(storedCustom.text).toBe('How well did you sleep last night?');
+        expect(storedCustom.builtIn).toBeUndefined();
+    });
+
+    it('strips any stale builtIn flag when exporting questions in exportBackup', async () => {
+        await put('questions', {
+            id: 'c_stale_flag',
+            text: 'Stale flag question',
+            shortLabel: 'Stale Flag',
+            builtIn: true,
+            archived: false,
+            createdAt: '2026-10-01T00:00:00.000Z',
+            updatedAt: '2026-10-01T00:00:00.000Z'
+        });
+
+        const { backupData } = await exportBackup({ includeHistory: true, includeSettings: true });
+        const exportedStale = backupData.questions.find(q => q.id === 'c_stale_flag');
+        expect(exportedStale).not.toBeNull();
+        expect(exportedStale.builtIn).toBeUndefined();
+    });
 });

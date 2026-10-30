@@ -457,7 +457,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - Tests: editing a default records history; a typo-free no-op edit records nothing; a reload preserves the
     edit; records without `textHistory` still load; the seeder leaves edited records alone.
 
-- [ ] **Task 5.12.2: Retire `builtIn` and the Built-In Badge**
+- [x] **Task 5.12.2: Retire `builtIn` and the Built-In Badge**
   - Remove the stored `builtIn` field and the Built-In/Custom badges. "Unedited default" is derived: the `id` is
     in `DEFAULT_QUESTIONS` and `text === originalText`. Replace every `question.builtIn` check (notably
     `localization.js` and `ui/question-view.js`) with that derived check or with the new editing rules, and

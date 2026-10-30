@@ -75,8 +75,6 @@
     "showRemoved": "Show Removed Questions",
     "hideRemoved": "Hide Removed Questions",
     "addCustomQuestionAria": "Add a custom question",
-    "badgeBuiltIn": "Built-in",
-    "badgeCustom": "Custom",
     "badgeRemoved": "Removed",
     "addToTracker": "Add to Tracker",
     "removeFromTracker": "Remove from Tracker",
@@ -121,8 +119,6 @@
     "noticeExistsMessage": "You already have an active question with this text in your library.",
     "noticeCouldNotSaveTitle": "Could Not Save",
     "noticeCouldNotRemoveTitle": "Could Not Remove",
-    "noticeBuiltInTitle": "Built-in Question",
-    "noticeBuiltInMessage": "Built-in questions are part of the core tracker and cannot be edited or removed.",
     "errorRequired": "Question text and short label are required.",
     "errorCopyDuplicate": "Please change the question text so this copy has a unique prompt.",
     "errorGeneric": "Could not save question. Please verify all fields.",
@@ -262,28 +258,36 @@
   "testingBanner": "This version is for testing only. Do not use it for psychiatric purposes.",
   "builtInQuestions": {
     "q_energy": {
-      "text": "How is your energy right now?",
+      "text": "What is your current energy level?",
       "shortLabel": "Energy Level"
     },
-    "q_mood": {
-      "text": "How is your overall mood right now?",
-      "shortLabel": "Overall Mood"
+    "q_sadness": {
+      "text": "How heavy or deep is your sadness right now?",
+      "shortLabel": "Sadness Depth"
     },
-    "q_anxiety": {
-      "text": "How much anxiety or tension are you experiencing?",
-      "shortLabel": "Anxiety"
-    },
-    "q_focus": {
-      "text": "How clearly and easily can you focus?",
-      "shortLabel": "Mental Focus"
+    "q_worth": {
+      "text": "How is your sense of self-worth and guilt?",
+      "shortLabel": "Self-Worth"
     },
     "q_irritability": {
-      "text": "How irritable or easily frustrated do you feel?",
+      "text": "How irritable or easily agitated do you feel?",
       "shortLabel": "Irritability"
     },
-    "q_sleep_rested": {
-      "text": "Did you wake up feeling sufficiently rested?",
-      "shortLabel": "Sleep Restedness"
+    "q_racing": {
+      "text": "How fast are your thoughts moving?",
+      "shortLabel": "Racing Thoughts"
+    },
+    "q_impulse": {
+      "text": "Are you experiencing restless or reckless urges?",
+      "shortLabel": "Restless Urges"
+    },
+    "q_overall": {
+      "text": "Overall, where does your mood sit right now?",
+      "shortLabel": "Overall Mood"
+    },
+    "q_eaten": {
+      "text": "Have you eaten today?",
+      "shortLabel": "Food Intake"
     }
   }
 }

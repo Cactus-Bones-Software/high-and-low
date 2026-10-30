@@ -168,12 +168,10 @@ export function buildQuestionCardHTML(rawQuestion, options = {}) {
         ? parsedOptions.totalQuestionsCount
         : 1;
 
-    let statusLabel = question.builtIn ? t('questions.badgeBuiltIn') : t('questions.badgeCustom');
-    let statusClass = question.builtIn ? 'question-card-badge-builtin' : 'question-card-badge-custom';
-    if (isArchived) {
-        statusLabel = t('questions.badgeRemoved');
-        statusClass = 'question-card-badge-archived';
-    }
+    const badgeHTML = isArchived
+        ? `<span class="question-card-badge question-card-badge-archived">` +
+        `${escapeHTML(t('questions.badgeRemoved'))}</span>`
+        : '';
 
     const tags = Array.isArray(question.tags) ? question.tags : [];
     const tagChipsHTML = tags
@@ -249,7 +247,7 @@ export function buildQuestionCardHTML(rawQuestion, options = {}) {
             <div class="question-card-header">
                 <p class="question-card-text">${question.text}</p>
                 <div class="question-card-status-group">
-                    <span class="question-card-badge ${statusClass}">${statusLabel}</span>
+                    ${rawHTML(badgeHTML)}
                     ${rawHTML(toggleHTML)}
                 </div>
             </div>

@@ -158,6 +158,12 @@ export function exportBackup(options = {}) {
                 exportedQuestions = rawQuestions.filter(question => referencedQuestionIds.has(question.id));
             }
 
+            // Strip any stale or legacy builtIn flags upon export
+            exportedQuestions = exportedQuestions.map(question => {
+                const { builtIn: _unusedBuiltIn, ...sanitizedQuestion } = question;
+                return sanitizedQuestion;
+            });
+
             let exportedConfig = [];
             if (includeSettings) {
                 exportedConfig = rawConfig.filter(item =>
@@ -332,7 +338,11 @@ export async function executeBackupImport(importedData, mode) {
 
     const { containsHistory, containsSettings } = detectBackupScopes(importedData);
 
-    const importedQuestions = Array.isArray(importedData.questions) ? importedData.questions : [];
+    const rawImportedQuestions = Array.isArray(importedData.questions) ? importedData.questions : [];
+    const importedQuestions = rawImportedQuestions.map((question) => {
+        const { builtIn: _unusedBuiltIn, ...sanitizedQuestion } = question;
+        return sanitizedQuestion;
+    });
     const importedEntries = Array.isArray(importedData.entries) ? importedData.entries : [];
 
     // Filter out device-specific keys: seedVersion and lastBackupAt must never be imported from a backup file
@@ -469,15 +479,16 @@ export function handleFileImportReaderLoad(mode, event) {
  * @returns {void}
  */
 export function mergeQuestionWithConflictCheck(store, incoming) {
-    const getRequest = store.get(incoming.id);
+    const { builtIn: _unusedBuiltIn, ...sanitizedIncoming } = incoming;
+    const getRequest = store.get(sanitizedIncoming.id);
     getRequest.onsuccess = (event) => {
         const existing = event.target.result;
         if (!existing) {
-            store.add(incoming);
+            store.add(sanitizedIncoming);
             return;
         }
-        if ((incoming.updatedAt || '') > (existing.updatedAt || '')) {
-            store.put(incoming);
+        if ((sanitizedIncoming.updatedAt || '') > (existing.updatedAt || '')) {
+            store.put(sanitizedIncoming);
         }
     };
 }

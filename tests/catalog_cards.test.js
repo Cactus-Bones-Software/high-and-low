@@ -36,9 +36,9 @@ describe('Catalog Cards & Non-Dominant Edit Actions', () => {
         expect(shortLabel).not.toBeNull();
 
         const statusBadge = firstCard.querySelector('.question-card-badge');
-        expect(statusBadge).not.toBeNull();
+        expect(statusBadge).toBeNull();
 
-        // Toggle switch placed below Built-in label inside header status group (unified cards)
+        // Toggle switch inside header status group
         const statusGroup = firstCard.querySelector('.question-card-status-group');
         expect(statusGroup).not.toBeNull();
         const toggleButton = statusGroup.querySelector('.question-tracker-toggle');

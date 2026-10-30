@@ -201,7 +201,6 @@ describe('Erase All Data from Inside the App', () => {
             responseType: 'scale',
             curve: 'more-is-better',
             tags: ['test'],
-            builtIn: false,
             archived: false,
             createdAt: '2026-10-15T12:00:00.000Z',
             updatedAt: '2026-10-15T12:00:00.000Z'
@@ -229,10 +228,12 @@ describe('Erase All Data from Inside the App', () => {
         const entriesCount = await count('entries');
         expect(entriesCount).toBe(0);
 
-        // 2. questions store must only contain built-in questions
+        // 2. questions store must only contain default questions
         const questions = await getAll('questions');
         expect(questions.length).toBe(DEFAULT_QUESTIONS.length);
-        expect(questions.every(question => question.builtIn === true)).toBe(true);
+        const defaultIds = new Set(DEFAULT_QUESTIONS.map(item => item.id));
+        expect(questions.every(question => defaultIds.has(question.id))).toBe(true);
+        expect(questions.every(question => question.builtIn === undefined)).toBe(true);
 
         // 3. config store must have activeQuestionSet and seedVersion re-seeded, but custom settings cleared
         const activeQuestionSet = await getConfig('activeQuestionSet');

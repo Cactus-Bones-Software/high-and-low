@@ -115,7 +115,6 @@ describe('Question Schema & Default Tags', () => {
             minLabel: 'Quiet & Focused',
             maxLabel: 'Unstoppable Racing',
             midLabel: null,
-            builtIn: true,
             archived: false,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
