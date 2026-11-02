@@ -30,6 +30,24 @@
 | User pitch, donations, or philosophy?    | `README.md`                  | Non-technical project overview.                   |
 | When should the version number change?   | `docs/versioning.md`         | SemVer policy: what counts as major/minor/patch.  |
 
+## Suppressions: Stop and Ask
+- **Never add a suppression on your own.** This covers any comment or setting that silences, skips, or relaxes a
+  check, including `biome-ignore` (and `-start`/`-end` variants), JetBrains `noinspection`, `eslint-disable`,
+  `@ts-ignore`/`@ts-nocheck`, `it.skip`/`it.only`/`it.todo`, edits to `biome.json` rules, and renaming a variable
+  (e.g. adding a `_` prefix) solely to quiet a warning.
+- **Stop and ask first.** When lint, an IDE inspection, or a test flags something you believe is a false positive or
+  is too costly to fix, STOP. Do not finish the task around it. Tell the developer:
+  1. The exact rule or inspection and the file/line it fires on.
+  2. Why you think it is a false positive or not worth fixing.
+  3. The proposed fix and the proposed suppression, so the developer can choose.
+- **Only proceed once the developer approves.** An approved suppression must be as narrow as possible (a single line,
+  never file-level when a line will do) and must carry a comment giving the specific reason. "False positive" alone
+  is not a reason.
+- **Fix the cause by default.** Prefer changing the code over silencing the check. Do not weaken tests, delete
+  assertions, or loosen config to make a failure disappear.
+- **Report existing suppressions you touch.** If an edit moves or depends on an existing suppression, mention it in the
+  hand-off prompt instead of leaving it silently in place.
+
 ## Code & Formatting Conventions
 - **Line Width Limit**:
   - All Markdown documentation files (`.md`) and code files should stay within a **120-column limit** using single

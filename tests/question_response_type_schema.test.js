@@ -1,4 +1,4 @@
-// noinspection JSObjectNullOrUndefined
+
 
 import { beforeEach, describe, expect, it } from 'vitest';
 import { setupTestDOM } from './test-utils.js';
