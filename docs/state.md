@@ -188,6 +188,18 @@ Current Version: `3`
 * **Legend Filtering**:
   * Automatically hidden when its question is toggled off or another question is isolated in the legend.
 
+#### Locale-Aware Dates & Document Language (`public/js/localization.js`, `history-graph.js`, Task 8.3.2)
+* **Date & Time Localization**:
+  * All date and time strings across the application (history timeline ticks, data point tooltips and aria-labels,
+    note markers, wording change dialogs, and Data view backup indicators) are rendered through `Intl.DateTimeFormat`
+    keyed to the active application locale (`STATE.language || 'en'`).
+  * Formatters are cached in a map keyed by locale and formatting options to prevent redundant object instantiation
+    across large entry datasets.
+* **Document Language and Text Direction**:
+  * `<html lang>` and `<html dir>` are kept synchronized with the active language at initialization and dynamically
+    on language change via `syncDocumentLanguageAndDirection()` and `applyTranslations()`.
+  * Text direction resolves to `rtl` for right-to-left locales (such as Arabic) and `ltr` for left-to-right locales.
+
 ---
 
 ## 3. Session & In-Memory State
@@ -287,6 +299,7 @@ export const STATE = {
     ├── graph_rendering.test.js
     ├── handedness.test.js
     ├── hold_actions.test.js
+    ├── locale_dates.test.js
     ├── localization.test.js
     ├── partial_import.test.js
     ├── default_question_editing.test.js

@@ -187,14 +187,16 @@ describe('Internationalization and Localization Pass', () => {
             container.remove();
         });
 
-        it('synchronizes documentElement.lang attribute with active language', () => {
+        it('synchronizes documentElement.lang and dir attributes with active language', () => {
             STATE.language = 'test';
             applyTranslations(testHarnessEnvironment.document);
             expect(testHarnessEnvironment.document.documentElement.lang).toBe('test');
+            expect(testHarnessEnvironment.document.documentElement.dir).toBe('ltr');
 
             STATE.language = 'en';
             applyTranslations(testHarnessEnvironment.document);
             expect(testHarnessEnvironment.document.documentElement.lang).toBe('en');
+            expect(testHarnessEnvironment.document.documentElement.dir).toBe('ltr');
         });
     });
 

@@ -14,6 +14,7 @@ import {
 } from '../questions.js';
 import {escapeHTML} from '../utils.js';
 import {showNoticeDialog} from './dialogs.js';
+import {formatDateTime, getCurrentLanguage} from '../localization.js';
 
 export const BASE_PIXELS_PER_HOUR = 2;
 export const MILLISECONDS_PER_HOUR = 60 * 60 * 1000;
@@ -1181,24 +1182,24 @@ export async function loadHistoryView() {
 }
 
 /**
- * Formats an ISO 8601 timestamp string into a human-readable date and time representation (M/D/YYYY, H:MM AM/PM).
+ * Formats an ISO 8601 timestamp string into a human-readable date and time representation
+ * using Intl.DateTimeFormat with the active locale.
  * @param {string} isoString - ISO formatted timestamp string.
+ * @param {string} [locale=getCurrentLanguage()] - Locale identifier.
  * @returns {string} Formatted localized date-time string.
  */
-export function formatEntryDateTime(isoString) {
+export function formatEntryDateTime(isoString, locale = getCurrentLanguage()) {
     if (!isoString) return '';
     try {
         const date = new Date(isoString);
         if (Number.isNaN(date.getTime())) return isoString;
-        const month = date.getMonth() + 1;
-        const day = date.getDate();
-        const year = date.getFullYear();
-        const hours = date.getHours();
-        const minutes = date.getMinutes();
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        const formattedHour = hours % 12 || 12;
-        const formattedMinute = minutes < 10 ? `0${minutes}` : minutes;
-        return `${month}/${day}/${year}, ${formattedHour}:${formattedMinute} ${ampm}`;
+        return formatDateTime(date, {
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit'
+        }, locale);
     } catch (error) {
         console.warn('Failed to format entry date time:', error);
         return isoString;
@@ -1206,26 +1207,28 @@ export function formatEntryDateTime(isoString) {
 }
 
 /**
- * Formats a timestamp in milliseconds into an X-axis timeline tick label.
+ * Formats a timestamp in milliseconds into an X-axis timeline tick label using Intl.DateTimeFormat.
  * @param {number} timeMilliseconds - Epoch timestamp in milliseconds.
- * @param {boolean} [isShortRange=false] - Whether to include hours and am/pm indicator for short timeframes.
- * @returns {string} Formatted tick label (e.g. '10/2' or '10/2 4p').
+ * @param {boolean} [isShortRange=false] - Whether to include hours and minutes for short timeframes.
+ * @param {string} [locale=getCurrentLanguage()] - Locale identifier.
+ * @returns {string} Formatted tick label.
  */
-export function formatTickDate(timeMilliseconds, isShortRange) {
+export function formatTickDate(timeMilliseconds, isShortRange, locale = getCurrentLanguage()) {
     try {
         const date = new Date(timeMilliseconds);
         if (Number.isNaN(date.getTime())) return '';
-        const month = date.getMonth() + 1;
-        const day = date.getDate();
         if (isShortRange) {
-            const hours = date.getHours();
-            const minutes = date.getMinutes();
-            const ampm = hours >= 12 ? 'p' : 'a';
-            const formattedHour = hours % 12 || 12;
-            const formattedMinute = minutes === 0 ? '' : `:${minutes < 10 ? '0' + minutes : minutes}`;
-            return `${month}/${day} ${formattedHour}${formattedMinute}${ampm}`;
+            return formatDateTime(date, {
+                month: 'numeric',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+            }, locale);
         }
-        return `${month}/${day}`;
+        return formatDateTime(date, {
+            month: 'numeric',
+            day: 'numeric'
+        }, locale);
     } catch (error) {
         console.warn('Failed to format tick date:', error);
         return '';

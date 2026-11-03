@@ -74,8 +74,8 @@ import { setupQuestionAuthoring, loadQuestionsView } from './ui/question-view.js
 import { setupKeyboardNavigation } from './ui/keyboard-navigation.js';
 // Import safe animation frame requests.
 import { safeRAF } from './utils.js';
-// Import translation lookup
-import { t } from './localization.js';
+// Import translation lookup and document language synchronization
+import { t, syncDocumentLanguageAndDirection } from './localization.js';
 
 export let isRefreshingTab = false;
 export let activeServiceWorkerRegistration = null;
@@ -224,6 +224,7 @@ export function initApp() {
     if (isAppInitialized) return Promise.resolve();
     isAppInitialized = true;
 
+    syncDocumentLanguageAndDirection();
     setupHoldActions();
     setupNotesDialog();
     setupImportDialog();

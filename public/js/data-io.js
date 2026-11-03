@@ -5,7 +5,7 @@
 
 import { getDatabase, getConfig, setConfig, getAll } from './storage/db.js';
 import { showNoticeDialog } from "./ui/dialogs.js";
-import { t } from './localization.js';
+import { t, formatDateTime, getCurrentLanguage } from './localization.js';
 import {
     SEED_VERSION,
     seedDefaults,
@@ -17,16 +17,22 @@ import { clearActiveCheckin, VIEW_STORAGE_KEY } from './storage/session.js';
 import { STATE } from './state.js';
 
 /**
- * Formats an ISO-8601 string into a localized date string for backup display.
+ * Formats an ISO-8601 string into a localized date string for backup display
+ * using Intl.DateTimeFormat with the active locale.
  * @param {string | null | undefined} isoString - ISO-8601 timestamp string.
+ * @param {string} [locale=getCurrentLanguage()] - Locale identifier.
  * @returns {string} Localized date string, or empty string if invalid or null.
  */
-export function formatBackupDate(isoString) {
+export function formatBackupDate(isoString, locale = getCurrentLanguage()) {
     if (!isoString) return '';
     try {
         const date = new Date(isoString);
         if (Number.isNaN(date.getTime())) return '';
-        return date.toLocaleDateString();
+        return formatDateTime(date, {
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric'
+        }, locale);
     } catch {
         return '';
     }
@@ -672,7 +678,7 @@ export function generateHistoryCSV(entries = [], questions = [], activeQuestionS
     const questionMap = new Map();
     if (Array.isArray(questions)) {
         for (const question of questions) {
-            if (question && question.id) {
+            if (question?.id) {
                 questionMap.set(question.id, question);
             }
         }
@@ -711,7 +717,7 @@ export function generateHistoryCSV(entries = [], questions = [], activeQuestionS
 
     if (Array.isArray(questions)) {
         for (const question of questions) {
-            if (question && question.id && !addedQuestionIds.has(question.id)) {
+            if (question?.id && !addedQuestionIds.has(question.id)) {
                 if (!question.archived || historicalQuestionIds.has(question.id)) {
                     orderedQuestionList.push(question);
                     addedQuestionIds.add(question.id);

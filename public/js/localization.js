@@ -174,7 +174,7 @@ export function t(keyPath, parameters = {}) {
         return translation;
     }
 
-    return translation.replace(/\{(\w+)\}/g, (match, paramKey) => {
+    return translation.replace(/\{(\w+)}/g, (match, paramKey) => {
         return parameters[paramKey] !== undefined ? String(parameters[paramKey]) : match;
     });
 }
@@ -237,7 +237,114 @@ export function applyTranslations(rootElement = typeof document !== 'undefined' 
     }
 
     if (typeof document !== 'undefined' && document.documentElement) {
-        document.documentElement.lang = getCurrentLanguage();
+        syncDocumentLanguageAndDirection(getCurrentLanguage());
+    }
+}
+
+/**
+ * Known right-to-left language codes.
+ * @type {string[]}
+ */
+const RTL_LANGUAGE_CODES = ['ar', 'he', 'fa', 'ur', 'yi', 'ps', 'syr'];
+
+/**
+ * Returns the text direction ('ltr' or 'rtl') for a language code.
+ * @param {string} [languageCode=getCurrentLanguage()] - Language code to evaluate.
+ * @returns {'ltr' | 'rtl'} Text direction.
+ */
+export function getCurrentDirection(languageCode = getCurrentLanguage()) {
+    const localeMetadataDirection = TRANSLATIONS[languageCode]?.metadata?.direction;
+    if (localeMetadataDirection === 'rtl' || localeMetadataDirection === 'ltr') {
+        return localeMetadataDirection;
+    }
+    const availableLocale = AVAILABLE_LOCALES.find(locale => locale.code === languageCode);
+    if (availableLocale?.direction === 'rtl' || availableLocale?.direction === 'ltr') {
+        return availableLocale.direction;
+    }
+    if (typeof languageCode === 'string') {
+        const baseLanguage = languageCode.split('-')[0].toLowerCase();
+        if (RTL_LANGUAGE_CODES.includes(baseLanguage)) {
+            return 'rtl';
+        }
+    }
+    return 'ltr';
+}
+
+/**
+ * Synchronizes document language (<html lang>) and reading direction (<html dir>)
+ * with the active or requested language.
+ * @param {string} [languageCode=getCurrentLanguage()] - Language code to synchronize.
+ * @returns {void}
+ */
+export function syncDocumentLanguageAndDirection(languageCode = getCurrentLanguage()) {
+    if (typeof document !== 'undefined' && document.documentElement) {
+        document.documentElement.lang = languageCode;
+        document.documentElement.dir = getCurrentDirection(languageCode);
+    }
+}
+
+/**
+ * Normalizes and validates a locale code against Intl.DateTimeFormat supported locales,
+ * falling back to DEFAULT_LANGUAGE ('en') if unsupported or malformed.
+ * @param {string} [locale=getCurrentLanguage()] - BCP 47 locale tag or app language code.
+ * @returns {string} Validated locale string.
+ */
+export function getValidLocale(locale = getCurrentLanguage()) {
+    if (locale && typeof locale === 'string') {
+        try {
+            const supportedLocales = Intl.DateTimeFormat.supportedLocalesOf(locale);
+            if (supportedLocales.length > 0) {
+                return supportedLocales[0];
+            }
+        } catch {
+            // Invalid BCP 47 syntax throws RangeError
+        }
+    }
+    return DEFAULT_LANGUAGE;
+}
+
+/**
+ * Cache of Intl.DateTimeFormat instances keyed by locale and options.
+ * @type {Map<string, Intl.DateTimeFormat>}
+ */
+const dateTimeFormatterCache = new Map();
+
+/**
+ * Retrieves a cached Intl.DateTimeFormat instance for the given locale and options.
+ * @param {string} [locale=getCurrentLanguage()] - Locale identifier.
+ * @param {Intl.DateTimeFormatOptions} [options={}] - Formatting options.
+ * @returns {Intl.DateTimeFormat} Formatter instance.
+ */
+export function getDateTimeFormatter(locale = getCurrentLanguage(), options = {}) {
+    const validLocale = getValidLocale(locale);
+    const optionsKey = JSON.stringify(options);
+    const cacheKey = `${validLocale}:${optionsKey}`;
+    let formatter = dateTimeFormatterCache.get(cacheKey);
+    if (!formatter) {
+        formatter = new Intl.DateTimeFormat(validLocale, options);
+        dateTimeFormatterCache.set(cacheKey, formatter);
+    }
+    return formatter;
+}
+
+/**
+ * Formats a Date object or timestamp string/number using Intl.DateTimeFormat with the active locale.
+ * @param {Date | string | number} dateOrTimestamp - Date instance, timestamp number, or ISO string.
+ * @param {Intl.DateTimeFormatOptions} [options={}] - Formatting options.
+ * @param {string} [locale=getCurrentLanguage()] - Locale identifier.
+ * @returns {string} Localized formatted date/time string.
+ */
+export function formatDateTime(dateOrTimestamp, options = {}, locale = getCurrentLanguage()) {
+    if (!dateOrTimestamp && dateOrTimestamp !== 0) return '';
+    try {
+        const date = dateOrTimestamp instanceof Date ? dateOrTimestamp : new Date(dateOrTimestamp);
+        if (Number.isNaN(date.getTime())) {
+            return typeof dateOrTimestamp === 'string' ? dateOrTimestamp : '';
+        }
+        return getDateTimeFormatter(locale, options).format(date);
+    } catch (error) {
+        console.warn('Failed to format date time:', error);
+        return typeof dateOrTimestamp === 'string' ? dateOrTimestamp : '';
     }
 }
 

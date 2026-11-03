@@ -536,7 +536,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - Extract all hardcoded user-facing UI strings across `index.html` and `public/js/` modules into a centralized translation dictionary.
   - Implement language switching and localization readiness for questions, controls, navigation, and settings interface elements.
 
-- [ ] **Task 8.3.1: Localization Design Decision — Built-In Question Translation (Developer Decision Required)**
+- [x] **Task 8.3.1: Localization Design Decision — Built-In Question Translation (Developer Decision Required)**
   - Do this before or at the start of Task 8.3. **Stop and ask the developer.** `docs/decisions.md` says question
     `id` and `originalText` are immutable and custom IDs are hashes of `originalText`, so translating built-in
     questions by overwriting stored `text` would violate the model.
@@ -549,7 +549,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
     shows its stored text untranslated, and an unedited one resolves from the locale dictionary by `id`. Record
     that here once those tasks land.
 
-- [ ] **Task 8.3.2: Locale-Aware Dates and Document Language**
+- [x] **Task 8.3.2: Locale-Aware Dates and Document Language**
   - `formatEntryDateTime`, `formatTickDate`, and related helpers in `ui/history-graph.js` use no `Intl` APIs. Route
     all date/time display (graph ticks, tooltips, note markers, Data view dates) through `Intl.DateTimeFormat` using
     the active locale.
