@@ -2393,6 +2393,53 @@ body[data-contrast="high"] .note-marker:active .note-marker-icon {
     stroke: var(--box-bg);
 }
 
+/* Wording Change Markers on the Timeline (Task 3.13) */
+.wording-marker {
+    cursor: pointer;
+    outline: none;
+}
+
+.wording-marker .wording-marker-hitbox {
+    cursor: pointer;
+}
+
+.wording-marker .wording-marker-badge {
+    transition: transform 150ms var(--transition-curve), stroke-width 150ms var(--transition-curve);
+    transform-box: fill-box;
+    transform-origin: center;
+}
+
+.wording-marker .wording-marker-symbol {
+    pointer-events: none;
+    user-select: none;
+}
+
+@media (hover: hover) {
+    .wording-marker:hover .wording-marker-badge {
+        stroke-width: 2.8;
+        transform: scale(1.15);
+    }
+}
+
+.wording-marker:focus-visible .wording-marker-badge {
+    stroke-width: 3;
+    stroke: var(--text-bright);
+    transform: scale(1.2);
+}
+
+.wording-marker:active .wording-marker-badge {
+    transform: scale(0.95);
+}
+
+body[data-contrast="high"] .wording-marker .wording-marker-badge {
+    stroke-width: 2.5;
+}
+
+body[data-contrast="high"] .wording-marker:focus-visible .wording-marker-badge {
+    stroke: var(--text-bright);
+    stroke-width: 3.5;
+}
+
 .legend-swatch {
     flex-shrink: 0;
 }

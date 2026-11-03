@@ -171,6 +171,23 @@ Current Version: `3`
 * **Zero-Data State**:
   * When no entries exist, shows accessible notice dialog (`#notice-dialog-overlay`) without downloading empty files.
 
+#### Wording Change Markers on the Timeline (`public/js/ui/history-graph.js`, Task 3.13)
+* **Visual Representation & Geometry**:
+  * For every `textHistory` record whose `changedAt` falls within the rendered time range (`[minTime, maxTime]`),
+    renders a distinct diamond marker (`<polygon>` badge with symbol `'W'`) directly on that question's line.
+  * Visually distinct from note indicators and data points without relying on color alone (diamond shape + 'W').
+  * Positioned at `markerX = getX(changedAt)` and interpolated `markerY` along the question's line segments.
+* **Accessibility & Interactivity**:
+  * Keyboard navigable with `tabindex="0"`, `role="button"`, and descriptive `aria-label`.
+  * Activated by click or Enter/Space keys to reveal a notice dialog (`#notice-dialog-overlay`) displaying
+    "Wording changed", formatted date, and previous vs. new prompt text. All text is escaped via `escapeHTML()`.
+* **Gesture Zoom & Dynamic Layout**:
+  * Counter-scaled in real-time under live pinch and wheel gestures (`applyGraphGestureTransform`) to maintain
+    sharpness and size without distortion.
+  * Synchronized in place across settled zooms via `updateGraphSVGInPlace` without DOM destruction.
+* **Legend Filtering**:
+  * Automatically hidden when its question is toggled off or another question is isolated in the legend.
+
 ---
 
 ## 3. Session & In-Memory State

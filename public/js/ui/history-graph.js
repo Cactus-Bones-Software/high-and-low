@@ -239,6 +239,14 @@ function getGestureCounterScaleElements(targetElement) {
         elements.push(tickText);
     });
 
+    // Counter-scale wording change markers around their center (data-x, data-y)
+    targetElement.querySelectorAll('.wording-marker').forEach(wordingMarker => {
+        const coordinateX = wordingMarker.getAttribute('data-x') || '0';
+        const coordinateY = wordingMarker.getAttribute('data-y') || '0';
+        wordingMarker.style.transformOrigin = `${coordinateX}px ${coordinateY}px`;
+        elements.push(wordingMarker);
+    });
+
     gestureCounterScaleElementCache.set(targetElement, elements);
     return elements;
 }
@@ -295,7 +303,7 @@ export function resetGraphGestureTransform(targetElement) {
     // re-querying the DOM; fall back to a fresh query if reset is called without a prior transform.
     const cachedElements = gestureCounterScaleElementCache.get(targetElement);
     const counterScaledElements = cachedElements || targetElement.querySelectorAll(
-        '.points circle, .grid text, .x-axis text'
+        '.points circle, .grid text, .x-axis text, .wording-marker'
     );
     counterScaledElements.forEach(element => {
         element.style.transform = '';
@@ -538,6 +546,121 @@ export function updateGraphSVGInPlace(svgElement, layout) {
             });
             notesGroup.innerHTML = notesHTML;
         }
+    }
+
+    // Update Wording Change Markers without discarding DOM elements when count matches
+    const wordingMarkers = layout.wordingMarkers || [];
+    const wordingGroup = svgElement.querySelector('.wording-markers');
+    if (wordingGroup) {
+        const existingWordingMarkers = wordingGroup.querySelectorAll('.wording-marker');
+        if (existingWordingMarkers.length === wordingMarkers.length && wordingMarkers.length > 0) {
+            wordingMarkers.forEach((markerItem, markerIndex) => {
+                const markerElement = existingWordingMarkers[markerIndex];
+                const escapedPreviousText = escapeHTML(markerItem.previousText);
+                const escapedNewText = escapeHTML(markerItem.newText);
+                const escapedDate = escapeHTML(markerItem.formattedDate);
+                const escapedTitle = escapeHTML(markerItem.questionTitle);
+                markerElement.setAttribute('data-question-id', String(markerItem.questionId));
+                markerElement.setAttribute('data-x', String(markerItem.x));
+                markerElement.setAttribute('data-y', String(markerItem.y));
+                markerElement.setAttribute('data-date', escapedDate);
+                markerElement.setAttribute('data-previous-text', escapedPreviousText);
+                markerElement.setAttribute('data-new-text', escapedNewText);
+                markerElement.setAttribute(
+                    'aria-label',
+                    `Wording changed for ${escapedTitle} (${escapedDate}): ` +
+                    `was '${escapedPreviousText}', now '${escapedNewText}'`
+                );
+                const titleNode = markerElement.querySelector('title');
+                if (titleNode) {
+                    titleNode.textContent =
+                        `Wording changed (${escapedDate})\nPrevious: ${escapedPreviousText}\nNew: ${escapedNewText}`;
+                }
+                const hitboxNode = markerElement.querySelector('.wording-marker-hitbox');
+                if (hitboxNode) {
+                    hitboxNode.setAttribute('x', String(markerItem.x - 14));
+                    hitboxNode.setAttribute('y', String(markerItem.y - 14));
+                }
+                const badgeNode = markerElement.querySelector('.wording-marker-badge');
+                if (badgeNode) {
+                    badgeNode.setAttribute(
+                        'points',
+                        `${markerItem.x},${markerItem.y - 8} ${markerItem.x + 8},${markerItem.y} ` +
+                        `${markerItem.x},${markerItem.y + 8} ${markerItem.x - 8},${markerItem.y}`
+                    );
+                    badgeNode.setAttribute('stroke', markerItem.color);
+                }
+                const symbolNode = markerElement.querySelector('.wording-marker-symbol');
+                if (symbolNode) {
+                    symbolNode.setAttribute('x', String(markerItem.x));
+                    symbolNode.setAttribute('y', String(markerItem.y + 3.5));
+                    symbolNode.setAttribute('fill', markerItem.color);
+                }
+            });
+        } else {
+            let wordingHTML = '';
+            wordingMarkers.forEach(markerItem => {
+                wordingHTML += renderWordingMarkerMarkup(markerItem);
+            });
+            wordingGroup.innerHTML = wordingHTML;
+        }
+    }
+}
+
+/**
+ * Renders the SVG markup string for a single wording-change timeline marker.
+ *
+ * @param {Object} marker - Wording change marker metadata.
+ * @returns {string} SVG markup string.
+ */
+export function renderWordingMarkerMarkup(marker) {
+    const escapedPreviousText = escapeHTML(marker.previousText);
+    const escapedNewText = escapeHTML(marker.newText);
+    const escapedDate = escapeHTML(marker.formattedDate);
+    const escapedTitle = escapeHTML(marker.questionTitle);
+    const ariaLabel =
+        `Wording changed for ${escapedTitle} (${escapedDate}): ` +
+        `was '${escapedPreviousText}', now '${escapedNewText}'`;
+    const titleText =
+        `Wording changed (${escapedDate})\nPrevious: ${escapedPreviousText}\nNew: ${escapedNewText}`;
+
+    return `
+        <g class="wording-marker" role="button" tabindex="0"
+           data-question-id="${marker.questionId}"
+           data-x="${marker.x}"
+           data-y="${marker.y}"
+           data-date="${escapedDate}"
+           data-previous-text="${escapedPreviousText}"
+           data-new-text="${escapedNewText}"
+           aria-label="${ariaLabel}">
+            <title>${titleText}</title>
+            <rect class="wording-marker-hitbox" x="${marker.x - 14}" y="${marker.y - 14}" width="28" height="28" fill="transparent" />
+            <polygon class="wording-marker-badge wording-marker-box"
+                     points="${marker.x},${marker.y - 8} ${marker.x + 8},${marker.y} ${marker.x},${marker.y + 8} ${marker.x - 8},${marker.y}"
+                     fill="var(--box-bg)" stroke="${marker.color}" stroke-width="2" />
+            <text class="wording-marker-symbol" x="${marker.x}" y="${marker.y + 3.5}" text-anchor="middle" font-size="8.5" font-weight="800" fill="${marker.color}">W</text>
+        </g>
+    `;
+}
+
+/**
+ * Opens a notice dialog displaying details of a question wording change.
+ *
+ * @param {Element} markerElement - Wording marker element triggered by user.
+ */
+export function displayWordingDialog(markerElement) {
+    if (!markerElement) return;
+    const previousText = markerElement.dataset?.previousText ||
+        markerElement.getAttribute('data-previous-text') || '';
+    const newText = markerElement.dataset?.newText ||
+        markerElement.getAttribute('data-new-text') || '';
+    const wordingDate = markerElement.dataset?.date ||
+        markerElement.getAttribute('data-date') || '';
+    const message = `${wordingDate}\n\nPrevious wording:\n"${previousText}"\n\nNew wording:\n"${newText}"`;
+    if (typeof showNoticeDialog === 'function') {
+        showNoticeDialog('Wording changed', message, markerElement, false);
+    } else if (typeof window !== 'undefined' && typeof window.showNoticeDialog === 'function') {
+        window.showNoticeDialog('Wording changed', message, markerElement, false);
     }
 }
 
@@ -1176,7 +1299,8 @@ export function computeGraphLayout({
             rawAllEntries: [],
             questions: questionList,
             visibleQuestionIds: currentVisibleSet,
-            timeRange: currentTimeRange
+            timeRange: currentTimeRange,
+            wordingMarkers: []
         };
     }
 
@@ -1189,7 +1313,8 @@ export function computeGraphLayout({
             rawAllEntries: entries,
             questions: [],
             visibleQuestionIds: currentVisibleSet,
-            timeRange: currentTimeRange
+            timeRange: currentTimeRange,
+            wordingMarkers: []
         };
     }
 
@@ -1285,6 +1410,7 @@ export function computeGraphLayout({
     const series = [];
     const allSkips = [];
     const allPoints = [];
+    const allWordingMarkers = [];
 
     questionList.forEach((question, questionIndex) => {
         const color = getCurveColor(question.curve, questionIndex);
@@ -1305,7 +1431,8 @@ export function computeGraphLayout({
                 isIsolated,
                 segments: [],
                 points: [],
-                skips: []
+                skips: [],
+                wordingMarkers: []
             });
             return;
         }
@@ -1380,6 +1507,76 @@ export function computeGraphLayout({
             segments.push(currentSegment);
         }
 
+        const questionWordingMarkers = [];
+        if (Array.isArray(question.textHistory) && question.textHistory.length > 0) {
+            question.textHistory.forEach((historyEntry, historyIndex) => {
+                if (!historyEntry?.changedAt) return;
+                const changedTime = new Date(historyEntry.changedAt).getTime();
+                if (Number.isNaN(changedTime) || changedTime < minTime || changedTime > maxTime) return;
+
+                const markerX = getX(changedTime);
+                let markerY = paddingTop + chartHeight / 2;
+
+                if (questionPoints.length === 1) {
+                    markerY = questionPoints[0].y;
+                } else if (questionPoints.length > 1) {
+                    const firstPointTime = new Date(questionPoints[0].timestamp).getTime();
+                    const lastPointTime = new Date(questionPoints[questionPoints.length - 1].timestamp).getTime();
+
+                    if (changedTime <= firstPointTime) {
+                        markerY = questionPoints[0].y;
+                    } else if (changedTime >= lastPointTime) {
+                        markerY = questionPoints[questionPoints.length - 1].y;
+                    } else {
+                        let previousPoint = questionPoints[0];
+                        let nextPoint = questionPoints[questionPoints.length - 1];
+
+                        for (let pointIndex = 0; pointIndex < questionPoints.length - 1; pointIndex++) {
+                            const currentPointTime = new Date(questionPoints[pointIndex].timestamp).getTime();
+                            const nextPointTime = new Date(questionPoints[pointIndex + 1].timestamp).getTime();
+                            if (changedTime >= currentPointTime && changedTime <= nextPointTime) {
+                                previousPoint = questionPoints[pointIndex];
+                                nextPoint = questionPoints[pointIndex + 1];
+                                break;
+                            }
+                        }
+
+                        const isBooleanQuestion = question.responseType === 'boolean';
+                        if (isBooleanQuestion) {
+                            markerY = previousPoint.y;
+                        } else {
+                            const previousTime = new Date(previousPoint.timestamp).getTime();
+                            const nextTime = new Date(nextPoint.timestamp).getTime();
+                            const timeSpan = nextTime - previousTime;
+                            const fraction = timeSpan > 0 ? (changedTime - previousTime) / timeSpan : 0;
+                            markerY = previousPoint.y + fraction * (nextPoint.y - previousPoint.y);
+                        }
+                    }
+                }
+
+                const previousText = historyIndex === 0
+                    ? (question.originalText || question.text)
+                    : question.textHistory[historyIndex - 1].text;
+                const newText = historyEntry.text;
+                const formattedDate = formatEntryDateTime(historyEntry.changedAt);
+
+                const wordingMarkerItem = {
+                    questionId: question.id,
+                    questionTitle,
+                    color,
+                    x: markerX,
+                    y: markerY,
+                    changedAt: historyEntry.changedAt,
+                    timestamp: historyEntry.changedAt,
+                    formattedDate,
+                    previousText,
+                    newText
+                };
+                questionWordingMarkers.push(wordingMarkerItem);
+                allWordingMarkers.push(wordingMarkerItem);
+            });
+        }
+
         series.push({
             question,
             responseType: question.responseType || 'scale',
@@ -1391,7 +1588,8 @@ export function computeGraphLayout({
             isIsolated,
             segments,
             points: questionPoints,
-            skips: questionSkips
+            skips: questionSkips,
+            wordingMarkers: questionWordingMarkers
         });
     });
 
@@ -1454,6 +1652,7 @@ export function computeGraphLayout({
         xTicks,
         series,
         notes,
+        wordingMarkers: allWordingMarkers,
         allSkips,
         allPoints
     };
@@ -1470,7 +1669,7 @@ export function renderGraphSVG(layout) {
         return '';
     }
 
-    const { dimensions, gridLines, xTicks, series, notes } = layout;
+    const { dimensions, gridLines, xTicks, series, notes, wordingMarkers = [] } = layout;
     const {
         width,
         height,
@@ -1515,6 +1714,7 @@ export function renderGraphSVG(layout) {
     let linesHTML = '';
     let skipsHTML = '';
     let notesHTML = '';
+    let wordingMarkersHTML = '';
     let pointsHTML = '';
 
     series.forEach(seriesItem => {
@@ -1592,6 +1792,11 @@ export function renderGraphSVG(layout) {
         `;
     });
 
+    // Generate Wording Change markers on the timeline (Task 3.13)
+    wordingMarkers.forEach(markerItem => {
+        wordingMarkersHTML += renderWordingMarkerMarkup(markerItem);
+    });
+
     return `
         <svg class="graph-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
             <g class="grid">${gridLinesHTML}</g>
@@ -1599,6 +1804,7 @@ export function renderGraphSVG(layout) {
             <g class="lines">${linesHTML}</g>
             <g class="skips">${skipsHTML}</g>
             <g class="notes">${notesHTML}</g>
+            <g class="wording-markers">${wordingMarkersHTML}</g>
             <g class="points">${pointsHTML}</g>
         </svg>
     `;
@@ -2103,8 +2309,33 @@ export function renderLineGraph(container, {
         });
     });
 
+    // Attach click and keyboard interaction handlers to wording markers (Task 3.13)
+    const wordingMarkerElements = container.querySelectorAll('.wording-marker');
+    wordingMarkerElements.forEach(wordingMarkerElement => {
+        wordingMarkerElement.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            displayWordingDialog(wordingMarkerElement);
+        });
+
+        wordingMarkerElement.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                event.stopPropagation();
+                displayWordingDialog(wordingMarkerElement);
+            }
+        });
+    });
+
     if (scrollContainerElement) {
         scrollContainerElement.addEventListener('click', (event) => {
+            const wordingMarker = event.target.closest('.wording-marker');
+            if (wordingMarker) {
+                event.preventDefault();
+                event.stopPropagation();
+                displayWordingDialog(wordingMarker);
+                return;
+            }
             const marker = event.target.closest('.note-marker');
             if (marker) {
                 event.preventDefault();
@@ -2114,6 +2345,13 @@ export function renderLineGraph(container, {
         });
         scrollContainerElement.addEventListener('keydown', (event) => {
             if (event.key === 'Enter' || event.key === ' ') {
+                const wordingMarker = event.target.closest('.wording-marker');
+                if (wordingMarker) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    displayWordingDialog(wordingMarker);
+                    return;
+                }
                 const marker = event.target.closest('.note-marker');
                 if (marker) {
                     event.preventDefault();
