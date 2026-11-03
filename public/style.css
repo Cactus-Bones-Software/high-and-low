@@ -2508,7 +2508,6 @@ body[data-contrast="high"] .note-marker:active .note-marker-icon {
     }
 
     /* Tracker Canvas: 2-column layout. Left: Header (Question) + Footer (Actions); Right: Input (Score buttons) */
-    /* biome-ignore-start lint/correctness/noInvalidGridAreas: Biome false positive on valid multi-row input area */
     #tracker-canvas {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -2520,7 +2519,6 @@ body[data-contrast="high"] .note-marker:active .note-marker-icon {
         height: 100%;
         flex-direction: unset;
     }
-    /* biome-ignore-end lint/correctness/noInvalidGridAreas: Biome false positive on valid multi-row input area */
 
     #tracker-canvas .header-box {
         grid-area: header;
