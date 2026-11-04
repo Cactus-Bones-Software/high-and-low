@@ -200,6 +200,21 @@ Current Version: `3`
     on language change via `syncDocumentLanguageAndDirection()` and `applyTranslations()`.
   * Text direction resolves to `rtl` for right-to-left locales (such as Arabic) and `ltr` for left-to-right locales.
 
+#### Static Files Localization & Web App Manifest Handling (`public/manifest.json`, `sw.js`, Task 8.3.3)
+* **Single Web App Manifest (Default-Locale Only)**:
+  * `manifest.json` is maintained as a single standardized manifest in the default locale (`"en"`, name:
+    `"High & Low - Mood Tracker"`, short_name: `"High & Low"`).
+  * Web App Manifest specifications across modern browsers do not support dynamic runtime language switching
+    without server-side content negotiation or service worker manifest rewrites, which contradicts the local-first
+    zero-compiler static architecture.
+  * In-app runtime localization for application title, meta description, and the testing banner is managed
+    client-side in `public/js/localization.js` (`applyTranslations()`).
+* **Offline Caching of Locale Assets & Cache Versioning**:
+  * Every locale file defined in `public/locales/manifest.json` (such as `locales/en.json`) is explicitly listed in
+    `PRECACHE_ASSETS` in `sw.js` and cached on service worker installation via `listLocaleAssets()`.
+  * `CACHE_NAME` in `sw.js` is bumped whenever locale dictionaries, static files, or precached assets change
+    (currently `high-and-low-v11`).
+
 ---
 
 ## 3. Session & In-Memory State

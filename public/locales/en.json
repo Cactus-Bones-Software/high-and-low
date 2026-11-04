@@ -255,6 +255,10 @@
     "placeholder": "e.g. Slept poorly, feeling restless or distracted...",
     "saveNote": "Save Note"
   },
+  "app": {
+    "title": "High & Low - Mood Tracker",
+    "description": "A private, low-effort mood tracking web app for individuals with mood disorders."
+  },
   "testingBanner": "This version is for testing only. Do not use it for psychiatric purposes.",
   "builtInQuestions": {
     "q_energy": {

@@ -236,8 +236,19 @@ export function applyTranslations(rootElement = typeof document !== 'undefined' 
         translateElement(rootElement);
     }
 
-    if (typeof document !== 'undefined' && document.documentElement) {
-        syncDocumentLanguageAndDirection(getCurrentLanguage());
+    if (typeof document !== 'undefined') {
+        if (document.documentElement) {
+            syncDocumentLanguageAndDirection(getCurrentLanguage());
+        }
+        const localizedTitle = t('app.title');
+        if (localizedTitle && localizedTitle !== 'app.title') {
+            document.title = localizedTitle;
+        }
+        const metaDescriptionElement = document.querySelector('meta[name="description"]');
+        const localizedDescription = t('app.description');
+        if (metaDescriptionElement && localizedDescription && localizedDescription !== 'app.description') {
+            metaDescriptionElement.setAttribute('content', localizedDescription);
+        }
     }
 }
 

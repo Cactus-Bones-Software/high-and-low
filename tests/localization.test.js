@@ -47,6 +47,11 @@ describe('Internationalization and Localization Pass', () => {
                     shortLabel: 'Nivel de Energía'
                 }
             },
+            app: {
+                title: 'High & Low - Registro de Ánimo',
+                description: 'Una aplicación privada para seguimiento de ánimo.'
+            },
+            testingBanner: 'Esta versión es solo para pruebas.',
             questions: {
                 searchPlaceholder: 'Buscar por texto, etiqueta o categoría…'
             }
@@ -198,6 +203,36 @@ describe('Internationalization and Localization Pass', () => {
             expect(testHarnessEnvironment.document.documentElement.lang).toBe('en');
             expect(testHarnessEnvironment.document.documentElement.dir).toBe('ltr');
         });
+
+        it('localizes document title and meta description on language change', () => {
+            STATE.language = 'test';
+            applyTranslations(testHarnessEnvironment.document);
+            expect(testHarnessEnvironment.document.title).toBe('High & Low - Registro de Ánimo');
+            const metaDescription = testHarnessEnvironment.document.querySelector('meta[name="description"]');
+            expect(metaDescription?.getAttribute('content')).toBe('Una aplicación privada para seguimiento de ánimo.');
+
+            STATE.language = 'en';
+            applyTranslations(testHarnessEnvironment.document);
+            expect(testHarnessEnvironment.document.title).toBe('High & Low - Mood Tracker');
+            expect(metaDescription?.getAttribute('content')).toBe(
+                'A private, low-effort mood tracking web app for individuals with mood disorders.'
+            );
+        });
+
+        it('localizes testing banner paragraph through data-i18n attribute', () => {
+            const testingBannerParagraph = testHarnessEnvironment.document.querySelector('#testing-banner p');
+            expect(testingBannerParagraph).not.toBeNull();
+
+            STATE.language = 'test';
+            applyTranslations(testHarnessEnvironment.document);
+            expect(testingBannerParagraph.textContent).toBe('Esta versión es solo para pruebas.');
+
+            STATE.language = 'en';
+            applyTranslations(testHarnessEnvironment.document);
+            expect(testingBannerParagraph.textContent).toBe(
+                'This version is for testing only. Do not use it for psychiatric purposes.'
+            );
+        });
     });
 
     describe('Language Switching & State Persistence (setLanguage)', () => {
@@ -292,6 +327,20 @@ describe('Internationalization and Localization Pass', () => {
             } finally {
                 global.fetch = originalFetch;
             }
+        });
+
+        it('service worker precache lists all locales in manifest and uses high-and-low-v11 cache name', () => {
+            const serviceWorkerPath = resolve(process.cwd(), 'public', 'sw.js');
+            expect(existsSync(serviceWorkerPath)).toBe(true);
+            const serviceWorkerContent = readFileSync(serviceWorkerPath, 'utf8');
+
+            expect(serviceWorkerContent).toContain("const CACHE_NAME = 'high-and-low-v11';");
+            expect(serviceWorkerContent).toContain("'./locales/manifest.json'");
+
+            const manifest = JSON.parse(readFileSync(resolve(localesDirectory, 'manifest.json'), 'utf8'));
+            manifest.locales.forEach(({ code }) => {
+                expect(serviceWorkerContent).toContain(`'./locales/${code}.json'`);
+            });
         });
     });
 });

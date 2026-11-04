@@ -1,6 +1,6 @@
 // High & Low - Offline Service Worker
 // Cache Name with versioning.md
-const CACHE_NAME = 'high-and-low-v10';
+const CACHE_NAME = 'high-and-low-v11';
 
 // Static relative assets required for complete offline operation
 const PRECACHE_ASSETS = [

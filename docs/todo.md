@@ -556,7 +556,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - Keep `<html lang>` and `dir` in sync with the selected language at startup and on language change.
   - Add tests for at least two locales, including a different date order and 12/24-hour convention.
 
-- [ ] **Task 8.3.3: Localize Static Files and Offline Caching**
+- [x] **Task 8.3.3: Localize Static Files and Offline Caching**
   - `index.html` `<title>` and meta description, the testing banner, and `manifest.json` `name`/`description` are
     not reachable by the translation dictionary. Localize `<title>` and the banner from JS, and decide (and
     document in `docs/state.md`) how the single `manifest.json` is handled (default-locale only, or per-locale files).
@@ -591,7 +591,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - Update the `STATE` block in `docs/state.md` in the same edit so the field name and comment match the code.
 
 - [ ] **Task 8.6: Retire Legacy `menuSide` Config Fallback**
-  - `handedness` replaced `menuSide` (the 2026-08-13 handedness decision), but `ui/settings-menu.js` still reads
+  - `handedness` replaced `menuSide` (the handedness decision), but `ui/settings-menu.js` still reads
     `getConfig('menuSide')` and `localStorage 'menuSide'` as fallbacks, and `tests/handedness.test.js` (test 5)
     covers them.
   - Decide whether to migrate on load (copy any existing `menuSide` value into `handedness`, then delete the legacy
