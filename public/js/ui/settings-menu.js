@@ -3,7 +3,7 @@
  * Side navigation drawer, accessibility configuration, theme synchronization, and canvas back buttons.
  */
 
-import { getConfig, setConfig } from '../storage/db.js';
+import { getConfig, setConfig, deleteConfig } from '../storage/db.js';
 import { navigateTo, getCurrentViewId } from './navigation.js';
 import { updateHoldActionAriaLabels, setIsHoldDelayEnabled } from './hold-actions.js';
 import { startNewCheckIn, renderCurrentQuestion } from '../checkin.js';
@@ -301,20 +301,70 @@ export function setupSettingsAndMenu() {
 /**
  * Reads stored theme, contrast, handedness, and hold-delay preferences from IndexedDB/localStorage
  * and applies them to <body> attributes and settings form controls on application startup.
- * @returns {Promise<void>} Resolves when display settings are loaded and applied.
+ */
+
+/**
+ * Migrates legacy 'menuSide' configuration to 'handedness' on load if present,
+ * and deletes the retired 'menuSide' key from IndexedDB and localStorage.
+ * @param {string | undefined} storedHandedness - Handedness value from IndexedDB.
+ * @param {string | null} localHandedness - Handedness value from localStorage.
+ * @returns {Promise<string>} The resolved active handedness setting ('right' | 'left').
+ */
+export async function migrateLegacyMenuSideOnLoad(storedHandedness, localHandedness) {
+    let legacyMenuSide = null;
+    let localLegacyMenuSide = null;
+
+    try {
+        legacyMenuSide = await getConfig('menuSide');
+    } catch (error) {
+        console.warn('Failed to check legacy menuSide in IndexedDB:', error);
+    }
+
+    try {
+        localLegacyMenuSide = localStorage.getItem('menuSide');
+    } catch (error) {
+        console.warn('Failed to check legacy menuSide in localStorage:', error);
+    }
+
+    const hasLegacyMenuSide = Boolean(legacyMenuSide || localLegacyMenuSide);
+    const resolvedHandedness = storedHandedness || localHandedness || legacyMenuSide || localLegacyMenuSide || 'right';
+
+    if (hasLegacyMenuSide) {
+        try {
+            await deleteConfig('menuSide');
+        } catch (error) {
+            console.warn('Failed to delete legacy menuSide from IndexedDB config:', error);
+        }
+        try {
+            localStorage.removeItem('menuSide');
+        } catch (error) {
+            console.warn('Failed to remove legacy menuSide from localStorage:', error);
+        }
+        await setConfig('handedness', resolvedHandedness);
+        try {
+            localStorage.setItem('handedness', resolvedHandedness);
+        } catch (error) {
+            console.warn('Failed to persist migrated handedness in localStorage:', error);
+        }
+    }
+
+    return resolvedHandedness;
+}
+
+/**
+ * Loads stored user settings (theme, contrast, handedness, hold delay) and applies them to the DOM.
+ * @returns {Promise<void>} Resolves when all storage queries and DOM mutations complete.
  */
 export async function applyStoredDisplay() {
     const [
         theme,
         contrast,
         handedness,
-        legacyMenuSide,
         holdDelay
     ] = await Promise.all([
         getConfig('theme'),
         getConfig('contrast'),
         getConfig('handedness'),
-        getConfig('menuSide'),
         getConfig('holdDelay'),
         getConfig('debug-bounds')
     ]);
@@ -347,14 +397,12 @@ export async function applyStoredDisplay() {
     if (holdDelaySelect) holdDelaySelect.value = isHoldDelayEnabled ? 'enabled' : 'disabled';
 
     let localHandedness = null;
-    let localLegacyMenuSide = null;
     try {
         localHandedness = localStorage.getItem('handedness');
-        localLegacyMenuSide = localStorage.getItem('menuSide');
     } catch (error) {
         console.warn('Failed to read handedness setting from localStorage:', error);
     }
-    const finalHandedness = handedness || legacyMenuSide || localHandedness || localLegacyMenuSide || 'right';
+    const finalHandedness = await migrateLegacyMenuSideOnLoad(handedness, localHandedness);
     document.body.setAttribute('data-handedness', finalHandedness);
     document.body.setAttribute('data-menu-side', finalHandedness);
     if (!handedness) {

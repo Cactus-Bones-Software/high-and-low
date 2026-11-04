@@ -215,6 +215,13 @@ Current Version: `3`
   * `CACHE_NAME` in `sw.js` is bumped whenever locale dictionaries, static files, or precached assets change
     (currently `high-and-low-v11`).
 
+#### Legacy `menuSide` Retirement & On-Load Migration (Task 8.6)
+* The legacy `menuSide` config key is fully retired in favor of `handedness`.
+* When the application loads, `migrateLegacyMenuSideOnLoad()` checks for legacy `menuSide` values in IndexedDB
+  `config` and `localStorage`. If found, it migrates the value to `handedness` (if not already set), persists it,
+  and deletes `menuSide` from both IndexedDB and `localStorage`.
+* All ongoing fallback reads to `menuSide` are retired from the runtime settings pipeline.
+
 ---
 
 ## 3. Session & In-Memory State

@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { setupTestDOM, waitFor } from './test-utils.js';
-import { getConfig, deleteConfig } from '../public/js/storage/db.js';
-import { applyStoredDisplay } from '../public/js/ui/settings-menu.js';
+import { getConfig, setConfig, deleteConfig } from '../public/js/storage/db.js';
+import { applyStoredDisplay, migrateLegacyMenuSideOnLoad } from '../public/js/ui/settings-menu.js';
 
 let _domInstance;
 let windowInstance;
@@ -71,7 +71,7 @@ describe('Handedness Setting and Non-Dominant Action Placement', () => {
         expect(storedConfig).toBe('right');
     });
 
-    it('falls back to legacy menuSide if handedness is unset', async () => {
+    it('migrates legacy menuSide from localStorage to handedness on load and deletes menuSide', async () => {
         // Clear handedness from config and localStorage, and set legacy menuSide in localStorage
         await deleteConfig('handedness');
         windowInstance.localStorage.removeItem('handedness');
@@ -83,6 +83,39 @@ describe('Handedness Setting and Non-Dominant Action Placement', () => {
         expect(documentInstance.body.getAttribute('data-handedness')).toBe('left');
         const handednessSelect = documentInstance.getElementById('handedness-select');
         expect(handednessSelect.value).toBe('left');
+
+        // Handedness must be persisted and legacy menuSide must be removed
+        expect(windowInstance.localStorage.getItem('handedness')).toBe('left');
+        expect(windowInstance.localStorage.getItem('menuSide')).toBeNull();
+        expect(await getConfig('handedness')).toBe('left');
+        expect(await getConfig('menuSide')).toBeUndefined();
+    });
+
+    it('migrates legacy menuSide from IndexedDB config to handedness and deletes menuSide', async () => {
+        await deleteConfig('handedness');
+        windowInstance.localStorage.removeItem('handedness');
+        await setConfig('menuSide', 'left');
+
+        await applyStoredDisplay();
+
+        expect(documentInstance.body.getAttribute('data-handedness')).toBe('left');
+        expect(await getConfig('handedness')).toBe('left');
+        expect(await getConfig('menuSide')).toBeUndefined();
+        expect(windowInstance.localStorage.getItem('handedness')).toBe('left');
+        expect(windowInstance.localStorage.getItem('menuSide')).toBeNull();
+    });
+
+    it('preserves existing handedness and purges legacy menuSide when both are present', async () => {
+        await setConfig('handedness', 'right');
+        windowInstance.localStorage.setItem('handedness', 'right');
+        await setConfig('menuSide', 'left');
+        windowInstance.localStorage.setItem('menuSide', 'left');
+
+        const resolved = await migrateLegacyMenuSideOnLoad('right', 'right');
+        expect(resolved).toBe('right');
+        expect(await getConfig('handedness')).toBe('right');
+        expect(await getConfig('menuSide')).toBeUndefined();
+        expect(windowInstance.localStorage.getItem('menuSide')).toBeNull();
     });
 
     it('contains menu drawer, toggle, and non-dominant card action CSS rules', () => {

@@ -590,7 +590,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
     `tests/graph.test.js`, and `tests/test-utils.js`. Keep behavior identical.
   - Update the `STATE` block in `docs/state.md` in the same edit so the field name and comment match the code.
 
-- [ ] **Task 8.6: Retire Legacy `menuSide` Config Fallback**
+- [x] **Task 8.6: Retire Legacy `menuSide` Config Fallback**
   - `handedness` replaced `menuSide` (the handedness decision), but `ui/settings-menu.js` still reads
     `getConfig('menuSide')` and `localStorage 'menuSide'` as fallbacks, and `tests/handedness.test.js` (test 5)
     covers them.
