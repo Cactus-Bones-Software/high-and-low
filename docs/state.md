@@ -28,16 +28,16 @@ Current Version: `3`
 * **Record Structure**: `{ key: string, value: any }`
 * **Managed Keys**:
 
-| Key                 | Type       | Allowed Values              | Description                                              |
-|---------------------|------------|-----------------------------|----------------------------------------------------------|
-| `activeQuestionSet` | `string[]` | Array of Question IDs       | Ordered list of question IDs appearing in active tracker |
-| `theme`             | `string`   | `'system'\|'dark'\|'light'` | Color theme preference                                   |
-| `contrast`          | `string`   | `'standard'` or `'high'`    | Contrast mode                                            |
-| `handedness`        | `string`   | `'right'\|'left'`           | Menu and non-dominant action alignment                   |
-| `holdDelay`         | `string`   | `'enabled'\|'disabled'`     | 1.5s hold-to-confirm barrier on touch actions            |
-| `language`          | `string`   | `'en'` (expandable)         | Active user interface language preference                |
-| `lastBackupAt`      | `string\|null` | ISO-8601 string or `null` | ISO-8601 timestamp of last successful backup export      |
-| `seedVersion`       | `number`   | Integer (e.g. `4`)          | Tracks built-in default question seeding                 |
+| Key                 | Type           | Allowed Values              | Description                                              |
+|---------------------|----------------|-----------------------------|----------------------------------------------------------|
+| `activeQuestionSet` | `string[]`     | Array of Question IDs       | Ordered list of question IDs appearing in active tracker |
+| `theme`             | `string`       | `'system'\|'dark'\|'light'` | Color theme preference                                   |
+| `contrast`          | `string`       | `'standard'` or `'high'`    | Contrast mode                                            |
+| `handedness`        | `string`       | `'right'\|'left'`           | Menu and non-dominant action alignment                   |
+| `holdDelay`         | `string`       | `'enabled'\|'disabled'`     | 1.5s hold-to-confirm barrier on touch actions            |
+| `language`          | `string`       | `'en'` (expandable)         | Active user interface language preference                |
+| `lastBackupAt`      | `string\|null` | ISO-8601 string or `null`   | ISO-8601 timestamp of last successful backup export      |
+| `seedVersion`       | `number`       | Integer (e.g. `4`)          | Tracks built-in default question seeding                 |
 
 *Note: `handedness`, `holdDelay`, and `language` preferences are also mirrored in `localStorage` for pre-render access.*
 
@@ -235,7 +235,7 @@ export const STATE = {
   deviceMode: 'mouse', // 'mouse' | 'touch'
   language: 'en', // Active language code, as listed in locales/manifest.json
   historyVisibleQuestionIds: null, // Set<string> | null (null = show all active)
-  historyTimeRange: 'all', // '7d' | '14d' | '30d' | '90d' | 'all'
+  historyActiveZoomPreset: 'all', // Active zoom-preset button key ('7d' | '14d' | '30d' | '90d' | 'all')
   historyZoomScale: 1, // Timeline zoom scale (unbounded continuous scale, default 1.0)
   historyScrollLeft: 0 // Timeline scroll anchor retained during zoom
 };

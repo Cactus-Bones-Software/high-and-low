@@ -582,7 +582,7 @@ just native `<script type="module">`, staying within the vanilla-only constraint
   - Extract repetitive JSDOM bootstrapping, IndexedDB mocking, matchMedia/serviceWorker polyfills, and helper functions into a centralized `tests/test-utils.js` harness.
   - Refactor all test suites (`drawer.test.js`, `graph.test.js`, `session_persistence.test.js`, `transitions.test.js`) to consume the shared harness, eliminating code duplication and WebStorm inspection warnings.
 
-- [ ] **Task 8.5: Rename `STATE.historyTimeRange` to Reflect Zoom-Preset Semantics**
+- [x] **Task 8.5: Rename `STATE.historyTimeRange` to Reflect Zoom-Preset Semantics**
   - Timeframe filtering was retired (Tasks 9.2–9.3), but `STATE.historyTimeRange` (`public/js/state.js`) still uses
     the filter-era name and the `'7d' | '14d' | '30d' | '90d' | 'all'` comment. It now records only which zoom-preset
     button is active.

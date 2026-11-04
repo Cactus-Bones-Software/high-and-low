@@ -197,9 +197,10 @@ describe('Timeline Navigation, Zoom, and Preset Controls', () => {
             expect(sevenDayButton.getAttribute('aria-label')).toBe('Zoom to ~7 days');
 
             sevenDayButton.click();
-            await waitFor(() => STATE.historyTimeRange === '7d');
+            await waitFor(() => STATE.historyActiveZoomPreset === '7d');
 
             expect(STATE.historyZoomScale).toBe(1.79);
+            expect(STATE.historyActiveZoomPreset).toBe('7d');
             expect(STATE.historyTimeRange).toBe('7d');
             const updatedButton = container.querySelector('.graph-timeframe-button[data-range="7d"]');
             expect(updatedButton.classList.contains('is-active')).toBe(true);

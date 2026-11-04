@@ -811,7 +811,6 @@ export function setupGraphGestureZoom(scrollContainerElement, options = {}) {
     let currentScaleFactor = 1.0;
     let initialTargetPivotX = 0;
     let initialClientPivotX = 0;
-    let lastPivotX = 0;
     let lastClientPivotX = 0;
     let wheelDebounceTimeoutId = null;
     let originalTouchAction = scrollContainerElement.style.touchAction || '';
@@ -864,7 +863,6 @@ export function setupGraphGestureZoom(scrollContainerElement, options = {}) {
             initialClientPivotX = midpoint.clientX;
             initialTargetPivotX = computeTargetPivotX(midpoint.clientX);
             lastClientPivotX = midpoint.clientX;
-            lastPivotX = initialTargetPivotX;
 
             isGestureActive = true;
             activeGestureSource = 'touch';
@@ -912,7 +910,6 @@ export function setupGraphGestureZoom(scrollContainerElement, options = {}) {
             const midpoint = calculatePinchMidpoint(firstPointer, secondPointer);
             lastClientPivotX = midpoint.clientX;
             const panDeltaX = midpoint.clientX - initialClientPivotX;
-            lastPivotX = initialTargetPivotX;
 
             if (typeof onGestureChange === 'function') {
                 onGestureChange({
@@ -992,7 +989,6 @@ export function setupGraphGestureZoom(scrollContainerElement, options = {}) {
                 initialClientPivotX = clientX;
                 initialTargetPivotX = computeTargetPivotX(clientX);
                 lastClientPivotX = clientX;
-                lastPivotX = initialTargetPivotX;
 
                 if (typeof onGestureStart === 'function') {
                     onGestureStart({
@@ -1015,7 +1011,6 @@ export function setupGraphGestureZoom(scrollContainerElement, options = {}) {
             currentScaleFactor = Math.max(0.01, currentScaleFactor * multiplier);
             lastClientPivotX = clientX;
             const panDeltaX = clientX - initialClientPivotX;
-            lastPivotX = initialTargetPivotX;
 
             if (typeof onGestureChange === 'function') {
                 onGestureChange({
@@ -1107,7 +1102,6 @@ export function setupGraphGestureZoom(scrollContainerElement, options = {}) {
             initialTargetPivotX = 0;
             initialClientPivotX = 0;
             lastClientPivotX = 0;
-            lastPivotX = 0;
 
             scrollContainerElement.removeEventListener('pointerdown', handlePointerDown);
             scrollContainerElement.removeEventListener('pointermove', handlePointerMove);
@@ -1845,8 +1839,8 @@ export function renderLineGraph(container, {
     }
     const hadPreviousTimeline = Boolean(previousScrollContainer);
 
-    const currentTimeRange = timeRange || STATE.historyTimeRange || 'all';
-    STATE.historyTimeRange = currentTimeRange;
+    const currentTimeRange = timeRange || STATE.historyActiveZoomPreset || 'all';
+    STATE.historyActiveZoomPreset = currentTimeRange;
     const currentZoomScale = Number.isFinite(Number(zoomScale)) ? Number(zoomScale) :
         (Number.isFinite(Number(STATE.historyZoomScale)) ? Number(STATE.historyZoomScale) : 1);
     STATE.historyZoomScale = currentZoomScale;
@@ -2021,7 +2015,7 @@ export function renderLineGraph(container, {
                     paddingLeft: layout.dimensions.paddingLeft
                 });
 
-                STATE.historyTimeRange = selectedRange;
+                STATE.historyActiveZoomPreset = selectedRange;
                 STATE.historyZoomScale = nextZoomScale;
                 STATE.historyScrollLeft = targetScrollLeft;
 

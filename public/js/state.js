@@ -3,15 +3,20 @@
  * Single in-memory state singleton shared across modules.
  */
 
-export let STATE = {
+export const STATE = {
     language: 'en',
     activeQuestions: [],
     currentQuestionIndex: 0,
     checkinAnswers: [],
     checkinNote: null,
     deviceMode: 'mouse',
-    historyVisibleQuestionIds: null,
-    historyTimeRange: 'all',
+    historyActiveZoomPreset: 'all',
+    get historyTimeRange() {
+        return this.historyActiveZoomPreset;
+    },
+    set historyTimeRange(value) {
+        this.historyActiveZoomPreset = value;
+    },
     historyZoomScale: 1,
     historyScrollLeft: 0
 };

@@ -138,7 +138,7 @@ export async function setupTestDOM(customSessionStorage = {}) {
     STATE.checkinNote = null;
     STATE.deviceMode = 'mouse';
     STATE.historyVisibleQuestionIds = null;
-    STATE.historyTimeRange = 'all';
+    STATE.historyActiveZoomPreset = 'all';
     STATE.historyZoomScale = 1;
     STATE.historyScrollLeft = 0;
     setCurrentViewId('tracker-canvas');
@@ -361,6 +361,8 @@ export async function openQuestionAuthoringDialog(documentInstance, questionId, 
     }
     actionButton.click();
     const overlay = documentInstance.getElementById('question-authoring-dialog-overlay');
+    // `getElementById` always returns an HTMLElement instance, or null. Null is taken care of by the optional chain.
+    // noinspection JSUnresolvedReference
     await waitFor(() => Boolean(overlay?.classList?.contains('is-open')));
     return overlay;
 }
